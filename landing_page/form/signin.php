@@ -496,13 +496,13 @@ include "../../connect.php";
                 </div>
                 
                 <div class="form-group">
-                    <label for="signin-email">Email*</label>
+                    <label for="signin-email">Email</label>
                     <input type="email" id="signin-email" name="email" required placeholder="Enter Email Address">
                     <div id="email-error" class="error-message hidden"></div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="signin-password">Password*</label>
+                    <label for="signin-password">Password</label>
                     <input type="password" id="signin-password" name="password" required placeholder="Enter Password">
                     <div id="password-error" class="error-message hidden"></div>
                 </div>

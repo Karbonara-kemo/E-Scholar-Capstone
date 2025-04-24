@@ -1,0 +1,241 @@
+Below is the updated HTML code that includes a footer with the logo `images/Municipality_of_San_Julian_Logo.png`.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
+</head>
+<style>
+body {
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #090549;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 50px;
+}
+
+.navbar .title {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    margin-left: 20px;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 14px;
+}
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 100px auto;
+    max-width: 1200px;
+    padding: 0 20px;
+}
+
+.image-container {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    height: 500px;
+    overflow: hidden;
+}
+
+.slideshow {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.slide.active {
+    opacity: 1;
+}
+
+.slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 7px;
+}
+
+.content-container {
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.main-title {
+    font-size: 48px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.description {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 30px;
+}
+
+.get-started {
+    padding: 10px 25px;
+    font-size: 15px;
+    color: white;
+    background: #090549;
+    border: none;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.get-started:hover {
+    background: #10087c;
+}
+
+.logo {
+    height: 40px;
+    margin-right: 10px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    margin-left: 20px;
+}
+
+footer {
+    background: #090549;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 50px;
+}
+
+footer .footer-logo {
+    display: block;
+    margin: 0 auto 10px auto;
+    width: 80px;
+    height: auto;
+}
+
+footer p {
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        margin: 50px auto;
+    }
+    
+    .image-container {
+        height: 300px;
+    }
+}
+</style>
+<body>
+    <div class="navbar">
+        <div class="logo-container">
+            <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" alt="E-Scholar Logo" class="logo">
+            <img src="../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
+            <div class="title">E-Scholar</div>
+        </div>
+        <div>
+            <a href="#">About Us</a>
+            <a href="#">Contact Us</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="image-container">
+            <div class="slideshow">
+                <div class="slide active">
+                    <img src="https://pia.gov.ph/uploads/2024/01/38568a97baa458646466c10fb143f7ad.jpg" alt="Scholarship Image 1">
+                </div>
+                <div class="slide">
+                    <img src="https://essu.edu.ph/images/TDP_5.jpg" alt="Scholarship Image 2">
+                </div>
+                <div class="slide">
+                    <img src="https://pia.gov.ph/uploads/2024/01/249b44d33fe0815122c2c79bf19f2cfb.jpg" alt="Scholarship Image 3">
+                </div>
+                <div class="slide">
+                    <img src="https://essu.edu.ph/images/36M_CHED_4.jpg" alt="Scholarship Image 3">
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-container">
+            <div class="main-title">E-Scholar</div>
+            <p class="description">San Julian Eastern Samar Scholarship</p>
+            <button class="get-started" onclick="location.href='form/signin.php'">Get Started</button>
+        </div>
+    </div>
+
+    <footer>
+        <img src="../images/Municipality_of_San_Julian_Logo.png" alt="Municipality of San Julian Logo" class="footer-logo">
+        <p>© 2025 Municipality of San Julian. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        let slideIndex = 0;
+        const slides = document.getElementsByClassName("slide");
+        
+        function showSlides() {
+            for (let i = 0; i < slides.length; i++) {
+                slides[i].classList.remove("active");
+            }
+            slideIndex++;
+            if (slideIndex >= slides.length) {
+                slideIndex = 0;
+            }
+            slides[slideIndex].classList.add("active");
+            setTimeout(showSlides, 5000);
+        }
+        
+        window.onload = function() {
+            showSlides();
+        };
+    </script>
+</body>
+</html>

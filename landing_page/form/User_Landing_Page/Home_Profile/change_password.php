@@ -1,0 +1,262 @@
+<?php
+// Start session
+session_start();
+
+// Include database connection
+include "../../../../connect.php";
+
+// Check if the user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../../signin.php"); // Redirect to login page if not logged in
+    exit();
+}
+
+// Get logged-in user's ID from session
+$userId = $_SESSION['user_id'];
+
+// Initialize variables for error/success messages
+$error = "";
+$success = "";
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $currentPassword = $_POST['current_password'];
+    $newPassword = $_POST['new_password'];
+    $confirmNewPassword = $_POST['confirm_new_password'];
+
+    // Fetch current password hash from database
+    $sql = "SELECT Password FROM user WHERE Id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $user = $result->fetch_assoc();
+        $hashedPassword = $user['Password'];
+
+        // Verify current password
+        if (password_verify($currentPassword, $hashedPassword)) {
+            // Check if new passwords match
+            if ($newPassword === $confirmNewPassword) {
+                // Hash the new password
+                $newHashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+
+                // Update password in the database
+                $updateSql = "UPDATE user SET Password = ? WHERE Id = ?";
+                $updateStmt = $conn->prepare($updateSql);
+                $updateStmt->bind_param("si", $newHashedPassword, $userId);
+
+                if ($updateStmt->execute()) {
+                    $success = "Password updated successfully!";
+                } else {
+                    $error = "Error updating password. Please try again later.";
+                }
+            } else {
+                $error = "New password and confirm password do not match.";
+            }
+        } else {
+            $error = "Current password is incorrect.";
+        }
+    } else {
+        $error = "User not found.";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change Password</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background-color: #090549;
+            color: white;
+        }
+
+        .navbar .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar .logo {
+            height: 40px;
+        }
+
+        .navbar .title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .change-password-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 70px); /* Adjust height excluding navbar */
+            padding: 20px;
+        }
+
+        .change-password-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .change-password-header img {
+            width: 50px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        .change-password-header h2 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 0 10px;
+        }
+
+        .change-password-header p {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .change-password-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            color: #34495e;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dfe6e9;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #34495e;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color:rgb(0, 0, 0);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .error-message, .success-message {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            color: #e74c3c;
+        }
+
+        .success-message {
+            color: #2ecc71;
+        }
+
+        .change-password-form button {
+            background-color: #090549;
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            border-radius: 14px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .change-password-form button:hover {
+            background-color: #34495e;
+        }
+
+        .back-to-profile {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #545863;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-to-profile:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo-container">
+            <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" class="logo" alt="E-Scholar Logo">
+            <div class="title">E-Scholar</div>
+        </div>
+    </div>
+
+    <!-- Change Password Content -->
+    <div class="change-password-wrapper">
+        <div class="change-password-container">
+            <div class="change-password-header">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
+                <h2>Change Your Password</h2>
+                <p>Keep your account secure by updating your password</p>
+            </div>
+            <form method="POST" action="" class="change-password-form">
+                <div class="form-group">
+                    <label for="current_password">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" required placeholder="Enter current password">
+                </div>
+                <div class="form-group">
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" required placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                    <label for="confirm_new_password">Confirm New Password</label>
+                    <input type="password" id="confirm_new_password" name="confirm_new_password" required placeholder="Re-enter new password">
+                </div>
+                <?php if ($error): ?>
+                    <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
+                <?php endif; ?>
+                <?php if ($success): ?>
+                    <div class="success-message"><?php echo htmlspecialchars($success); ?></div>
+                <?php endif; ?>
+                <button type="submit">Change Password</button>
+            </form>
+            <a href="user_profile.php" class="back-to-profile">Back To Profile</a>
+        </div>
+    </div>
+</body>
+</html>

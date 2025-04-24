@@ -1,0 +1,9 @@
+{
+    "name": "neb/form_prac",
+    "description": "mp",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "license": "MIT"
+}

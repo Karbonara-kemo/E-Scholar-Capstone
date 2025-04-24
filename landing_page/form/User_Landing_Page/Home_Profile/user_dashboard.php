@@ -83,6 +83,7 @@ $totalScholarships = count($scholarships);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Scholar - User Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="../../../../assets/scholar-logo.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>

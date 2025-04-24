@@ -81,7 +81,7 @@ include "../../connect.php";
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landing Page</title>
+    <title>Sign Up</title>
     <link rel="stylesheet" href="../form/User_Landing_Page/style.css">
     <link rel="icon" href="../../assets/scholar-logo.png" type="image/png">
     <link rel="stylesheet" href="style.css">

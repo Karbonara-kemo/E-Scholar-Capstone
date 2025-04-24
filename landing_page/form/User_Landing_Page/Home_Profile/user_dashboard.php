@@ -542,6 +542,122 @@ body {
     color: #555;
     margin-top: 10px;
 }
+
+#history-page {
+    /* padding: 20px; */
+    background-color: #f4f4f4;
+    border-radius: 12px;
+}
+
+.page {
+        /* padding: 20px; */
+        max-width: 1200px;
+        margin: auto;
+    }
+
+.submit-btn {
+    background-color: #090549;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-top: 20px; /* Added margin for spacing */
+}
+
+.form-container-application {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 30px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+
+.input-field {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 10px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.input-field:focus {
+    border-color:rgb(0, 0, 0);
+    box-shadow: 0 0 8px rgba(13, 59, 102, 0.2);
+    outline: none;
+}
+
+.textarea-field {
+    resize: vertical;
+}
+
+.select-field {
+    appearance: none;
+    background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%230d3b66' d='M2 0L0 2h4z'/%3E%3C/svg%3E") no-repeat right 10px center;
+    background-size: 8px 10px;
+}
+
+.file-field {
+    padding: 8px;
+    font-size: 10px;
+}
+
+.back-btn {
+    background:#090549;
+    color:rgb(255, 255, 255);
+    border: 1px solid #090549;
+    padding: 8px 14px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 10px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+.back-btn:hover {
+    background:rgb(9, 7, 122);
+    color: white;
+}
+
+.submit-btn {
+    background-color: #090549;
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: bold;
+    display: block;
+    width: 100%;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+.submit-btn:hover {
+    background-color:rgb(18, 10, 136);
+}
+
+.label-application {
+    font-size: 12px;
+    color: black;
+}
+
+#application-form-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+}
+
 </style>
 <body>
     <div class="navbar">
@@ -702,10 +818,56 @@ body {
                                         <?php echo json_encode(nl2br($scholarship["benefits"])); ?>, 
                                         <?php echo json_encode(nl2br($scholarship["eligibility"])); ?>
                                     )'>View Details</button>
-                                <button class="btn btn-primary">Apply Now</button>
+                                <button class="btn btn-primary" onclick="showApplicationForm('<?php echo htmlspecialchars($scholarship['title']); ?>')">Apply Now</button>
                             </div>
                         </div>
                     <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div id="application-form-page" class="page">
+                <div class="form-container-application">
+                    <button class="back-btn" onclick="showScholarshipsPage()">Back to Scholarships</button>
+                    <h2 id="application-form-title">Scholarship Application Form</h2>
+                    <form>
+                        <label class="label-application" for="fullname">Full Name</label>
+                        <input type="text" id="fullname" name="fullname" class="input-field" placeholder="Enter your full name" required />
+
+                        <label class="label-application" for="birthdate">Date of Birth</label>
+                        <input type="date" id="birthdate" name="birthdate" class="input-field" required />
+
+                        <label class="label-application" for="address">Complete Address</label>
+                        <textarea id="address" name="address" class="input-field textarea-field" rows="3" placeholder="Enter your complete address" required></textarea>
+
+                        <label class="label-application" for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="input-field" placeholder="Enter your email" required />
+
+                        <label class="label-application" for="contact">Contact Number</label>
+                        <input type="tel" id="contact" name="contact" class="input-field" placeholder="Enter your contact number" required />
+
+                        <label class="label-application" for="school">Current School</label>
+                        <input type="text" id="school" name="school" class="input-field" placeholder="Enter your current school" required />
+
+                        <label class="label-application" for="course">Course / Program</label>
+                        <input type="text" id="course" name="course" class="input-field" placeholder="Enter your course or program" required />
+
+                        <label class="label-application" for="year">Year Level</label>
+                        <select id="year" name="year" class="input-field select-field" required>
+                            <option value="">--Select Year Level--</option>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                        </select>
+
+                        <label class="label-application" for="income">Family Monthly Income (PHP)</label>
+                        <input type="number" id="income" name="income" class="input-field" placeholder="Enter family monthly income" required />
+
+                        <label class="label-application" for="documents">Upload Requirements (PDF/JPEG)</label>
+                        <input type="file" id="documents" name="documents" class="input-field file-field" accept=".pdf,.jpg,.jpeg,.png" multiple required />
+
+                        <button type="submit" class="submit-btn">Submit Application</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -912,6 +1074,23 @@ body {
             
             // Rest of your initialization code
         });
+
+        function showApplicationForm(scholarshipTitle) {
+            console.log("Navigating to Application Form for:", scholarshipTitle); // Debug Log
+            document.querySelectorAll('.page').forEach(page => {
+                page.style.display = 'none';
+            });
+            document.getElementById('application-form-page').style.display = 'block';
+            document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
+        }
+
+        function showScholarshipsPage() {
+            console.log("Navigating back to Scholarships Page"); // Debug Log
+            document.querySelectorAll('.page').forEach(page => {
+                page.style.display = 'none';
+            });
+            document.getElementById('scholarships-page').style.display = 'block';
+        }
 </script>
 </body>
 </html>

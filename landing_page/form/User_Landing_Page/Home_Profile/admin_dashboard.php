@@ -643,8 +643,30 @@ body {
 
 .main-title-scholar {
     color: black;
+    margin-top: 20px;
+    font-size: 25px;
+    margin-bottom: 20px;
+}
+
+.h1-home-welcome {
+    color: black;
+    margin-top: 20px;
+    margin-left : 10px;
+    font-size: 25px;
+    margin-bottom: 20px;
+}
+
+.h1-title-appManagement {
+    color: black;
+    margin-top: 20px;
+    font-size: 25px;
+    margin-bottom: 20px;
+}
+
+.p-description-appM {
+    color: black;
     margin-top: 0;
-    font-size: 20px;
+    font-size: 14px;
     margin-bottom: 20px;
 }
 
@@ -714,7 +736,7 @@ body {
         <div class="main-content">
 
             <div id="home-page" class="page active">
-                <h1>Welcome, <?php echo htmlspecialchars($admin_name); ?>!</h1>
+                <h1 class="h1-home-welcome">Welcome, <?php echo htmlspecialchars($admin_name); ?>!</h1>
                 <div class="dashboard-boxes">
                     <div class="box">
                         <div class="box-title">Total Applicants</div>
@@ -744,9 +766,9 @@ body {
             </div>
 
             <div id="application-page" class="page">
-                <h1>Application Management</h1>
+                <h1 class="h1-title-appManagement">Application Management</h1>
                 <!-- Application content here -->
-                <p>This section is for managing applications.</p>
+                <p class="p-description-appM">This section is for managing applications.</p>
             </div>
 
             <div id="scholarship-page" class="page">

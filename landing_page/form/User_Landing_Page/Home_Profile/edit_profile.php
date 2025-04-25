@@ -72,8 +72,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: 10px;
             background: #090549;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 50px;
         }
 
         .logo-container {
@@ -83,12 +89,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .logo {
-            height: 40px;
+            height: 50px;
             margin-right: 10px;
         }
 
         .title {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             color: white;
         }
@@ -96,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .form-container {
             max-width: 600px;
             margin: 40px auto;
+            margin-top: 100px;
             padding: 30px;
             background-color: white;
             border-radius: 12px;
@@ -177,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" alt="E-Scholar Logo" class="logo">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo" class="logo">
+            <img src="../../../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
             <div class="title">E-Scholar</div>
         </div>
     </div>

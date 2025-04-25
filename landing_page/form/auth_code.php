@@ -44,10 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authentication Code</title>
     <link rel="icon" href="../../assets/scholar-logo.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Montserrat', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f5f7fa;
@@ -57,29 +58,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            background-color: #090549;
-            color: white;
+            padding: 10px;
+            background: #090549;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 50px;
         }
 
-        .navbar .logo-container {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            margin-left: 20px;
         }
 
-        .navbar .logo {
-            height: 40px;
+        .logo {
+            height: 50px;
+            margin-right: 10px;
         }
 
-        .navbar .title {
+        .title {
             font-size: 20px;
             font-weight: bold;
+            color: white;
         }
 
         .navbar .right-nav a {
             color: white;
             text-decoration: none;
+            margin-right: 20px;
+            font-size: 14px;
             font-weight: bold;
         }
 
@@ -95,7 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .auth-code-container {
             background-color: #ffffff;
             padding: 40px;
-            border-radius: 8px;
+            border-radius: 10px;
+            margin-top: 70px; /* Adjust for navbar height */
             width: 100%;
             max-width: 400px;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
@@ -103,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .auth-code-header img {
-            width: 50px;
+            width: 100px;
             height: auto;
             margin-bottom: 15px;
         }
@@ -116,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .auth-code-header p {
-            font-size: 14px;
+            font-size: 13px;
             color: #7f8c8d;
             margin-bottom: 20px;
         }
@@ -124,14 +135,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .auth-code-form {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 10px;
         }
 
         .auth-code-form label {
-            font-size: 14px;
+            font-size: 12px;
             color: #34495e;
             text-align: left;
             margin-bottom: 5px;
+            font-weight: bold;
         }
 
         .code-input-container {
@@ -142,11 +154,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .code-box {
-            width: 40px;
-            height: 40px;
+            width: 35px;
+            height: 35px;
             text-align: center;
             border: 1px solid #dfe6e9;
-            border-radius: 4px;
+            border-radius: 5px;
             font-size: 18px;
             padding: 0;
             outline: none;
@@ -162,22 +174,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: #090549;
             color: #ffffff;
             border: none;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 11px;
             cursor: pointer;
             transition: background-color 0.3s ease;
             margin-top: 10px;
         }
 
         .auth-code-form button:hover {
-            background-color: #34495e;
+            background-color: #090549;
         }
 
         .back-to-forgot {
             margin-top: 20px;
-            font-size: 14px;
-            color: #545863;
+            font-size: 11px;
+            color: #090549;
             text-decoration: none;
             display: inline-block;
         }
@@ -198,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" class="logo" alt="E-Scholar Logo">
+            <img src="../../images/Municipality_of_San_Julian_Logo.png" class="logo" alt="E-Scholar Logo">
             <div class="title">E-Scholar</div>
         </div>
         <div class="right-nav">
@@ -210,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="auth-code-wrapper">
         <div class="auth-code-container">
             <div class="auth-code-header">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
+                <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
                 <h2>Authentication Code</h2>
                 <p>Please enter the code sent to your registered email address</p>
             </div>

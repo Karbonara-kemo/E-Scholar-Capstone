@@ -22,30 +22,38 @@ include "../../connect.php";
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            background-color: #090549;
-            color: white;
+            padding: 10px;
+            background: #090549;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 50px;
         }
 
-        .navbar .logo-container {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            margin-left: 20px;
         }
 
-        .navbar .logo {
-            height: 40px;
+        .logo {
+            height: 50px;
+            margin-right: 10px;
         }
 
-        .navbar .title {
+        .title {
             font-size: 20px;
             font-weight: bold;
+            color: white;
         }
-
         .navbar .right-nav a {
             color: white;
             text-decoration: none;
             font-weight: bold;
+            margin-right: 20px;
+            font-size: 14px;
         }
 
         .reset-password-wrapper {
@@ -60,15 +68,16 @@ include "../../connect.php";
         .reset-password-container {
             background-color: #ffffff;
             padding: 40px;
-            border-radius: 8px;
+            margin-top: 70px;
+            border-radius: 10px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
             text-align: center;
         }
 
         .reset-password-header img {
-            width: 50px;
+            width: 100px;
             height: auto;
             margin-bottom: 15px;
         }
@@ -81,7 +90,7 @@ include "../../connect.php";
         }
 
         .reset-password-header p {
-            font-size: 14px;
+            font-size: 12px;
             color: #7f8c8d;
             margin-bottom: 20px;
         }
@@ -89,7 +98,7 @@ include "../../connect.php";
         .reset-password-form {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 10px;
         }
 
         .form-group {
@@ -100,16 +109,17 @@ include "../../connect.php";
         }
 
         .form-group label {
-            font-size: 14px;
-            color: #34495e;
+            font-size: 12px;
+            color:rgb(0, 0, 0);
+            font-weight: bold;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #dfe6e9;
-            border-radius: 4px;
-            font-size: 14px;
+            border-radius: 14px;
+            font-size: 11px;
             color: #34495e;
             box-sizing: border-box;
         }
@@ -130,9 +140,9 @@ include "../../connect.php";
             background-color: #090549;
             color: #ffffff;
             border: none;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 11px;
             cursor: pointer;
             transition: background-color 0.3s ease;
             margin-top: 10px;
@@ -175,7 +185,7 @@ include "../../connect.php";
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" class="logo" alt="E-Scholar Logo">
+            <img src="../../images/Municipality_of_San_Julian_Logo.png" class="logo" alt="E-Scholar Logo">
             <div class="title">E-Scholar</div>
         </div>
         <div class="right-nav">
@@ -187,7 +197,7 @@ include "../../connect.php";
     <div class="reset-password-wrapper">
         <div class="reset-password-container">
             <div class="reset-password-header">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
+                <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
                 <h2>Reset Your Password</h2>
                 <p>Enter your new password below</p>
             </div>

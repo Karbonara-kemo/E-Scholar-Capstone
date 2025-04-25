@@ -84,24 +84,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            background-color: #090549;
-            color: white;
+            padding: 10px;
+            background: #090549;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 50px;
         }
 
-        .navbar .logo-container {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            margin-left: 20px;
         }
 
-        .navbar .logo {
-            height: 40px;
+        .logo {
+            height: 50px;
+            margin-right: 10px;
         }
 
-        .navbar .title {
+ 
+        .title {
             font-size: 20px;
             font-weight: bold;
+            color: white;
         }
 
         .change-password-wrapper {
@@ -119,25 +127,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-radius: 8px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
             text-align: center;
+            margin-top: 70px; /* Adjust for navbar height */
         }
 
         .change-password-header img {
-            width: 50px;
+            width: 100px;
             height: auto;
             margin-bottom: 15px;
         }
 
         .change-password-header h2 {
-            color: #2c3e50;
+            color:rgb(44, 48, 53);
             font-size: 20px;
             font-weight: 600;
             margin: 0 0 10px;
         }
 
         .change-password-header p {
-            font-size: 14px;
+            font-size: 13px;
             color: #7f8c8d;
             margin-bottom: 20px;
         }
@@ -156,16 +165,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .form-group label {
-            font-size: 14px;
-            color: #34495e;
+            font-size: 12px;
+            color:rgb(34, 30, 30);
+            font-weight: bold;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #dfe6e9;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 11px;
             color: #34495e;
             box-sizing: border-box;
         }
@@ -193,21 +203,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #090549;
             color: #ffffff;
             border: none;
-            padding: 12px;
+            padding: 10px;
             border-radius: 14px;
-            font-size: 14px;
+            font-size: 11px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
 
         .change-password-form button:hover {
-            background-color: #34495e;
+            background-color:rgb(14, 6, 116);
         }
 
         .back-to-profile {
             margin-top: 20px;
-            font-size: 14px;
-            color: #545863;
+            font-size: 12px;
+            color:#090549;
             text-decoration: none;
             display: inline-block;
         }
@@ -222,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" class="logo" alt="E-Scholar Logo">
+            <img src="../../../../images/Municipality_of_San_Julian_Logo.png" class="logo" alt="E-Scholar Logo">
             <div class="title">E-Scholar</div>
         </div>
     </div>

@@ -373,7 +373,7 @@ include "../../connect.php";
     
     .container {
         background-color: white;
-        border-radius: 8px;
+        border-radius: 10px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         width: 100%;
         max-width: 500px;
@@ -575,7 +575,7 @@ include "../../connect.php";
     <div class="container">
         <form id="signup-form" class="form active" method="POST" action="process_signup.php" onsubmit="return validateSignupForm()">
             <div class="form-header">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
+                <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
                 <h2>Create Your E-Scholar Account</h2>
                 <p>Fill in your information to get started</p>
             </div>

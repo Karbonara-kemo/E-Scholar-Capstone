@@ -9,10 +9,11 @@ include "../../connect.php";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="../../assets/scholar-logo.png" type="image/png">
     <title>Forgot Password</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Montserrat', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f5f7fa;
@@ -22,30 +23,39 @@ include "../../connect.php";
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            background-color: #090549;
-            color: white;
+            padding: 10px;
+            background: #090549;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 50px;
         }
 
-        .navbar .logo-container {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            margin-left: 20px;
         }
 
-        .navbar .logo {
-            height: 40px;
+        .logo {
+            height: 50px;
+            margin-right: 10px;
         }
 
-        .navbar .title {
+        .title {
             font-size: 20px;
             font-weight: bold;
+            color: white;
         }
 
         .navbar .right-nav a {
             color: white;
             text-decoration: none;
             font-weight: bold;
+            margin-right: 20px; 
+            font-size: 14px;
         }
 
         .forgot-password-wrapper {
@@ -60,28 +70,29 @@ include "../../connect.php";
         .forgot-password-container {
             background-color: #ffffff;
             padding: 40px;
-            border-radius: 8px;
+            border-radius: 10px;
+            margin-top: 70px; /* Adjust for navbar height */
             width: 100%;
             max-width: 400px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
             text-align: center;
         }
 
         .forgot-password-header img {
-            width: 50px;
+            width: 100px;
             height: auto;
             margin-bottom: 15px;
         }
 
         .forgot-password-header h2 {
-            color: #2c3e50;
+            color: #090549;
             font-size: 20px;
             font-weight: 600;
             margin: 0 0 10px;
         }
 
         .forgot-password-header p {
-            font-size: 14px;
+            font-size: 13px;
             color: #7f8c8d;
             margin-bottom: 20px;
         }
@@ -89,29 +100,30 @@ include "../../connect.php";
         .forgot-password-form {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 10px;
         }
 
         .forgot-password-form label {
-            font-size: 14px;
-            color: #34495e;
-            text-align: left;
-            margin-bottom: 5px;
+            font-size: 13px;
+            color:rgb(52, 61, 61);
+            text-align: left;   
+            font-weight: bold;
+
         }
 
         .forgot-password-form input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #dfe6e9;
-            border-radius: 4px;
-            font-size: 14px;
-            color: #34495e;
+            border-radius: 14px;
+            font-size: 11px;
+            color:rgb(0, 0, 0);
             box-sizing: border-box;
         }
 
         .forgot-password-form input:focus {
             outline: none;
-            border-color: #3498db;
+            border-color:rgb(0, 0, 0);
             box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
         }
 
@@ -119,9 +131,9 @@ include "../../connect.php";
             background-color: #090549;
             color: #ffffff;
             border: none;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 11px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
@@ -132,7 +144,7 @@ include "../../connect.php";
 
         .back-to-login {
             margin-top: 20px;
-            font-size: 14px;
+            font-size: 12px;
             color: #545863;
             text-decoration: none;
             display: inline-block;
@@ -141,21 +153,6 @@ include "../../connect.php";
         .back-to-login:hover {
             text-decoration: underline;
         }
-
-        .language-selector {
-            margin-top: 30px;
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-
-        .language-selector select {
-            font-size: 14px;
-            padding: 5px;
-            border: 1px solid #dfe6e9;
-            border-radius: 4px;
-            background-color: white;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -163,7 +160,7 @@ include "../../connect.php";
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" class="logo" alt="E-Scholar Logo">
+            <img src="../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo" alt="E-Scholar Logo">
             <div class="title">E-Scholar</div>
         </div>
         <div class="right-nav">
@@ -175,7 +172,7 @@ include "../../connect.php";
     <div class="forgot-password-wrapper">
         <div class="forgot-password-container">
             <div class="forgot-password-header">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
+                <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
                 <h2>Forgot your password</h2>
                 <p>Please enter the email address you'd like your password reset information sent to.</p>
             </div>

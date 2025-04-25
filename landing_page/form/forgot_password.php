@@ -92,7 +92,7 @@ include "../../connect.php";
         }
 
         .forgot-password-header p {
-            font-size: 13px;
+            font-size: 12px;
             color: #7f8c8d;
             margin-bottom: 20px;
         }

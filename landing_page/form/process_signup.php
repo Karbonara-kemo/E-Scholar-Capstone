@@ -13,8 +13,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $birthdate = mysqli_real_escape_string($conn, $_POST['birthdate']);
     $address = mysqli_real_escape_string($conn, $_POST['address']);
     $email = mysqli_real_escape_string($conn, $_POST['email']);
-    $contact_number = mysqli_real_escape_string($conn, $_POST['contact']); // Capture contact number
-    $password = password_hash($_POST['password'], PASSWORD_BCRYPT); // Hash the password for security
+    $contact_number = mysqli_real_escape_string($conn, $_POST['contact']);
+    $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
+
+    // Check if the email already exists in the database
+    $checkEmailSql = "SELECT * FROM user WHERE Email = ?";
+    $stmt = $conn->prepare($checkEmailSql);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        // Email already exists, redirect back with an error
+        header("Location: signup.php?error=email_taken&email=" . urlencode($email));
+        exit();
+    }
 
     // SQL query to insert data into the database
     $sql = "INSERT INTO user (Fname, Lname, Mname, Age, Gender, Birthdate, Address, contact_number, Email, Password)

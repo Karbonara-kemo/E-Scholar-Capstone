@@ -30,8 +30,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['admin_id'] = $adminRow['Id'];
             $_SESSION['admin_name'] = $adminRow['fname'] . ' ' . $adminRow['lname'];
 
-            // Redirect to admin dashboard
-            header("Location: User_Landing_Page/Home_Profile/admin_dashboard.php?success=1");
+            // Redirect to signin.php with success message and redirect URL
+            $redirectUrl = "User_Landing_Page/Home_Profile/admin_dashboard.php";
+            header("Location: signin.php?success=1&redirect_to=" . urlencode($redirectUrl));
             exit();
         } else {
             // Redirect with an incorrect password error
@@ -45,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $userResult = mysqli_query($conn, $userQuery);
 
     if (!$userResult) {
-        error_log("User  Query Error: " . mysqli_error($conn));
+        error_log("User Query Error: " . mysqli_error($conn));
         header("Location: signin.php?error=query_error");
         exit();
     }
@@ -59,8 +60,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_id'] = $userRow['Id'];
             $_SESSION['user_name'] = $userRow['Fname'] . ' ' . $userRow['Lname'];
 
-            // Redirect to user dashboard
-            header("Location: User_Landing_Page/Home_Profile/user_dashboard.php?success=1");
+            // Redirect to signin.php with success message and redirect URL
+            $redirectUrl = "User_Landing_Page/Home_Profile/user_dashboard.php";
+            header("Location: signin.php?success=1&redirect_to=" . urlencode($redirectUrl));
             exit();
         } else {
             // Redirect with an incorrect password error
@@ -76,4 +78,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 // Close the database connection
 mysqli_close($conn);
-?>  
+?>

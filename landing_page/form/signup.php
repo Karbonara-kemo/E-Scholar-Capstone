@@ -25,41 +25,64 @@ include "../../connect.php";
             }, 3000);
         }
 
-        // Function to validate the signup form
-        function validateSignupForm() {
+            // Function to validate the signup form
+    function validateSignupForm() {
+        const requiredFields = [
+            { id: "name", errorId: "fname-error", errorMessage: "First Name required." },
+            { id: "last-name", errorId: "lname-error", errorMessage: "Last Name required." },
+            { id: "age", errorId: "age-error", errorMessage: "Age required." },
+            { id: "gender", errorId: "gender-error", errorMessage: "Gender required." },
+            { id: "signup-address", errorId: "address-error", errorMessage: "Address required." },
+            { id: "contact-number", errorId: "contact-error", errorMessage: "Contact Number required." },
+            { id: "signup-email", errorId: "email-error", errorMessage: "Email required." },
+            { id: "signup-password", errorId: "password-error", errorMessage: "Password required." },
+            { id: "confirm-password", errorId: "confirm-password-error", errorMessage: "Confirm Password required." },
+        ];
+
+        let isValid = true;
+
+        // Reset all error messages
+        requiredFields.forEach(field => {
+            document.getElementById(field.errorId).style.display = 'none';
+        });
+
+        // Check for empty fields
+        requiredFields.forEach(field => {
+            const input = document.getElementById(field.id);
+            if (!input.value.trim()) {
+                const errorElement = document.getElementById(field.errorId);
+                errorElement.style.display = 'block';
+                errorElement.textContent = field.errorMessage;
+                isValid = false;
+            }
+        });
+
+        // Additional validations for password
+        if (isValid) {
             const passwordField = document.getElementById("signup-password");
             const confirmPasswordField = document.getElementById("confirm-password");
             const password = passwordField.value;
             const confirmPassword = confirmPasswordField.value;
 
-            const passwordError = document.getElementById("password-error");
-            const confirmPasswordError = document.getElementById("confirm-password-error");
-
-            // Regular expression to enforce strict password rules
             const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-            let isValid = true;
-
-            // Validate password
             if (!passwordRegex.test(password)) {
+                const passwordError = document.getElementById("password-error");
                 passwordError.style.display = 'block';
                 passwordError.textContent = "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one special character, and one number.";
                 isValid = false;
-            } else {
-                passwordError.style.display = 'none';
             }
 
-            // Check if passwords match
             if (password !== confirmPassword) {
+                const confirmPasswordError = document.getElementById("confirm-password-error");
                 confirmPasswordError.style.display = 'block';
                 confirmPasswordError.textContent = "Passwords do not match.";
                 isValid = false;
-            } else {
-                confirmPasswordError.style.display = 'none';
             }
-
-            return isValid; // True if the form is valid
         }
+
+        return isValid; // True if the form is valid
+    }
 
         function checkSuccessMessage() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -75,6 +98,30 @@ include "../../connect.php";
 
         // Call the success message function on page load
         window.onload = checkSuccessMessage;
+
+        function checkErrorMessage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('error')) {
+                const errorType = urlParams.get('error');
+                if (errorType === 'email_taken') {
+                    const emailError = document.getElementById('email-error');
+                    emailError.style.display = 'block';
+                    emailError.textContent = 'Email is already taken. Please use a different email.';
+
+                    // Pre-fill the email field with the entered email
+                    const email = urlParams.get('email');
+                    if (email) {
+                        document.getElementById('signup-email').value = email;
+                    }
+                }
+            }
+        }
+
+        // Call the error message function on page load
+        window.onload = () => {
+            checkSuccessMessage(); // Existing function for success messages
+            checkErrorMessage();   // Updated function for error messages
+        };
     </script>
     
 <head>
@@ -321,16 +368,16 @@ include "../../connect.php";
         justify-content: center;
         align-items: center;
         padding: 40px 20px;
-        margin-top: 50px; /* Adjusted to account for fixed navbar height */
+        margin-top: 60px; /* Adjusted to account for fixed navbar height */
     }
     
     .container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         width: 100%;
         max-width: 500px;
-        padding: 40px 10px;
+        padding: 40px 30px;
     }
     
     .form {
@@ -350,6 +397,7 @@ include "../../connect.php";
     .form-group {
         margin-bottom: 15px;
         flex: 1;
+        font-size: 12px;
     }
     
     label {
@@ -364,17 +412,18 @@ include "../../connect.php";
         border: 1px solid #ddd;
         border-radius: 10px;
         box-sizing: border-box;
+        font-size: 11px;
     }
     
     .btn {
         background-color: #090549;
         color: white;
         border: none;
-        padding: 12px 20px;
+        padding: 10px 20px;
         border-radius: 10px;
         cursor: pointer;
         width: 100%;
-        font-size: 13px;
+        font-size: 11px;
         margin-top: 10px;
     }
     
@@ -415,14 +464,14 @@ include "../../connect.php";
     .form-header h2 {
         color: #090549;
         margin: 0;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 600;
     }
     
     .form-header p {
         color: #666;
         margin: 5px 0 0;
-        font-size: 14px;
+        font-size: 12px;
     }
 
     /* New styles for the form toggle link */
@@ -436,7 +485,7 @@ include "../../connect.php";
     .form-toggle p {
         margin: 0;
         color: #666;
-        font-size: 14px;
+        font-size: 12px;
     }
     
     .form-toggle a {
@@ -444,6 +493,7 @@ include "../../connect.php";
         text-decoration: none;
         font-weight: 600;
         cursor: pointer;
+        font-size: 12px;
     }
     
     .form-toggle a:hover {
@@ -498,6 +548,15 @@ include "../../connect.php";
             color: #545863;
             margin-left: 20px;
         }
+
+        .error-message {
+            color: #f44336;
+            font-size: 10px;
+            margin-top: 5px;
+            display: none;
+        }
+
+    </style>
     </style>
 </head>
 <body>
@@ -513,88 +572,95 @@ include "../../connect.php";
     </div>
 
     <div class="main-content">
-        <div class="container">
-            <form id="signup-form" class="form active" method="POST" action="process_signup.php" onsubmit="return validateSignupForm()">
-                <div class="form-header">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
-                    <h2>Create Your E-Scholar Account</h2>
-                    <p>Fill in your information to get started</p>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="name">First Name</label>
-                        <input type="text" id="name" name="fname" required placeholder="Enter your first name">
-                    </div>
-                    <div class="form-group">
-                        <label for="last-name">Last Name</label>
-                        <input type="text" id="last-name" name="lname" required placeholder="Enter your last name">
-                    </div>
-                </div>
-
+    <div class="container">
+        <form id="signup-form" class="form active" method="POST" action="process_signup.php" onsubmit="return validateSignupForm()">
+            <div class="form-header">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
+                <h2>Create Your E-Scholar Account</h2>
+                <p>Fill in your information to get started</p>
+            </div>
+            
+            <div class="form-row">
                 <div class="form-group">
-                    <label for="middle-name">Middle Name</label>
-                    <input type="text" id="middle-name" name="mname" placeholder="Enter your middle name">
+                    <label for="name">First Name</label>
+                    <input type="text" id="name" name="fname" placeholder="Enter your first name">
+                    <div id="fname-error" class="error-message"></div>
                 </div>
-
                 <div class="form-group">
-                    <label for="age">Age</label>
-                    <input type="number" id="age" name="age" min="1" max="120" inputmode="numeric" pattern="[0-9]*" placeholder="Enter your age" required>
+                    <label for="last-name">Last Name</label>
+                    <input type="text" id="last-name" name="lname" placeholder="Enter your last name">
+                    <div id="lname-error" class="error-message"></div>
                 </div>
+            </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender" name="gender" required>
-                            <option value="">Select gender</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                            <option value="prefer-not-to-say">Prefer not to say</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="birthdate">Birthdate</label>
-                        <input type="date" id="birthdate" name="birthdate" required>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label for="middle-name">Middle Name</label>
+                <input type="text" id="middle-name" name="mname" placeholder="Enter your middle name">
+            </div>
 
+            <div class="form-group">
+                <label for="age">Age</label>
+                <input type="number" id="age" name="age" min="1" max="120" inputmode="numeric" pattern="[0-9]*" placeholder="Enter your age">
+                <div id="age-error" class="error-message"></div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
-                    <label for="signup-address">Address</label>
-                    <input type="text" id="signup-address" name="address" required placeholder="Enter your complete address">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender">
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="prefer-not-to-say">Prefer not to say</option>
+                    </select>
+                    <div id="gender-error" class="error-message"></div>
                 </div>
-
-                <!-- Updated Contact Number Field -->
                 <div class="form-group">
-                    <label for="contact-number">Contact Number</label>
-                    <input type="text" id="contact-number" name="contact" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" placeholder="Enter your contact number" required>
+                    <label for="birthdate">Birthdate</label>
+                    <input type="date" id="birthdate" name="birthdate">
+                    <div id="birthdate-error" class="error-message"></div>
                 </div>
+            </div>
 
+            <div class="form-group">
+                <label for="signup-address">Address</label>
+                <input type="text" id="signup-address" name="address" placeholder="Enter your complete address">
+                <div id="address-error" class="error-message"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="contact-number">Contact Number</label>
+                <input type="text" id="contact-number" name="contact" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" placeholder="Enter your contact number">
+                <div id="contact-error" class="error-message"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" name="email" placeholder="Enter your Email Address">
+                <div id="email-error" class="error-message"></div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
-                    <label for="signup-email">Email</label>
-                    <input type="email" id="signup-email" name="email" required placeholder="Enter your Email Address">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" name="password" placeholder="Create a password">
+                    <div id="password-error" class="error-message"></div>
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="signup-password">Password</label>
-                        <input type="password" id="signup-password" name="password" required placeholder="Create a password" pattern="^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$">
-                        <div id="password-error" class="error-message"></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm-password">Confirm Password</label>
-                        <input type="password" id="confirm-password" name="confirm-password" required placeholder="Re-enter your password">
-                        <div id="confirm-password-error" class="error-message"></div>
-                    </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" placeholder="Re-enter your password">
+                    <div id="confirm-password-error" class="error-message"></div>
                 </div>
+            </div>
 
-                <button type="submit" class="btn">Sign Up</button>
+            <button type="submit" class="btn">Sign Up</button>
 
-                <div class="form-toggle">
-                    <p>Already have an account? <a href="signin.php">Sign In</a></p>
-                </div>
-            </form>
-        </div>
+            <div class="form-toggle">
+                <p>Already have an account? <a href="signin.php">Sign In</a></p>
+            </div>
+        </form>
     </div>
+</div>
 </body>
 </html>

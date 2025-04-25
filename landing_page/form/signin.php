@@ -30,6 +30,73 @@ include "../../connect.php";
 
         // Call the function on page load
         window.onload = checkMessages;
+
+        // Function to display a popup notification
+function showPopupNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `popup-notification ${type}`;
+    notification.innerHTML = `
+        <i>${type === 'success' ? '✔️' : '❌'}</i>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(notification);
+
+    // Show the notification
+    notification.style.display = 'flex';
+
+    // Automatically redirect after notification is shown
+    setTimeout(() => {
+        notification.style.display = 'none';
+        notification.remove();
+        
+        // Get redirect URL from data attribute
+        const redirectUrl = notification.getAttribute('data-redirect');
+        if (redirectUrl) {
+            window.location.href = redirectUrl;
+        }
+    }, 2000);
+}
+
+// Function to check for success and redirect messages in the URL
+function checkSuccessMessage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('success')) {
+        const successType = urlParams.get('success');
+        const redirectTo = urlParams.get('redirect_to');
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'popup-notification success';
+        notification.innerHTML = '<i>✔️</i><span>Login successful! Redirecting...</span>';
+        if (redirectTo) {
+            notification.setAttribute('data-redirect', redirectTo);
+        }
+        document.body.appendChild(notification);
+        
+        // Show the notification
+        notification.style.display = 'flex';
+        
+        // Automatically redirect after notification is shown
+        setTimeout(() => {
+            notification.style.display = 'none';
+            notification.remove();
+            
+            if (redirectTo) {
+                window.location.href = redirectTo;
+            }
+        }, 2000);
+        
+        // Remove the query parameters from the URL
+        const newUrl = window.location.href.split('?')[0];
+        window.history.replaceState({}, document.title, newUrl);
+    }
+}
+
+// Call both functions on page load
+window.onload = function() {
+    checkMessages();
+    checkSuccessMessage();
+};
     </script>
 <head>
     <meta charset="UTF-8">
@@ -235,31 +302,7 @@ include "../../connect.php";
       font-size: 0.75rem;
       color: #8B8E98;
       text-decoration: underline;
-    }
-  
-    .back_btn_signup {
-      margin-right: 350px;
-    }
-  
-    .back_btn_signup {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background-color: #090549;
-      color: white;
-      border: none;
-      padding: 7px 10px;
-      font-size: 10px;
-      font-weight: bold;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background 0.3s ease, transform 0.2s ease;
-    }
-  
-    /* Hover Effect */
-    .back_btn_signup:hover {
-        background-color: #10087c;
-    }
+    }  
   
     .have_acc {
       text-decoration: none;
@@ -278,13 +321,13 @@ include "../../connect.php";
         align-items: center;
         padding: 40px 20px;
         overflow: hidden;
-        margin-top: 50px; /* Adjusted to account for fixed navbar height */
+        margin-top: 60px; /* Adjusted to account for fixed navbar height */
     }
     
     .container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         width: 100%;
         max-width: 500px;
         padding: 40px 10px;
@@ -303,16 +346,21 @@ include "../../connect.php";
         gap: 15px;
         margin-bottom: 15px;
     }
+
+
     
     .form-group {
         margin-bottom: 15px;
         flex: 1;
+        margin-right: 30px;
+        margin-left: 30px;
     }
     
     label {
         display: block; 
         margin-bottom: 5px;
         font-weight: bold;
+        font-size : 14px;
     }
     
     input, select {
@@ -321,18 +369,20 @@ include "../../connect.php";
         border: 1px solid #ddd;
         border-radius: 10px;
         box-sizing: border-box;
+        font-size : 11px;
     }
     
     .btn {
         background-color: #090549;
         color: white;
         border: none;
-        padding: 12px 20px;
+        padding: 10px 15px;
         border-radius: 10px;
         cursor: pointer;
-        width: 100%;
-        font-size: 13px;
+        width: 88%;
+        font-size: 10px;
         margin-top: 10px;
+        margin-left: 30px;
     }
     
     .btn:hover {
@@ -372,14 +422,14 @@ include "../../connect.php";
     .form-header h2 {
         color: #090549;
         margin: 0;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 600;
     }
     
     .form-header p {
         color: #666;
         margin: 5px 0 0;
-        font-size: 14px;
+        font-size: 12px;
     }
 
     /* New styles for the form toggle link */
@@ -393,7 +443,7 @@ include "../../connect.php";
     .form-toggle p {
         margin: 0;
         color: #666;
-        font-size: 14px;
+        font-size: 12px;
     }
     
     .form-toggle a {
@@ -401,6 +451,7 @@ include "../../connect.php";
         text-decoration: none;
         font-weight: 600;
         cursor: pointer;
+        font-size : 12px;
     }
     
     .form-toggle a:hover {
@@ -456,7 +507,7 @@ include "../../connect.php";
             display: block;
             margin-top: 10px;
             text-align: center;
-            font-size: 13px;
+            font-size: 11px;
             color: #545863;
             text-decoration: none;
             font-weight: 600;
@@ -492,8 +543,8 @@ include "../../connect.php";
             <form id="signin-form" class="form active" method="POST" action="process_signin.php">
                 <div class="form-header">
                     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
-                    <h2>Welcome Back</h2>
-                    <p>Sign in to continue to your account</p>
+                    <h2 class="title-h2">Welcome Back</h2>
+                    <p class="desc-p">Sign in to continue to your account</p>
                 </div>
                 
                 <div class="form-group">

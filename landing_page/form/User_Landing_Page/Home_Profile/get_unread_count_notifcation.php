@@ -2,16 +2,20 @@
 include '../../../../connect.php';
 session_start();
 
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['status' => 'error', 'message' => 'User not logged in']);
+    exit();
+}
+
 $userId = $_SESSION['user_id'];
 
-// Get the latest notification timestamp for the user
-$latestNotificationSql = "SELECT MAX(created_at) AS latest_notification FROM notifications WHERE user_id IS NULL OR user_id = ?";
-$stmt = $conn->prepare($latestNotificationSql);
+// Count unread notifications
+$sql = "SELECT COUNT(*) AS unread_count FROM notifications WHERE (user_id IS NULL OR user_id = ?) AND status = 'unread'";
+$stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
-$latestNotification = $result->fetch_assoc()['latest_notification'];
+$unreadCount = $result->fetch_assoc()['unread_count'];
 
-// Return the latest notification timestamp
-echo json_encode(['status' => 'success', 'latest_notification' => $latestNotification]);
+echo json_encode(['status' => 'success', 'unread_count' => $unreadCount]);
 ?>

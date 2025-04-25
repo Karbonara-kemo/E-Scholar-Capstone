@@ -464,8 +464,9 @@ body {
     height: 8px;
     background-color: red;
     border-radius: 50%;
-    display: block;
+    display: none; /* Initially hidden */
 }
+
 .box {
     background-color: #fff;
     border-radius: 15px;
@@ -671,8 +672,7 @@ body {
                 <!-- Add notification bell icon -->
                 <div class="notification-bell" onclick="openNotificationModal()">
                     <i class="fas fa-bell"></i>
-                    <!-- Changed to a simple red dot instead of a count badge -->
-                    <span id="notificationBadge" class="notification-dot" style="display: <?php echo $unreadCount > 0 ? 'block' : 'none'; ?>"></span>
+                    <span id="notificationBadge" class="notification-dot" style="display: none;"></span>
                 </div>
                 
                 <div class="user-menu-container">
@@ -959,51 +959,45 @@ body {
     function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
 
-        // Mark notifications as read via AJAX
-        fetch('mark_notifications_read.php', { method: 'POST' })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    document.getElementById('notificationBadge').style.display = 'none';
-                } else {
-                    console.error('Failed to mark notifications as read:', data.message);
-                }
-            })
-            .catch(error => console.error('Fetch error:', error));
-            }
+        // Save the current timestamp as the last checked time
+        localStorage.setItem('lastCheckedNotification', new Date().toISOString());
+
+        // Hide the red dot
+        document.getElementById('notificationBadge').style.display = 'none';
+    }
 
     function closeNotificationModal() {
         document.getElementById('notificationModal').style.display = "none";
+
+        // Hide the red dot
+        document.getElementById('notificationBadge').style.display = 'none';
     }
 
-    function updateUnreadNotificationCount() {
-        fetch('get_unread_count_notifications.php')
-            .then(response => response.json())
-            .then(data => {
-                const notificationBadge = document.getElementById('notificationBadge');
-                
-                if (data.status === 'success') {
-                    const unreadCount = data.unread_count;
+    function updateNotificationDot() {
+    fetch('get_unread_count_notification.php')
+        .then(response => response.json())
+        .then(data => {
+            const notificationDot = document.getElementById('notificationBadge');
+            
+            if (data.status === 'success') {
+                const latestNotification = data.latest_notification;
+                const lastChecked = localStorage.getItem('lastCheckedNotification') || null;
 
-                    // Show or hide the red dot based on unread notifications
-                    if (unreadCount > 0) {
-                        notificationBadge.style.display = 'block';
-                    } else {
-                        notificationBadge.style.display = 'none';
-                    }
+                // Show the red dot if there is a new notification
+                if (!lastChecked || new Date(latestNotification) > new Date(lastChecked)) {
+                    notificationDot.style.display = 'block';
                 } else {
-                    console.error('Failed to fetch unread notification count:', data.message);
+                    notificationDot.style.display = 'none';
                 }
-            })
-            .catch(error => console.error('Error fetching unread count:', error));
-    }
+            } else {
+                console.error('Failed to fetch notification data:', data.message);
+            }
+        })
+        .catch(error => console.error('Error fetching notification data:', error));
+}
 
-    setInterval(updateUnreadNotificationCount, 10000);
+    // Call this function every 10 seconds to check for new notifications
+    setInterval(updateNotificationDot, 10000);
 
     function receiveNotification() {
         // Simulate receiving a new notification

@@ -41,6 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $insertMessageStmt = $conn->prepare($insertMessageSql);
         $insertMessageStmt->bind_param("ss", $message, $deadline);
         $insertMessageStmt->execute();
+
+        // Redirect to prevent form resubmission
+        header("Location: admin_dashboard.php#communication-page");
+        exit();
     }
 
     // Handle Deleting a Message
@@ -51,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $deleteMessageStmt = $conn->prepare($deleteMessageSql);
         $deleteMessageStmt->bind_param("i", $messageId);
         $deleteMessageStmt->execute();
+
+        // Redirect to prevent form resubmission
+        header("Location: admin_dashboard.php#communication-page");
+        exit();
     }
 }
 
@@ -841,11 +849,11 @@ Closing/Signature:" rows="5" required></textarea>
                 <!-- Display Sent Messages -->
                 <h3 class="message-sent-h3">Messages Sent</h3>
                 <div class="sent-messages">
-                    <?php foreach ($messages as $message): ?>
+                <?php foreach ($messages as $message): ?>
                         <div class="message-card">
                             <div class="message-status">Sent</div>
                             <h3>Message:</h3>
-                            <p><?php echo nl2br(htmlspecialchars($message['message'])); ?></p> <!-- Use nl2br to preserve formatting -->
+                            <p><?php echo nl2br(htmlspecialchars($message['message'])); ?></p>
                             <p><strong>Deadline:</strong> <?php echo $message['deadline'] ?: 'No deadline'; ?></p>
                             <div class="message-footer">
                                 <form method="POST" style="display:inline;">

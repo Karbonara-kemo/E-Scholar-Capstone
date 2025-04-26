@@ -133,10 +133,10 @@ body {
     padding-top: 50px; /* Equal to navbar height */
 }
 
-.sidebar {
+        .sidebar {
             background-color: #090549;
             color: white;
-            width: 250px; /* Default expanded width */
+            width: 250px;
             height: 100vh;
             position: fixed;
             top: 70px;
@@ -145,7 +145,7 @@ body {
             flex-direction: column;
             overflow-y: auto;
             z-index: 900;
-            transition: width 0.3s ease; /* Smooth transition when collapsing/expanding */
+            transition: width 0.3s ease;
         }
 
         .sidebar.collapsed {
@@ -158,28 +158,29 @@ body {
             align-items: center;
             cursor: pointer;
             font-size: 14px;
-            white-space: nowrap; /* Prevent text wrapping */
-            overflow: hidden; /* Hide overflowing text */
+            white-space: nowrap;
+            overflow: hidden;
         }
 
-.nav-item:hover {
-    background-color: #10087c;
-}
+        .nav-item:hover {
+            background-color: #10087c;
+        }
 
-.nav-icon {
+
+        .nav-icon {
             margin-right: 10px;
             font-size: 14px;
-            min-width: 20px; /* Ensure icon has fixed width */
-            text-align: center; /* Center the icon */
+            min-width: 20px;
+            text-align: center;
         }
 
         .nav-text {
             color: white;
-            transition: opacity 0.2s ease; /* Smooth transition for text appearance */
+            transition: opacity 0.2s ease;
         }
 
         .sidebar.collapsed .nav-text {
-            opacity: 0; /* Hide text when sidebar is collapsed */
+            opacity: 0;
             display: none;
         }
 
@@ -189,16 +190,20 @@ body {
             border: none;
             cursor: pointer;
             padding: 15px;
-            text-align: left; /* Align the arrow to the left */
+            text-align: left;
             font-size: 14px;
             display: flex;
             margin-left: 10px;
-            justify-content: flex-start; /* Move arrow to the left */
+            justify-content: flex-start;
             align-items: center;
         }
 
         .toggle-sidebar:hover {
             background-color: #10087c;
+        }
+
+        .main-content.sidebar-collapsed {
+            margin-left: 60px;
         }
 
 .image-container {
@@ -287,17 +292,16 @@ body {
 }
 
 .main-content {
-    padding: 50px;
+    padding: 30px;
     flex: 1;
-    /* min-height: 100vh; */
     box-sizing: border-box;
     margin-left: 250px; /* Default margin - same as sidebar width */
     transition: margin-left 0.3s ease; /* Smooth transition */
 }
 
 .main-content.sidebar-collapsed {
-            margin-left: 60px; /* Reduced margin when sidebar is collapsed */
-        }
+    margin-left: 60px; /* Reduced margin when sidebar is collapsed */
+}
 
 .user-icon {
     width: 35px;
@@ -335,7 +339,7 @@ body {
     display: block;
     text-decoration: none;
     color: #090549;
-    padding: 8px 0;
+    padding: 8px 8px;
     font-size: 10px;
 }
 
@@ -676,12 +680,12 @@ body {
                 </div>
                 
                 <div class="user-menu-container">
-                <img src="../../../../<?php echo htmlspecialchars($user['profile_pic'] ?? 'images/default-user.png'); ?>" alt="User Icon" class="user-icon">
+                    <img src="../../../../<?php echo htmlspecialchars($user['profile_pic'] ?? 'images/default-user.png'); ?>" alt="User Icon" class="user-icon">
                     <span class="user-name"><?php echo htmlspecialchars($user['Fname'] . " " . $user['Lname']); ?></span>
                     <i class="fas fa-chevron-down" style="color: white; cursor: pointer;" onclick="toggleMenu()"></i>
                     <div class="dropdown-menu" id="dropdownMenu">
-                        <a href="user_profile.php">Profile</a>
-                        <a href="../../signin.php">Logout</a>
+                        <a href="user_profile.php"><i class="fas fa-user"></i>  Profile</a>
+                        <a href="../../signin.php"><i class="fas fa-sign-out-alt"></i>  Logout</a>
                     </div>
                 </div>
             </div>
@@ -689,7 +693,6 @@ body {
     </div>
     
     <div class="container">
-        <!-- Sidebar Navigation -->
         <div class="sidebar" id="sidebar">
             <button class="toggle-sidebar" id="toggleSidebar">
                 <i class="fas fa-chevron-left" id="toggleIcon"></i>
@@ -699,7 +702,7 @@ body {
                 <div class="nav-text">Home</div>
             </div>
             <div class="nav-item" id="history-nav" onclick="showPage('history-page')">
-                <div class="nav-icon"><i class="fas fa-history"></i></div>
+                <div class="nav-icon"><i class="fas fa-file-alt"></i></div>
                 <div class="nav-text">Application History</div>
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarships-page')">
@@ -707,7 +710,7 @@ body {
                 <div class="nav-text">View Scholarship</div>
             </div>
         </div>
-        
+
         <!-- Main Content Area -->
         <div class="main-content">
             <!-- Home Page -->
@@ -955,7 +958,6 @@ body {
         document.getElementById(pageId).style.display = 'block';
     }
 
-
     function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
 
@@ -974,29 +976,29 @@ body {
     }
 
     function updateNotificationDot() {
-    fetch('get_unread_count_notification.php')
-        .then(response => response.json())
-        .then(data => {
-            const notificationDot = document.getElementById('notificationBadge');
-            
-            if (data.status === 'success') {
-                const latestNotification = data.latest_notification;
-                const lastChecked = localStorage.getItem('lastCheckedNotification') || null;
+        fetch('get_unread_count_notification.php')
+            .then(response => response.json())
+            .then(data => {
+                const notificationDot = document.getElementById('notificationBadge');
+                
+                if (data.status === 'success') {
+                    const latestNotification = data.latest_notification;
+                    const lastChecked = localStorage.getItem('lastCheckedNotification') || null;
 
-                // Show the red dot if there is a new notification
-                if (!lastChecked || new Date(latestNotification) > new Date(lastChecked)) {
-                    notificationDot.style.display = 'block';
+                    // Show the red dot if there is a new notification
+                    if (!lastChecked || new Date(latestNotification) > new Date(lastChecked)) {
+                        notificationDot.style.display = 'block';
+                    } else {
+                        notificationDot.style.display = 'none';
+                    }
                 } else {
-                    notificationDot.style.display = 'none';
+                    console.error('Failed to fetch notification data:', data.message);
                 }
-            } else {
-                console.error('Failed to fetch notification data:', data.message);
-            }
-        })
-        .catch(error => console.error('Error fetching notification data:', error));
-}
+            })
+            .catch(error => console.error('Error fetching notification data:', error));
+    }
 
-    // Call this function every 10 seconds to check for new notifications
+// Call this function every 10 seconds to check for new notifications
     setInterval(updateNotificationDot, 10000);
 
     function receiveNotification() {
@@ -1005,86 +1007,74 @@ body {
     }
     setTimeout(receiveNotification, 1000);
 
-    document.addEventListener('DOMContentLoaded', updateUnreadNotificationCount);
-
-    // Initialize sidebar navigation
     document.addEventListener('DOMContentLoaded', function() {
-        // Set up default page
-        document.querySelectorAll('.page').forEach(page => {
-            page.style.display = 'none';
-        });
-        document.getElementById('home-page').style.display = 'block';
-        
-        // Handle back button and page reload
-        window.addEventListener('pageshow', function(event) {
-            // If page is loaded from cache (browser back button)
-            if (event.persisted) {
-                // Force page reload to check session status
-                window.location.reload();
-            }
-        });
-
-        // Another approach: disable browser cache for this page
-        window.history.pushState(null, '', window.location.href);
-        window.onpopstate = function() {
-            window.history.pushState(null, '', window.location.href);
-        };
-
-        // Update notification count on page load
-        updateUnreadNotificationCount();
+    // Set up default page
+    document.querySelectorAll('.page').forEach(page => {
+        page.style.display = 'none';
+    });
+    document.getElementById('home-page').style.display = 'block';
+    
+    // Handle back button and page reload
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
     });
 
-    fetch(`get_unread_count_notifications.php?timestamp=${new Date().getTime()}`)
-    .then(response => response.json())
-    .then(data => {
-        const notificationBadge = document.getElementById('notificationBadge');
-        if (data.status === 'success') {
-            const unreadCount = data.unread_count;
-            notificationBadge.style.display = unreadCount > 0 ? 'block' : 'none';
-        }
-    })
-    .catch(error => console.error('Error fetching unread count:', error));
+    // Disable browser cache for this page
+    window.history.pushState(null, '', window.location.href);
+    window.onpopstate = function() {
+        window.history.pushState(null, '', window.location.href);
+    };
 
     // Add sidebar toggle functionality
-    document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.querySelector('.main-content');
-            const toggleBtn = document.getElementById('toggleSidebar');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            toggleBtn.addEventListener('click', function() {
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('sidebar-collapsed');
-                
-                // Change icon direction based on sidebar state
-                if (sidebar.classList.contains('collapsed')) {
-                    toggleIcon.classList.remove('fa-chevron-left');
-                    toggleIcon.classList.add('fa-chevron-right');
-                } else {
-                    toggleIcon.classList.remove('fa-chevron-right');
-                    toggleIcon.classList.add('fa-chevron-left');
-                }
-            });
-            
-            // Rest of your initialization code
-        });
-
-        function showApplicationForm(scholarshipTitle) {
-            console.log("Navigating to Application Form for:", scholarshipTitle); // Debug Log
-            document.querySelectorAll('.page').forEach(page => {
-                page.style.display = 'none';
-            });
-            document.getElementById('application-form-page').style.display = 'block';
-            document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const toggleBtn = document.getElementById('toggleSidebar');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    toggleBtn.addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('sidebar-collapsed');
+        
+        // Change icon direction based on sidebar state
+        if (sidebar.classList.contains('collapsed')) {
+            toggleIcon.classList.remove('fa-chevron-left');
+            toggleIcon.classList.add('fa-chevron-right');
+        } else {
+            toggleIcon.classList.remove('fa-chevron-right');
+            toggleIcon.classList.add('fa-chevron-left');
         }
+    });
+});
 
-        function showScholarshipsPage() {
-            console.log("Navigating back to Scholarships Page"); // Debug Log
-            document.querySelectorAll('.page').forEach(page => {
-                page.style.display = 'none';
-            });
-            document.getElementById('scholarships-page').style.display = 'block';
-        }
+fetch(`get_unread_count_notifications.php?timestamp=${new Date().getTime()}`)
+.then(response => response.json())
+.then(data => {
+    const notificationBadge = document.getElementById('notificationBadge');
+    if (data.status === 'success') {
+        const unreadCount = data.unread_count;
+        notificationBadge.style.display = unreadCount > 0 ? 'block' : 'none';
+    }
+})
+.catch(error => console.error('Error fetching unread count:', error));
+
+function showApplicationForm(scholarshipTitle) {
+    console.log("Navigating to Application Form for:", scholarshipTitle); // Debug Log
+    document.querySelectorAll('.page').forEach(page => {
+        page.style.display = 'none';
+    });
+    document.getElementById('application-form-page').style.display = 'block';
+    document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
+}
+
+function showScholarshipsPage() {
+    console.log("Navigating back to Scholarships Page"); // Debug Log
+    document.querySelectorAll('.page').forEach(page => {
+        page.style.display = 'none';
+    });
+    document.getElementById('scholarships-page').style.display = 'block';
+}
 </script>
 </body>
 </html>

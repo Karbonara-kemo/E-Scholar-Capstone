@@ -31,35 +31,26 @@ if ($result->num_rows > 0) {
     $profile_pic = 'images/default-admin.png';
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Handle Sending a Message
-    if (isset($_POST['send_message'])) {
-        $message = $_POST['message'];
-        $deadline = $_POST['deadline'] ?: null;
+if (isset($_POST['send_message'])) {
+    $message = $_POST['message'];
+    $deadline = isset($_POST['deadline']) && !empty($_POST['deadline']) ? $_POST['deadline'] : null;
 
-        $insertMessageSql = "INSERT INTO notifications (message, deadline, user_id, status) VALUES (?, ?, NULL, 'sent')";
-        $insertMessageStmt = $conn->prepare($insertMessageSql);
-        $insertMessageStmt->bind_param("ss", $message, $deadline);
-        $insertMessageStmt->execute();
+    $insertMessageSql = "INSERT INTO notifications (message, deadline, user_id, status) VALUES (?, ?, NULL, 'unread')";
+    $insertMessageStmt = $conn->prepare($insertMessageSql);
 
-        // Redirect to prevent form resubmission
-        header("Location: admin_dashboard.php#communication-page");
-        exit();
+    if ($insertMessageStmt === false) {
+        die("Error preparing statement: " . $conn->error);
     }
 
-    // Handle Deleting a Message
-    if (isset($_POST['delete_message'])) {
-        $messageId = $_POST['message_id'];
+    $insertMessageStmt->bind_param("ss", $message, $deadline);
 
-        $deleteMessageSql = "DELETE FROM notifications WHERE id = ?";
-        $deleteMessageStmt = $conn->prepare($deleteMessageSql);
-        $deleteMessageStmt->bind_param("i", $messageId);
-        $deleteMessageStmt->execute();
-
-        // Redirect to prevent form resubmission
-        header("Location: admin_dashboard.php#communication-page");
-        exit();
+    if ($insertMessageStmt->execute() === false) {
+        die("Error executing statement: " . $insertMessageStmt->error);
     }
+
+    // Redirect to prevent form resubmission
+    header("Location: admin_dashboard.php#communication-page");
+    exit();
 }
 
 // Handle scholarship actions
@@ -92,6 +83,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+if (isset($_POST['delete_message'])) {
+    $messageId = $_POST['message_id'];
+
+    // Delete the message and its related notifications
+    $deleteMessageSql = "DELETE FROM notifications WHERE id = ?";
+    $deleteMessageStmt = $conn->prepare($deleteMessageSql);
+    $deleteMessageStmt->bind_param("i", $messageId);
+    $deleteMessageStmt->execute();
+
+    // Redirect to prevent form resubmission
+    header("Location: admin_dashboard.php#communication-page");
+    exit();
+}
+
 // Fetch all scholarships
 $fetchSql = "SELECT * FROM scholarships";
 $fetchResult = $conn->query($fetchSql);
@@ -104,7 +109,6 @@ $totalScholarships = count($scholarships);
 $messagesSql = "SELECT * FROM notifications ORDER BY created_at DESC";
 $messagesResult = $conn->query($messagesSql);
 $messages = $messagesResult->fetch_all(MYSQLI_ASSOC);
-
 
 ?>
 
@@ -204,7 +208,7 @@ body {
     display: block;
     text-decoration: none;
     color: #090549;
-    padding: 8px 0;
+    padding: 8px 8;
     font-size: 10px;
 }
 
@@ -711,7 +715,7 @@ body {
                 <i class="fas fa-chevron-down" style="color: white; cursor: pointer;" onclick="toggleMenu()"></i>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <!-- <a href="admin_profile.php">Profile</a> -->
-                    <a href="../../signin.php">Logout</a>
+                    <a href="../../signin.php"><i class="fas fa-sign-out-alt"></i>  Logout</a>  
                 </div>
             </div>
         </div>
@@ -728,11 +732,11 @@ body {
             </div>
             <div class="nav-item" id="history-nav" onclick="showPage('application-page')">
             <div class="nav-icon"><i class="fas fa-file-alt"></i></div>
-                <div class="nav-text">Application History</div>
+                <div class="nav-text">Application</div>
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
                 <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
-                <div class="nav-text">View Scholarship</div>
+                <div class="nav-text">Scholarship</div>
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('communication-page')">
             <div class="nav-icon"><i class="fas fa-envelope"></i></div>

@@ -167,6 +167,28 @@ body {
         }
 
 
+        .nav-item.active {
+            background-color: #10087c; /* Highlighted background color */
+            border-left: 4px solid #ffffff; /* Left border indicator */
+        }
+
+        /* Adjust padding when active to compensate for the border */
+        .nav-item.active .nav-icon {
+            margin-left: -4px; 
+        }
+
+        /* Style for active item in collapsed state */
+        .sidebar.collapsed .nav-item.active {
+            background-color: #10087c;
+            border-left: 4px solid #ffffff;
+        }
+
+        /* Ensure the icon is centered in collapsed state */
+        .sidebar.collapsed .nav-item.active .nav-icon {
+            /* Adjust for the border and center the icon */
+            margin-left: -2px;
+        }
+
         .nav-icon {
             margin-right: 10px;
             font-size: 14px;
@@ -952,11 +974,31 @@ body {
 
     // Page navigation
     function showPage(pageId) {
-        document.querySelectorAll('.page').forEach(page => {
-            page.style.display = 'none';
-        });
-        document.getElementById(pageId).style.display = 'block';
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(page => {
+        page.style.display = 'none';
+    });
+    
+    // Show the selected page
+    document.getElementById(pageId).style.display = 'block';
+    
+    // Highlight the corresponding nav item
+    switch(pageId) {
+        case 'home-page':
+            highlightActiveNav('home-nav');
+            break;
+        case 'history-page':
+            highlightActiveNav('history-nav');
+            break;
+        case 'scholarships-page':
+            highlightActiveNav('scholarships-nav');
+            break;
+        // Keep the current highlight when showing application form
+        case 'application-form-page':
+            // Don't change the highlight
+            break;
     }
+}
 
     function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
@@ -1012,7 +1054,9 @@ body {
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
     });
+
     document.getElementById('home-page').style.display = 'block';
+    highlightActiveNav('home-nav');
     
     // Handle back button and page reload
     window.addEventListener('pageshow', function(event) {
@@ -1060,21 +1104,33 @@ fetch(`get_unread_count_notifications.php?timestamp=${new Date().getTime()}`)
 .catch(error => console.error('Error fetching unread count:', error));
 
 function showApplicationForm(scholarshipTitle) {
-    console.log("Navigating to Application Form for:", scholarshipTitle); // Debug Log
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
     });
     document.getElementById('application-form-page').style.display = 'block';
     document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
+    // No need to change highlight - scholarship nav should remain highlighted
 }
 
 function showScholarshipsPage() {
-    console.log("Navigating back to Scholarships Page"); // Debug Log
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
     });
     document.getElementById('scholarships-page').style.display = 'block';
+    highlightActiveNav('scholarships-nav');
 }
+
+function highlightActiveNav(navId) {
+    // Remove active class from all nav items first
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Add active class to the selected nav item
+    document.getElementById(navId).classList.add('active');
+}
+
+
 </script>
 </body>
 </html>

@@ -251,9 +251,27 @@ body {
             overflow: hidden; /* Hide overflowing text */
         }
 
-.nav-item:hover {
-    background-color: #10087c;
-}
+        .nav-item:hover {
+            background-color: #10087c;
+        }
+
+        .nav-item.active {
+            background-color: #10087c; /* Highlighted background color */
+            border-left: 4px solid #ffffff; /* Left border indicator */
+        }
+
+        .nav-item.active .nav-icon {
+            margin-left: -4px; /* Adjust padding to compensate for border */
+        }
+
+        .sidebar.collapsed .nav-item.active {
+            background-color: #10087c;
+            border-left: 4px solid #ffffff;
+        }
+
+        .sidebar.collapsed .nav-item.active .nav-icon {
+            margin-left: -2px; /* Adjust for collapsed state */
+        }
 
 .nav-icon {
             margin-right: 10px;
@@ -731,15 +749,15 @@ body {
                 <div class="nav-text">Home</div>
             </div>
             <div class="nav-item" id="history-nav" onclick="showPage('application-page')">
-            <div class="nav-icon"><i class="fas fa-file-alt"></i></div>
+                <div class="nav-icon"><i class="fas fa-file-alt"></i></div>
                 <div class="nav-text">Application</div>
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
                 <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
                 <div class="nav-text">Scholarship</div>
             </div>
-            <div class="nav-item" id="scholarships-nav" onclick="showPage('communication-page')">
-            <div class="nav-icon"><i class="fas fa-envelope"></i></div>
+            <div class="nav-item" id="communication-nav" onclick="showPage('communication-page')">
+                <div class="nav-icon"><i class="fas fa-envelope"></i></div>
                 <div class="nav-text">Communication</div>
             </div>
         </div>
@@ -891,12 +909,41 @@ Closing/Signature:" rows="5" required></textarea>
         }
 
         function showPage(pageId) {
+            // Hide all pages
             document.querySelectorAll('.page').forEach(page => {
                 page.style.display = 'none';
-                page.classList.remove('active');
+                page.classList.remove('active'); // Remove active class from pages
             });
+            
+            // Show the selected page
             document.getElementById(pageId).style.display = 'block';
-            document.getElementById(pageId).classList.add('active');
+            document.getElementById(pageId).classList.add('active'); // Add active class to the selected page
+
+            // Highlight the corresponding nav item
+            switch(pageId) {
+                case 'home-page':
+                    highlightActiveNav('home-nav');
+                    break;
+                case 'application-page':
+                    highlightActiveNav('history-nav');
+                    break;
+                case 'scholarship-page':
+                    highlightActiveNav('scholarships-nav');
+                    break;
+                case 'communication-page':
+                    highlightActiveNav('communication-nav');
+                    break;
+            }
+        }
+
+        function highlightActiveNav(navId) {
+            // Remove active class from all nav items first
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Add active class to the selected nav item
+            document.getElementById(navId).classList.add('active');
         }
         
         // Check if there's a hash in the URL and show that page

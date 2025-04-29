@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
-            <img src="../../../../images/Municipality_of_San_Julian_Logo.png" class="logo" alt="E-Scholar Logo">
+            <img src="../../../../assets/scholar-logo.png" class="logo" alt="E-Scholar Logo">
             <div class="title">E-Scholar</div>
         </div>
     </div>

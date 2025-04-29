@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
-            <img src="../../../../assets/scholar-logo.png" class="logo" alt="E-Scholar Logo">
+            <img src="../../../../images/Municipality_of_San_Julian_Logo.png" class="logo" alt="E-Scholar Logo">
             <div class="title">E-Scholar</div>
         </div>
     </div>
@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="change-password-wrapper">
         <div class="change-password-container">
             <div class="change-password-header">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz5StjSVwowC6t9KXjZs8I1fFyoWwZtt926g&s" alt="E-Scholar Logo">
+            <img src="../../../../assets/scholar-logo.png" alt="E-Scholar Logo">
                 <h2>Change Your Password</h2>
                 <p>Keep your account secure by updating your password</p>
             </div>

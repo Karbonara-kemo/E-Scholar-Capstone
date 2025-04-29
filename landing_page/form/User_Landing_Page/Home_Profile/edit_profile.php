@@ -177,6 +177,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .message.error {
             color: #f44336;
         }
+
+        .form-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    
+    .form-header img {
+        width: 100px;
+        height: auto;
+        margin-bottom: 15px;
+    }
+    
+    .form-header h2 {
+        color: #090549;
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    .form-header p {
+        color: #666;
+        margin: 5px 0 0;
+        font-size: 12px;
+    }
     </style>
 </head>
 <body>
@@ -190,7 +217,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <div class="form-container">
-        <h2>Edit Profile</h2>
+            <div class="form-header">
+                <img src="../../../../assets/scholar-logo.png" alt="E-Scholar Logo">
+                <h2 class="title-h2">Edit Profile</h2>
+                <p class="desc-p">Update personal information</p>
+            </div>
 
         <?php if (isset($successMessage)) : ?>
             <div class="message success"><?php echo htmlspecialchars($successMessage); ?></div>

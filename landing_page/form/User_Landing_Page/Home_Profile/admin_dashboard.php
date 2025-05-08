@@ -751,7 +751,7 @@ body {
             </div>
             <div class="nav-item" id="history-nav" onclick="showPage('application-page')">
                 <div class="nav-icon"><i class="fas fa-file-alt"></i></div>
-                <div class="nav-text">Application</div>
+                <div class="nav-text">Approved Applicants</div>
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
                 <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
@@ -760,6 +760,10 @@ body {
             <div class="nav-item" id="communication-nav" onclick="showPage('communication-page')">
                 <div class="nav-icon"><i class="fas fa-envelope"></i></div>
                 <div class="nav-text">Communication</div>
+            </div>
+            <div class="nav-item" id="total-applicants-nav" onclick="showPage('total-applicants-page')">
+                <div class="nav-icon"><i class="fas fa-users"></i></div>
+                <div class="nav-text">Total Applicants</div>
             </div>
         </div>
 
@@ -796,10 +800,33 @@ body {
                 </div>
             </div>
 
+            <div id="total-applicants-page" class="page">
+                <h1 class="h1-title-appManagement">Total Applicants</h1>
+                <p class="p-description-appM">This section displays the total number of applicants in the system.</p>
+                <div class="dashboard-boxes">
+                    <div class="box">
+                        <div class="box-title">Total Applicants</div>
+                        <div class="box-value">150</div> <!-- Replace with dynamic value if needed -->
+                        <div class="box-description">All applicants in the system</div>
+                    </div>
+                </div>
+            </div>
+
             <div id="application-page" class="page">
-                <h1 class="h1-title-appManagement">Application Management</h1>
-                <!-- Application content here -->
-                <p class="p-description-appM">This section is for managing applications.</p>
+                <h1 class="h1-title-appManagement">Approved Applicants</h1>
+                <p class="p-description-appM">This section displays the details of approved scholarships and their applicants.</p>
+                <div class="dashboard-boxes">
+                    <?php foreach ($scholarships as $scholarship): ?>
+                        <div class="box">
+                            <div class="box-title"><?php echo htmlspecialchars($scholarship['title']); ?></div>
+                            <button class="view-details" onclick="viewApplicants('<?php echo htmlspecialchars($scholarship['id']); ?>')">View Applicants</button>
+                        </div>
+                    <?php endforeach; ?>
+
+                    <?php if (count($scholarships) === 0): ?>
+                        <p>No scholarships found. Add scholarships to display them here.</p>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div id="scholarship-page" class="page">
@@ -915,13 +942,13 @@ Closing/Signature:" rows="5" required></textarea>
                 page.style.display = 'none';
                 page.classList.remove('active'); // Remove active class from pages
             });
-            
+
             // Show the selected page
             document.getElementById(pageId).style.display = 'block';
             document.getElementById(pageId).classList.add('active'); // Add active class to the selected page
 
             // Highlight the corresponding nav item
-            switch(pageId) {
+            switch (pageId) {
                 case 'home-page':
                     highlightActiveNav('home-nav');
                     break;
@@ -933,6 +960,9 @@ Closing/Signature:" rows="5" required></textarea>
                     break;
                 case 'communication-page':
                     highlightActiveNav('communication-nav');
+                    break;
+                case 'total-applicants-page': // New case for Total Applicants
+                    highlightActiveNav('total-applicants-nav');
                     break;
             }
         }
@@ -982,6 +1012,10 @@ Closing/Signature:" rows="5" required></textarea>
             // Rest of your initialization code
         });
 
+        function viewApplicants(scholarshipId) {
+            alert('View applicants for scholarship ID: ' + scholarshipId);
+            // Replace this alert with logic to navigate to a detailed applicants page or modal
+        }
     </script>
 </body>
 </html>

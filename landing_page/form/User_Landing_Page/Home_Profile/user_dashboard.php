@@ -730,6 +730,10 @@ body {
                 <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
                 <div class="nav-text">View Scholarship</div>
             </div>
+            <div class="nav-item" id="communication-nav" onclick="showPage('communication-page')">
+                <div class="nav-icon"><i class="fas fa-envelope"></i></div>
+                <div class="nav-text">Communication</div>
+            </div>
         </div>
 
         <!-- Main Content Area -->
@@ -815,6 +819,16 @@ body {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Communication Page -->
+            <div id="communication-page" class="page">
+                <h2>Communication</h2>
+                <p>View and manage your messages here.</p>
+                <!-- Add content for communication, such as a list of messages -->
+                <div class="message-list">
+                    <p>No messages available at the moment.</p>
                 </div>
             </div>
             
@@ -976,13 +990,15 @@ body {
     // Hide all pages
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
+        page.classList.remove('active'); // Remove active class from pages
     });
-    
+
     // Show the selected page
     document.getElementById(pageId).style.display = 'block';
-    
+    document.getElementById(pageId).classList.add('active'); // Add active class to the selected page
+
     // Highlight the corresponding nav item
-    switch(pageId) {
+    switch (pageId) {
         case 'home-page':
             highlightActiveNav('home-nav');
             break;
@@ -992,13 +1008,11 @@ body {
         case 'scholarships-page':
             highlightActiveNav('scholarships-nav');
             break;
-        // Keep the current highlight when showing application form
-        case 'application-form-page':
-            // Don't change the highlight
+        case 'communication-page': // New case for Communication
+            highlightActiveNav('communication-nav');
             break;
     }
 }
-
     function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
 

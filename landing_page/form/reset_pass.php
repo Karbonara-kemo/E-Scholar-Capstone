@@ -186,7 +186,7 @@ include "../../connect.php";
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
             <img src="../../images/Municipality_of_San_Julian_Logo.png" class="logo" alt="E-Scholar Logo">
-            <div class="title">E-Scholar</div>
+            <div class="title">PESO MIS SAN JULIAN</div>
         </div>
         <div class="right-nav">
             <a href="../../landing_page/index.html">Home</a>

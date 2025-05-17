@@ -690,7 +690,7 @@ body {
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" alt="E-Scholar Logo" class="logo">
             <img src="../../../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">E-Scholar</div>
+            <div class="title">PESO MIS SAN JULIAN</div>
         </div>
         <div class="right-nav">
             <div class="menu-container">
@@ -741,7 +741,7 @@ body {
             <!-- Home Page -->
             <div id="home-page" class="page active">
                 <div class="welcome-screen" style="margin-top: 100px;">
-                    <h1 class="main-title">Welcome to E-Scholar</h1>
+                    <h1 class="main-title">Welcome to PESO MIS SAN JULIAN</h1>
                     <p class="description">Your Pathway to Educational Support. Helping Local Scholars Thrive. Supporting Students, Building Tomorrow. <br>Empowering Futures Through Education. A Gateway to Academic Opportunities.</p>
                     <!-- <button class="get-started" onclick="showPage('scholarships-page')">Browse Scholarships</button> -->
                 </div>

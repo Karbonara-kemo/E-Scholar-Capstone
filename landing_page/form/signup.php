@@ -564,7 +564,7 @@ include "../../connect.php";
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" alt="E-Scholar Logo" class="logo">
             <img src="../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">E-Scholar</div>
+            <div class="title">PESO MIS SAN JULIAN</div>
         </div>
         <div class="right-nav">
             <a href="../../landing_page/index.html" class="home">Home</a>
@@ -576,7 +576,7 @@ include "../../connect.php";
         <form id="signup-form" class="form active" method="POST" action="process_signup.php" onsubmit="return validateSignupForm()">
             <div class="form-header">
                 <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
-                <h2>Create Your E-Scholar Account</h2>
+                <h2>Create an Account</h2>
                 <p>Fill in your information to get started</p>
             </div>
             

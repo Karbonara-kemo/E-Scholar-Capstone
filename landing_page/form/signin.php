@@ -529,7 +529,8 @@ window.onload = function() {
 <body>
     <div class="navbar">
         <div class="logo-container">
-            <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" alt="E-Scholar Logo" class="logo">
+            <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
+            <img src="../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
             <img src="../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
             <div class="title">PESO MIS SAN JULIAN</div>
         </div>

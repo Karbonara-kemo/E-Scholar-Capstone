@@ -184,7 +184,8 @@ include "../../connect.php";
     <!-- Navbar -->
     <div class="navbar">
         <div class="logo-container">
-            <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
+            <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
+            <img src="../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
             <img src="../../images/Municipality_of_San_Julian_Logo.png" class="logo" alt="E-Scholar Logo">
             <div class="title">PESO MIS SAN JULIAN</div>
         </div>

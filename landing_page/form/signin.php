@@ -136,14 +136,13 @@ window.onload = function() {
         justify-content: space-between;
         align-items: center;
         padding: 10px;
-        background: #090549;
-        /* Fix navbar at the top */
+        background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        z-index: 1000; /* Ensure navbar is above other content */
-        height: 50px; /* Fixed height for calculation purposes */
+        z-index: 1000;
+        height: 50px;
     }
 
     .navbar .title {

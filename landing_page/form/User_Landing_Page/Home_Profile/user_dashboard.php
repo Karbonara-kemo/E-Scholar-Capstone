@@ -103,14 +103,13 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: #090549;
-    /* Fix navbar at the top */
+    background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1000; /* Ensure navbar is above other content */
-    height: 50px; /* Fixed height for calculation purposes */
+    z-index: 1000;
+    height: 50px;
 }
 
 .navbar .title {
@@ -684,6 +683,53 @@ body {
     margin-bottom: 20px;
 }
 
+.label-application {
+    font-size: 13px; /* Increased font size for main labels */
+    color: black;
+    font-weight: bold;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* Decrease font size for radio/checkbox option labels */
+form .label-application + div label,
+form .label-application + div label input {
+    font-size: 10px !important;
+    font-weight: normal;
+}
+
+/* Optional: Add spacing between radio/checkbox options */
+form .label-application + div label {
+    margin-right: 18px;
+}
+
+.doc-req-section {
+    font-size: 13px; /* Adjust this value as needed */
+}
+.doc-req-section label {
+    font-size: 13px; /* Adjust this value as needed */
+}
+
+.title-description-p{
+    font-size: 12px;
+    color: black;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    margin-left: 70px;
+    margin-right: 70px;
+    font-weight: bold;
+}
+
+#spes-application-form-title {
+    font-size: 17px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+    text-decoration: underline;
+}
 </style>
 <body>
     <div class="navbar">
@@ -729,7 +775,11 @@ body {
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarships-page')">
                 <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
-                <div class="nav-text">View Scholarship</div>
+                <div class="nav-text">Scholarships</div>
+            </div>
+            <div class="nav-item" id="spes-nav" onclick="showPage('spes-page')">
+                <div class="nav-icon"><i class="fas fa-briefcase"></i></div>
+                <div class="nav-text">SPESOS</div>
             </div>
             <div class="nav-item" id="communication-nav" onclick="showPage('communication-page')">
                 <div class="nav-icon"><i class="fas fa-envelope"></i></div>
@@ -749,19 +799,257 @@ body {
 
                 <div class="dashboard-boxes">
                     <div class="box">
-                        <div class="box-title">Approved Applications</div>
-                        <div class="box-value">2</div>
+                        <div class="box-title">Scholarship Applications History</div>
+                        <div class="box-value">4</div>
                         <div class="box-description">You have 2 approved scholarship applications</div>
                         <!-- Added margin-top for spacing -->
                         <button class="get-started" style="margin-top: 20px;" onclick="showPage('history-page')">Browse</button>
                     </div>
                     <div class="box">
-                        <div class="box-title">Total Schemes</div>
+                        <div class="box-title">Total Scholarships</div>
                         <div class="box-value"><?php echo $totalScholarships; ?></div>
                         <div class="box-description"><?php echo $totalScholarships; ?> scholarship programs available for application</div>
                         <!-- Added margin-top for spacing -->
                         <button class="get-started" style="margin-top: 20px;" onclick="showPage('scholarships-page')">Browse</button>
                     </div>
+                </div>
+            </div>
+
+            
+            <!-- Add this after your other .page sections in .main-content -->
+            <div id="spes-page" class="page">
+                <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH</h3>
+                <div class="dashboard-boxes">
+                    <div class="box">
+                        <div class="box-title">Employment Contract Form</div>
+                        <div class="box-description">Download or fill out your employment contract for SPES.</div>
+                        <button class="get-started" onclick="showPage('spes-employment-contract-page')">Open Form</button>
+                    </div>
+                    <div class="box">
+                        <div class="box-title">Application Form</div>
+                        <div class="box-description">Apply for the SPES program here.</div>
+                        <button class="get-started" onclick="showPage('spes-application-form-page')">Open Form</button>
+                    </div>
+                    <div class="box">
+                        <div class="box-title">Oath of Undertaking Form</div>
+                        <div class="box-description">Complete your Oath of Undertaking for SPES.</div>
+                        <button class="get-started" onclick="alert('Oath of Undertaking Form coming soon!')">Open Form</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employment Contract Form Page (hidden by default) -->
+            <div id="spes-employment-contract-page" class="page" style="display:none;">
+                <div class="form-container-application" style="position:relative; z-index:1; text-align:center;">
+                    <h2 style="margin-bottom:20px;">Employment Contract Form</h2>
+                    <img src="../../../../images/Employment-contract.jpg" alt="Employment contract image" class="image" style="max-width:100%; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); margin-bottom:30px;">
+                    <br>
+                    <a href="../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px;">
+                        Download Employment Contract
+                    </a>
+                    <br>
+                    <button class="back-btn" style="margin-top:20px;" onclick="showPage('spes-page')">Back to SPESOS</button>
+                </div>
+            </div>
+
+            <!-- SPES Application Form Page -->
+           <div id="spes-application-form-page" class="page" style="display:none; position:relative;">
+            <div class="form-container-application" style="position:relative; z-index:1;">
+                <img src="../../../../images/Peso_logo1.gif"  alt="SPES_Logo1" style="width: 80px; position:absolute; top: 130px; left:7%; opacity:1; pointer-events: none;">
+                <img src="../../../../images/PESO_Logo.png"  alt="PESO_Logo" style="width: 80px; position:absolute; top: 135px; right:7%; opacity:1; pointer-events: none;">
+                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:10%; left:50px; opacity:0.1; pointer-events: none;">
+                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:43%; left:50px; opacity:0.1; pointer-events: none;">
+                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:75%; left:50px; opacity:0.1; pointer-events: none;">
+                <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
+                <p class="title-description-p">REPUBLIC OF THE PHILIPPINES<br>DEPARTMENT OF LABOR AND EMPLOYMENT<br>Regional Office No. VIII<br>PUBLIC EMPLOYMENT SERVICE OFFICE<br>SAN JULIAN, EASTERN SAMAR<br>City/Municipality/Province<br>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)<br>(RA 7323, as amended by RAs 9547 and 10917)
+</p>
+                <h2 id="spes-application-form-title">Application Form</h2>
+                <form enctype="multipart/form-data">
+                    <h4>Personal Information</h4>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;">
+                            <label class="label-application">Surname</label>
+                            <input type="text" name="surname" class="input-field" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label class="label-application">First Name</label>
+                            <input type="text" name="firstname" class="input-field" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label class="label-application">Middle Name</label>
+                            <input type="text" name="middlename" class="input-field">
+                        </div>
+                    </div>
+                    <label class="label-application">GSIS Beneficiary/Relationship</label>
+                    <input type="text" name="gsis_beneficiary" class="input-field">
+                    <label class="label-application">Upload ID (.png/.jpeg)</label>
+                    <input type="file" name="id_image" class="input-field file-field" accept="image/*">
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;">
+                            <label class="label-application">Date of Birth</label>
+                            <input type="date" name="dob" class="input-field" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label class="label-application">Place of Birth</label>
+                            <input type="text" name="place_of_birth" class="input-field">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="label-application">Citizenship</label>
+                            <input type="text" name="citizenship" class="input-field">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;">
+                            <label class="label-application">Contact Details/Cellphone No.</label>
+                            <input type="text" name="contact" class="input-field">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="label-application">Email Address</label>
+                            <input type="email" name="email" class="input-field">
+                        </div>
+                    </div>
+                    <label class="label-application">Social Media Account (Facebook, Twitter, Instagram, etc.)</label>
+                    <input type="text" name="social_media" class="input-field">
+
+                    <label class="label-application">Status</label>
+                    <div>
+                        <label><input type="radio" name="status" value="Single" required> Single</label>
+                        <label><input type="radio" name="status" value="Married"> Married</label>
+                        <label><input type="radio" name="status" value="Widow/er"> Widow/er</label>
+                        <label><input type="radio" name="status" value="Separated"> Separated</label>
+                    </div>
+
+                    <label class="label-application">Sex</label>
+                    <div>
+                        <label><input type="radio" name="sex" value="Male" required> Male</label>
+                        <label><input type="radio" name="sex" value="Female"> Female</label>
+                    </div>
+
+                    <label class="label-application">Student Type</label>
+                    <div>
+                        <label><input type="radio" name="student_type" value="Student" required> Student</label>
+                        <label><input type="radio" name="student_type" value="ALS Student"> ALS Student</label>
+                        <label><input type="radio" name="student_type" value="Out-of-school (OSY)"> Out-of-school (OSY)</label>
+                    </div>
+
+                    <label class="label-application">Current Status of Parents (choose applicable)</label>
+                    <div>
+                        <label><input type="radio" name="parent_status" value="Living together" required> Living together</label>
+                        <label><input type="radio" name="parent_status" value="Solo Parent"> Solo Parent</label>
+                        <label><input type="radio" name="parent_status" value="Separated"> Separated</label>
+                        <label><input type="radio" name="parent_status" value="Person With Disability"> Person With Disability</label>
+                        <label><input type="radio" name="parent_status" value="Senior Citizen"> Senior Citizen</label>
+                        <label><input type="radio" name="parent_status" value="Sugar Plantation Worker"> Sugar Plantation Worker</label>
+                        <label><input type="radio" name="parent_status" value="Indigenous People"> Indigenous People</label>
+                        <label><input type="radio" name="parent_status" value="Displaced Worker (Local)"> Displaced Worker (Local)</label>
+                        <label><input type="radio" name="parent_status" value="Displaced Worker (OFW)"> Displaced Worker (OFW)</label>
+                    </div>
+
+                    <label class="label-application">Present Address</label>
+                    <input type="text" name="present_address" class="input-field">
+                    <label class="label-application">Permanent Address</label>
+                    <input type="text" name="permanent_address" class="input-field">
+
+                    <h4>Parental Information</h4>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;">
+                            <label class="label-application">Father’s Name / Contact No.</label>
+                            <input type="text" name="father_name_contact" class="input-field">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="label-application">Mother’s Maiden Name / Contact No.</label>
+                            <input type="text" name="mother_name_contact" class="input-field">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;">
+                            <label class="label-application">Father’s Occupation</label>
+                            <input type="text" name="father_occupation" class="input-field">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="label-application">Mother’s Occupation</label>
+                            <input type="text" name="mother_occupation" class="input-field">
+                        </div>
+                    </div>
+
+                        <h4>Educational Background</h4>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Level</th>
+                                    <th>Name of School</th>
+                                    <th>Degree Earned / Course</th>
+                                    <th>Year/Level</th>
+                                    <th>Date of Attendance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Elementary</td>
+                                    <td><input type="text" name="elem_school" class="input-field"></td>
+                                    <td><input type="text" name="elem_degree" class="input-field"></td>
+                                    <td><input type="text" name="elem_year" class="input-field"></td>
+                                    <td><input type="text" name="elem_attendance" class="input-field"></td>
+                                </tr>
+                                <tr>
+                                    <td>Secondary</td>
+                                    <td><input type="text" name="sec_school" class="input-field"></td>
+                                    <td><input type="text" name="sec_degree" class="input-field"></td>
+                                    <td><input type="text" name="sec_year" class="input-field"></td>
+                                    <td><input type="text" name="sec_attendance" class="input-field"></td>
+                                </tr>
+                                <tr>
+                                    <td>Tertiary</td>
+                                    <td><input type="text" name="ter_school" class="input-field"></td>
+                                    <td><input type="text" name="ter_degree" class="input-field"></td>
+                                    <td><input type="text" name="ter_year" class="input-field"></td>
+                                    <td><input type="text" name="ter_attendance" class="input-field"></td>
+                                </tr>
+                                <tr>
+                                    <td>Tech-Voc</td>
+                                    <td><input type="text" name="tech_school" class="input-field"></td>
+                                    <td><input type="text" name="tech_degree" class="input-field"></td>
+                                    <td><input type="text" name="tech_year" class="input-field"></td>
+                                    <td><input type="text" name="tech_attendance" class="input-field"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4>Documentary Requirements</h4>
+                            <div class="doc-req-section">
+                                <label><input type="checkbox" name="doc_birth_cert"> Photocopy of Birth Certificate or any document indicating date of birth or age (age must be 15-30)</label><br>
+                                <label><input type="checkbox" name="doc_itr"> Photocopy of the latest Income Tax Return (ITR) of parents/legal guardian OR certification issued by BIR that the Parents/guardians are exempted from payment of tax OR original Certificate of Indigence OR original Certificate of Low Income issued by the Barangay/DSWD or CSWD where the applicant resides</label><br>
+                                <label><input type="checkbox" name="doc_student"> For students, any of the following, in addition to requirements no. 1 and 2:</label>
+                                <div style="margin-left:20px;">
+                                    <label><input type="checkbox" name="doc_class_card"> a) Photocopy of proof of average passing grade such as (1) class card or (2) Form 138 of the previous semester or year immediately preceding the application</label><br>
+                                    <label><input type="checkbox" name="doc_registrar_cert"> b) Original copy of Certification by the School Registrar as to passing grade immediately preceding semester/year if grades are not yet available</label>
+                                </div>
+                                <label><input type="checkbox" name="doc_osy"> For Out of School Youth (OSY), original copy of Certification as OSY issued by DSWD/CSWD or the authorized Barangay Official where the OSY resides, in addition to requirements no. 1 and 2.</label>
+                            </div>
+
+                        <h4>Special Skills</h4>
+                        <input type="text" name="special_skills" class="input-field">
+
+                        <h4>History of SPES Availment/Name of Establishment</h4>
+                        <label><input type="checkbox" name="availment_1"> 1st Availment</label>
+                        <label><input type="checkbox" name="availment_2"> 2nd Availment</label>
+                        <label><input type="checkbox" name="availment_3"> 3rd Availment</label>
+                        <label><input type="checkbox" name="availment_4"> 4th Availment</label>
+
+                        <h4>Year</h4>
+                        <label><input type="checkbox" name="year_1"> 1st Availment</label>
+                        <label><input type="checkbox" name="year_2"> 2nd Availment</label>
+                        <label><input type="checkbox" name="year_3"> 3rd Availment</label>
+                        <label><input type="checkbox" name="year_4"> 4th Availment</label>
+
+                        <h4>SPES ID No. (if applicable)</h4>
+                        <label><input type="checkbox" name="spesid_1"> 1st Availment</label>
+                        <label><input type="checkbox" name="spesid_2"> 2nd Availment</label>
+                        <label><input type="checkbox" name="spesid_3"> 3rd Availment</label>
+                        <label><input type="checkbox" name="spesid_4"> 4th Availment</label>
+
+                        <button type="submit" class="submit-btn">Submit Application</button>
+                    </form>
                 </div>
             </div>
             
@@ -1009,8 +1297,11 @@ body {
         case 'scholarships-page':
             highlightActiveNav('scholarships-nav');
             break;
-        case 'communication-page': // New case for Communication
+        case 'communication-page':
             highlightActiveNav('communication-nav');
+            break;
+        case 'spes-page':
+            highlightActiveNav('spes-nav');
             break;
     }
 }

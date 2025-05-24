@@ -67,20 +67,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             padding: 0;
             background-color: #f4f4f4;
         }
-
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: #090549;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            height: 50px;
-        }
+        
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        height: 50px;
+    }
 
         .logo-container {
             display: flex;

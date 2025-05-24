@@ -23,7 +23,7 @@ include "../../connect.php";
             justify-content: space-between;
             align-items: center;
             padding: 10px;
-            background: #090549;
+            background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
             position: fixed;
             top: 0;
             left: 0;

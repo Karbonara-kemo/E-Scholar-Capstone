@@ -76,18 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
     }
 
     .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      background: #090549;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      height: 50px;
-  }
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        height: 50px;
+    }
 
   .logo-container {
       display: flex;
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
   <!-- NAVBAR -->
   <div class="navbar">
     <div class="logo-container">
-      <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="E-Scholar Logo" class="logo">
+      <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
       <img src="../../../../images/PESO_Logo.png" alt="PESO Logo" class="logo">      
       <img src="../../../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
       <div class="title">PESO MIS SAN JULIAN</div>

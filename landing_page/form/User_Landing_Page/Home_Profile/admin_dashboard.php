@@ -141,7 +141,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: #090549;
+    background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
     position: fixed;
     top: 0;
     left: 0;
@@ -224,7 +224,7 @@ body {
 }
 
 .sidebar {
-            background-color: #090549;
+            background: #090549;
             color: white;
             width: 250px; /* Default expanded width */
             height: 100vh;
@@ -766,6 +766,11 @@ body {
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
                 <div class="nav-text">Total Applicants</div>
             </div>
+            <!-- Reports Sidebar Item (no tree) -->
+            <div class="nav-item" id="reports-nav" onclick="showPage('reports-page')">
+                <div class="nav-icon"><i class="fas fa-chart-bar"></i></div>
+                <div class="nav-text">Reports</div>
+            </div>
         </div>
 
         <!-- Main Content -->
@@ -830,6 +835,19 @@ body {
                 </div>
             </div>
 
+            <!-- Add this after your other .page sections in .main-content -->
+            <div id="reports-page" class="page">
+                <h2>Reports</h2>
+                <p>Access and view system reports here.</p>
+                <div class="dashboard-boxes">
+                    <div class="box">
+                        <div class="box-title">Open Reports</div>
+                        <div class="box-description">View and download available reports.</div>
+                        <button class="view-details" onclick="alert('Reports feature coming soon!')">Open Reports</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="scholarship-page" class="page">
                 <h1 class="main-title-scholar">Manage Scholarships</h1>
                 <!-- Add Scholarship Form -->
@@ -864,7 +882,9 @@ body {
                     <div class="scholarship-footer">
                         <form method="POST" style="display:inline;">
                             <input type="hidden" name="id" value="<?php echo $scholarship['id']; ?>">
-                            <button type="submit" name="delete_scholarship" class="btn-delete-scholarship" onclick="return confirm('Are you sure you want to delete this scholarship?')">Delete</button>
+                            <button type="submit" name="delete_scholarship" class="btn-delete-scholarship" title="Delete" onclick="return confirm('Are you sure you want to delete this scholarship?')">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </form>
                         
                         <?php if ($scholarship['status'] === 'pending'): ?>
@@ -909,7 +929,9 @@ Closing/Signature:" rows="5" required></textarea>
                             <div class="message-footer">
                                 <form method="POST" style="display:inline;">
                                     <input type="hidden" name="message_id" value="<?php echo $message['id']; ?>">
-                                    <button type="submit" name="delete_message" class="btn-delete-message" onclick="return confirm('Are you sure you want to delete this message?')">Delete</button>
+                                    <button type="submit" name="delete_message" class="btn-delete-message" title="Delete" onclick="return confirm('Are you sure you want to delete this message?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -937,18 +959,14 @@ Closing/Signature:" rows="5" required></textarea>
             }
         }
 
+       // Update showPage to close the tree when navigating
         function showPage(pageId) {
-            // Hide all pages
             document.querySelectorAll('.page').forEach(page => {
                 page.style.display = 'none';
-                page.classList.remove('active'); // Remove active class from pages
+                page.classList.remove('active');
             });
-
-            // Show the selected page
             document.getElementById(pageId).style.display = 'block';
-            document.getElementById(pageId).classList.add('active'); // Add active class to the selected page
-
-            // Highlight the corresponding nav item
+            document.getElementById(pageId).classList.add('active');
             switch (pageId) {
                 case 'home-page':
                     highlightActiveNav('home-nav');
@@ -962,12 +980,15 @@ Closing/Signature:" rows="5" required></textarea>
                 case 'communication-page':
                     highlightActiveNav('communication-nav');
                     break;
-                case 'total-applicants-page': // New case for Total Applicants
+                case 'total-applicants-page':
                     highlightActiveNav('total-applicants-nav');
+                    break;
+                case 'reports-page':
+                    highlightActiveNav('reports-nav');
                     break;
             }
         }
-
+        
         function highlightActiveNav(navId) {
             // Remove active class from all nav items first
             document.querySelectorAll('.nav-item').forEach(item => {

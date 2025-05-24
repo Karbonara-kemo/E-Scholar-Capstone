@@ -37,17 +37,6 @@ if ($result->num_rows > 0) {
     exit();
 }
 
-
-$sql = "UPDATE notifications SET status = 'read' WHERE (user_id IS NULL OR user_id = ?) AND status = 'unread'";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $userId);
-
-if ($stmt->execute()) {
-    echo json_encode(['status' => 'success']);
-} else {
-    echo json_encode(['status' => 'error', 'message' => 'Failed to mark notifications as read']);
-}
-
 $notificationSql = "SELECT * FROM notifications WHERE user_id IS NULL OR user_id = ? ORDER BY created_at DESC";
 $notificationStmt = $conn->prepare($notificationSql);
 $notificationStmt->bind_param("i", $userId);
@@ -833,7 +822,7 @@ form .label-application + div label {
                     <div class="box">
                         <div class="box-title">Oath of Undertaking Form</div>
                         <div class="box-description">Complete your Oath of Undertaking for SPES.</div>
-                        <button class="get-started" onclick="alert('Oath of Undertaking Form coming soon!')">Open Form</button>
+                        <button class="get-started" onclick="showPage('spes-oath-of-undertaking-page')">Open Form</button>
                     </div>
                 </div>
             </div>
@@ -1050,6 +1039,19 @@ form .label-application + div label {
 
                         <button type="submit" class="submit-btn">Submit Application</button>
                     </form>
+                </div>
+            </div>
+
+            <div id="spes-oath-of-undertaking-page" class="page" style="display:none;">
+                <div class="form-container-application" style="position:relative; z-index:1; text-align:center;">
+                    <h2 style="margin-bottom:20px;">Employment Contract Form</h2>
+                    <img src="../../../../images/spesos-oath-of-undertaking.jpg" alt="Employment contract image" class="image" style="max-width:100%; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); margin-bottom:30px;">
+                    <br>
+                    <a href="../../../../download_assets/SPES-FORM-2-A-OATH-OF-UNDERTAKING-.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px;">
+                        Download Employment Contract
+                    </a>
+                    <br>
+                    <button class="back-btn" style="margin-top:20px;" onclick="showPage('spes-page')">Back to SPESOS</button>
                 </div>
             </div>
             
@@ -1305,15 +1307,18 @@ form .label-application + div label {
             break;
     }
 }
-    function openNotificationModal() {
+        function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
-
-        // Save the current timestamp as the last checked time
-        localStorage.setItem('lastCheckedNotification', new Date().toISOString());
-
-        // Hide the red dot
-        document.getElementById('notificationBadge').style.display = 'none';
+        fetch('mark_notification_read.php', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('notificationBadge').style.display = 'none';
+                    updateNotificationDot(); // Optionally refresh the dot
+                }
+            });
     }
+
 
     function closeNotificationModal() {
         document.getElementById('notificationModal').style.display = "none";
@@ -1323,36 +1328,27 @@ form .label-application + div label {
     }
 
     function updateNotificationDot() {
-        fetch('get_unread_count_notification.php')
+        fetch('get_unread_count_notifcation.php')
             .then(response => response.json())
             .then(data => {
                 const notificationDot = document.getElementById('notificationBadge');
-                
-                if (data.status === 'success') {
-                    const latestNotification = data.latest_notification;
-                    const lastChecked = localStorage.getItem('lastCheckedNotification') || null;
-
-                    // Show the red dot if there is a new notification
-                    if (!lastChecked || new Date(latestNotification) > new Date(lastChecked)) {
-                        notificationDot.style.display = 'block';
-                    } else {
-                        notificationDot.style.display = 'none';
-                    }
+                if (data.status === 'success' && data.unread_count > 0) {
+                    notificationDot.style.display = 'block';
                 } else {
-                    console.error('Failed to fetch notification data:', data.message);
+                    notificationDot.style.display = 'none';
                 }
             })
-            .catch(error => console.error('Error fetching notification data:', error));
+            .catch(() => {
+                document.getElementById('notificationBadge').style.display = 'none';
+            });
     }
 
 // Call this function every 10 seconds to check for new notifications
-    setInterval(updateNotificationDot, 10000);
-
-    function receiveNotification() {
-        // Simulate receiving a new notification
-        document.getElementById('notificationBadge').style.display = 'block';
-    }
-    setTimeout(receiveNotification, 1000);
+    document.addEventListener('DOMContentLoaded', function() {
+        // ...existing code...
+        updateNotificationDot(); // Initial check
+        setInterval(updateNotificationDot, 10000); // Check every 10 seconds
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
     // Set up default page
@@ -1397,16 +1393,6 @@ form .label-application + div label {
     });
 });
 
-fetch(`get_unread_count_notifications.php?timestamp=${new Date().getTime()}`)
-.then(response => response.json())
-.then(data => {
-    const notificationBadge = document.getElementById('notificationBadge');
-    if (data.status === 'success') {
-        const unreadCount = data.unread_count;
-        notificationBadge.style.display = unreadCount > 0 ? 'block' : 'none';
-    }
-})
-.catch(error => console.error('Error fetching unread count:', error));
 
 function showApplicationForm(scholarshipTitle) {
     document.querySelectorAll('.page').forEach(page => {

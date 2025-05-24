@@ -239,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
       <img id="profilePic" src="../../../../<?php echo htmlspecialchars($user['profile_pic'] ?? 'images/user.png'); ?>" alt="Profile Picture" class="profile-pic">
       <form action="" method="POST" enctype="multipart/form-data">
         <div class="profile-picture-actions">
-          <input type="file" name="profilePic" accept="image/*" required>
+          <input type="file" name="profilePic" accept="image/*" required onchange="previewProfilePic(event)">
           <button type="submit">Upload Your Photo</button>
         </div>
       </form>
@@ -286,5 +286,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
       </div>
    </div>
 
+   <script>
+    function previewProfilePic(event) {
+        const input = event.target;
+        const preview = document.getElementById('profilePic');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    </script>
 </body>
 </html>

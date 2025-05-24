@@ -66,20 +66,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $insertStmt = $conn->prepare($insertSql);
         $insertStmt->bind_param("sssss", $title, $description, $requirements, $benefits, $eligibility);
         if ($insertStmt->execute()) {
-            $scholarshipAdded = true; // Set the flag to true if the scholarship is added successfully
+            $_SESSION['scholarship_added'] = true;
         }
+        // Redirect to stay on scholarship page and prevent resubmission
+        header("Location: admin_dashboard.php#scholarship-page");
+        exit();
     } elseif (isset($_POST['delete_scholarship'])) {
         $id = $_POST['id'];
         $deleteSql = "DELETE FROM scholarships WHERE id = ?";
         $deleteStmt = $conn->prepare($deleteSql);
         $deleteStmt->bind_param("i", $id);
         $deleteStmt->execute();
+        $_SESSION['scholarship_deleted'] = true;
+        header("Location: admin_dashboard.php#scholarship-page");
+        exit();
     } elseif (isset($_POST['publish_scholarship'])) {
         $id = $_POST['id'];
         $uploadSql = "UPDATE scholarships SET status = 'active' WHERE id = ?";
         $uploadStmt = $conn->prepare($uploadSql);
         $uploadStmt->bind_param("i", $id);
         $uploadStmt->execute();
+        $_SESSION['scholarship_published'] = true; // <-- Add this line
+        header("Location: admin_dashboard.php#scholarship-page");
+        exit();
     }
 }
 
@@ -92,7 +101,10 @@ if (isset($_POST['delete_message'])) {
     $deleteMessageStmt->bind_param("i", $messageId);
     $deleteMessageStmt->execute();
 
-    // Redirect to prevent form resubmission
+    // Set a flag to trigger JS alert after reload
+    $_SESSION['message_deleted'] = true;
+
+    // Redirect to the communication page only (not home)
     header("Location: admin_dashboard.php#communication-page");
     exit();
 }
@@ -117,7 +129,7 @@ $messages = $messagesResult->fetch_all(MYSQLI_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Scholar - Admin</title>
+    <title>Admin</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="../../../../assets/favicon.ico"  />
     <!-- <link rel="icon" href="../../../../assets/scholar-logo.png" type="image/png"> -->
@@ -125,7 +137,6 @@ $messages = $messagesResult->fetch_all(MYSQLI_ASSOC);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
 <style>
-/* Add your styles here */
 body {
     font-family: 'Montserrat', sans-serif;
     margin: 0;
@@ -141,7 +152,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
+    background: linear-gradient(155deg, #aa0505 9.5%,rgb(184, 153, 2) 39.5%);
     position: fixed;
     top: 0;
     left: 0;
@@ -162,7 +173,7 @@ body {
 }
 
 .title {
-    font-size: 20px;
+    font-size: 20px !important;
     font-weight: bold;
     color: white;
 }
@@ -726,7 +737,7 @@ body {
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
             <img src="../../../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
             <img src="../../../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">PESO MIS SAN JULIAN</div>
+            <div class="title">SPESOS MIS SAN JULIAN</div>
         </div>
         <div class="right-nav">
             <div class="menu-container">
@@ -773,6 +784,71 @@ body {
             </div>
         </div>
 
+        <?php if (isset($_SESSION['scholarship_added'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toast = document.getElementById('toast-message');
+            toast.textContent = 'Added successfully';
+            toast.style.display = 'block';
+            setTimeout(function() {
+                toast.style.display = 'none';
+            }, 2500);
+        });
+        </script>
+        <?php unset($_SESSION['scholarship_added']); endif; ?>
+
+        <?php if (isset($_SESSION['scholarship_deleted'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toast = document.getElementById('toast-message');
+            toast.textContent = 'Deleted successfully';
+            toast.style.display = 'block';
+            setTimeout(function() {
+                toast.style.display = 'none';
+            }, 2500);
+        });
+        </script>
+        <?php unset($_SESSION['scholarship_deleted']); endif; ?>
+
+        <?php if (isset($_SESSION['scholarship_published'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toast = document.getElementById('toast-message');
+            toast.textContent = 'Published successfully';
+            toast.style.display = 'block';
+            setTimeout(function() {
+                toast.style.display = 'none';
+            }, 2500);
+        });
+        </script>
+        <?php unset($_SESSION['scholarship_published']); endif; ?>
+
+        <div id="toast-message" style="
+            display:none;
+            position:fixed;
+            top:20px;
+            left:50%;
+            transform:translateX(-50%);
+            background:#28a745;
+            color:white;
+            padding:14px 28px;
+            border-radius:8px;
+            font-size:16px;
+            z-index:2000;
+            box-shadow:0 4px 12px rgba(0,0,0,0.15);
+        "></div>
+        <?php if (isset($_SESSION['message_deleted'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toast = document.getElementById('toast-message');
+            toast.textContent = 'Message deleted successfully';
+            toast.style.display = 'block';
+            setTimeout(function() {
+                toast.style.display = 'none';
+            }, 2500);
+        });
+        </script>
+        <?php unset($_SESSION['message_deleted']); endif; ?>
         <!-- Main Content -->
         <div class="main-content">
 

@@ -70,9 +70,9 @@ $totalScholarships = count($scholarships);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Scholar</title>
+    <title>PESO Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/x-icon" href="../../../../assets/favicon.ico"  />
+    <link rel="icon" type="image/x-icon" href="../../../../assets/favicon.ico"/>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
@@ -92,7 +92,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
+    background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 39.5%);
     position: fixed;
     top: 0;
     left: 0;
@@ -726,7 +726,7 @@ form .label-application + div label {
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
             <img src="../../../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
             <img src="../../../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">PESO MIS SAN JULIAN</div>
+            <div class="title">SPESOS MIS SAN JULIAN</div>
         </div>
         <div class="right-nav">
             <div class="menu-container">

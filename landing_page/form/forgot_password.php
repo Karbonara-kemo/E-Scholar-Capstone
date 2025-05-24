@@ -153,13 +153,21 @@ include "../../connect.php";
         .back-to-login:hover {
             text-decoration: underline;
         }
+
+        .error-message {
+        color: #f44336;
+        font-size: 10px;
+        text-align: left;      /* Add this line */
+        width: 100%;           /* Ensure it spans the input width */
+        padding-left: 2px;     /* Optional: small indent for alignment */
+    }
     </style>
 </head>
 <body>
     <!-- Navbar -->
     <div class="navbar">
         <div class="logo-container">
-            <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
+            <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
             <img src="../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
             <img src="../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo" alt="E-Scholar Logo">
             <div class="title">PESO MIS SAN JULIAN</div>
@@ -179,11 +187,27 @@ include "../../connect.php";
             </div>
             <form action="process_forgot_password.php" method="POST" class="forgot-password-form">
                 <label for="email">Enter email address</label>
-                <input type="email" id="email" name="email" placeholder="example@domain.com" required>
+                <input type="email" id="email" name="email" placeholder="example@domain.com">
+                <div id="email-error" class="error-message" style="display:none"></div>
                 <button type="submit">Request reset link</button>
             </form>
             <a href="signin.php" class="back-to-login">Back To Login</a>
         </div>
     </div>
+
+    <script>
+    document.querySelector('.forgot-password-form').addEventListener('submit', function(e) {
+        const emailInput = document.getElementById('email');
+        const emailError = document.getElementById('email-error');
+        if (!emailInput.value.trim()) {
+            emailError.textContent = "Email is required.";
+            emailError.style.display = "block";
+            e.preventDefault();
+        } else {
+            emailError.textContent = "";
+            emailError.style.display = "none";
+        }
+    });
+    </script>
 </body>
 </html>

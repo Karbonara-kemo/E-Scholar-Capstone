@@ -493,7 +493,7 @@ window.onload = function() {
          /* Inline error message for input fields */
          .error-message {
             color: #f44336;
-            font-size: 12px;
+            font-size: 10px;
             margin-top: 5px;
         }
 
@@ -549,13 +549,13 @@ window.onload = function() {
                 
                 <div class="form-group">
                     <label for="signin-email">Email</label>
-                    <input type="email" id="signin-email" name="email" required placeholder="Enter Email Address">
+                    <input type="email" id="signin-email" name="email" placeholder="Enter Email Address">
                     <div id="email-error" class="error-message hidden"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="signin-password">Password</label>
-                    <input type="password" id="signin-password" name="password" required placeholder="Enter Password">
+                    <input type="password" id="signin-password" name="password" placeholder="Enter Password">
                     <div id="password-error" class="error-message hidden"></div>
                 </div>
                 
@@ -570,5 +570,40 @@ window.onload = function() {
             </form>
         </div>
     </div>
+
+    <script>
+    // Validate sign-in form before submit
+    document.getElementById('signin-form').addEventListener('submit', function(e) {
+        let valid = true;
+
+        // Email validation
+        const emailInput = document.getElementById('signin-email');
+        const emailError = document.getElementById('email-error');
+        if (!emailInput.value.trim()) {
+            emailError.textContent = "Email is required.";
+            emailError.classList.remove('hidden');
+            valid = false;
+        } else {
+            emailError.textContent = "";
+            emailError.classList.add('hidden');
+        }
+
+        // Password validation
+        const passwordInput = document.getElementById('signin-password');
+        const passwordError = document.getElementById('password-error');
+        if (!passwordInput.value.trim()) {
+            passwordError.textContent = "Password is required.";
+            passwordError.classList.remove('hidden');
+            valid = false;
+        } else {
+            passwordError.textContent = "";
+            passwordError.classList.add('hidden');
+        }
+
+        if (!valid) {
+            e.preventDefault();
+        }
+    });
+</script>
 </body>
 </html>

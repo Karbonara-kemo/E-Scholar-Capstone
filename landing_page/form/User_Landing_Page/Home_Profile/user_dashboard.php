@@ -52,7 +52,6 @@ $countUnreadStmt->execute();
 $countUnreadResult = $countUnreadStmt->get_result();
 $unreadCount = $countUnreadResult->fetch_assoc()['unread_count'];
 
-echo json_encode(['status' => 'success', 'unread_count' => $unreadCount]);
 
 // Fetch all active scholarships
 $scholarshipSql = "SELECT * FROM scholarships WHERE status = 'active'";
@@ -333,15 +332,25 @@ body {
 }
 
 .dropdown-menu {
-    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    display: block; /* Always block for transition, hide with opacity/pointer-events */
     position: absolute;
     background-color: white;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     padding: 10px 10px;
-    right: 10spx;
+    right: 10px;
     top: 55px;
     z-index: 1000;
+}
+
+.dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .dropdown-menu a {
@@ -1260,7 +1269,17 @@ form .label-application + div label {
     // Toggle user menu
     function toggleMenu() {
         var menu = document.getElementById("dropdownMenu");
-        menu.style.display = (menu.style.display === "block") ? "none" : "block";
+        menu.classList.toggle("show");
+    }
+
+    // Optional: Hide dropdown when clicking outside
+    window.onclick = function(event) {
+        if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down')) {
+            var dropdowns = document.getElementsByClassName("dropdown-menu");
+            for (var i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].classList.remove("show");
+            }
+        }
     }
 
     function showDetails(title, requirements, benefits, eligibility) {

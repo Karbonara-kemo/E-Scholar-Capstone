@@ -48,6 +48,9 @@ if (isset($_POST['send_message'])) {
         die("Error executing statement: " . $insertMessageStmt->error);
     }
 
+    // Set session flag for alert
+    $_SESSION['message_sent'] = true;
+
     // Redirect to prevent form resubmission
     header("Location: admin_dashboard.php#communication-page");
     exit();
@@ -205,15 +208,24 @@ body {
 }
 
 .dropdown-menu {
-    display: none;
+    display: block;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     position: absolute;
     background-color: white;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     padding: 10px 10px;
-    /* right: 1px; */
     top: 55px;
     z-index: 1000;
+}
+
+.dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .dropdown-menu a {
@@ -730,6 +742,35 @@ body {
     border-radius: 10px;
     font-size: 10px;
 }
+
+#toast-message {
+    display: block;
+    position: fixed;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgb(13, 160, 8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 2000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s, top 0.5s;
+}
+#toast-message.show {
+    opacity: 1;
+    top: 20px;
+    pointer-events: auto;
+}
+
+/* #toast-icon {
+   margin-left:10px;
+   font-size:16px;
+   vertical-align:middle;
+} */
 </style>
 <body>
     <div class="navbar">
@@ -784,71 +825,102 @@ body {
             </div>
         </div>
 
+
         <?php if (isset($_SESSION['scholarship_added'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toast = document.getElementById('toast-message');
-            toast.textContent = 'Added successfully';
-            toast.style.display = 'block';
+            var toastText = document.getElementById('toast-text');
+            var toastIcon = document.getElementById('toast-icon');
+            toastText.textContent = 'Scholarship added successfully';
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#28a745'; // Green
+            toast.classList.add('show');
             setTimeout(function() {
-                toast.style.display = 'none';
+                toast.classList.remove('show');
             }, 2500);
         });
         </script>
         <?php unset($_SESSION['scholarship_added']); endif; ?>
 
+
         <?php if (isset($_SESSION['scholarship_deleted'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toast = document.getElementById('toast-message');
-            toast.textContent = 'Deleted successfully';
-            toast.style.display = 'block';
+            var toastText = document.getElementById('toast-text');
+            var toastIcon = document.getElementById('toast-icon');
+            toastText.textContent = 'Scholarship deleted successfully';
+            toastIcon.className = 'fas fa-trash-alt';
+            toast.style.background = '#B22222'; // Red
+            toast.classList.add('show');
             setTimeout(function() {
-                toast.style.display = 'none';
+                toast.classList.remove('show');
             }, 2500);
         });
         </script>
         <?php unset($_SESSION['scholarship_deleted']); endif; ?>
 
+
         <?php if (isset($_SESSION['scholarship_published'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toast = document.getElementById('toast-message');
-            toast.textContent = 'Published successfully';
-            toast.style.display = 'block';
+            var toastText = document.getElementById('toast-text');
+            var toastIcon = document.getElementById('toast-icon');
+            toastText.textContent = 'Scholarship published successfully';
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#191970'; // Blue
+            toast.classList.add('show');
             setTimeout(function() {
-                toast.style.display = 'none';
+                toast.classList.remove('show');
             }, 2500);
         });
         </script>
         <?php unset($_SESSION['scholarship_published']); endif; ?>
 
-        <div id="toast-message" style="
-            display:none;
-            position:fixed;
-            top:20px;
-            left:50%;
-            transform:translateX(-50%);
-            background:#28a745;
-            color:white;
-            padding:14px 28px;
-            border-radius:8px;
-            font-size:16px;
-            z-index:2000;
-            box-shadow:0 4px 12px rgba(0,0,0,0.15);
-        "></div>
+
+        <div id="toast-message">
+            <span id="toast-text"></span>
+            <i class="fas fa-check-circle" id="toast-icon" style="margin-left:10px; font-size:16px; vertical-align:middle;"></i>
+        </div>
+
+
         <?php if (isset($_SESSION['message_deleted'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toast = document.getElementById('toast-message');
-            toast.textContent = 'Message deleted successfully';
-            toast.style.display = 'block';
+            var toastText = document.getElementById('toast-text');
+            var toastIcon = document.getElementById('toast-icon');
+            toastText.textContent = 'Message deleted successfully';
+            toastIcon.className = 'fas fa-trash-alt';
+            toast.style.background = '#B22222'; // Red
+            toast.classList.add('show');
             setTimeout(function() {
-                toast.style.display = 'none';
+                toast.classList.remove('show');
             }, 2500);
         });
         </script>
         <?php unset($_SESSION['message_deleted']); endif; ?>
+
+        +
+        <?php if (isset($_SESSION['message_sent'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toast = document.getElementById('toast-message');
+            var toastText = document.getElementById('toast-text');
+            var toastIcon = document.getElementById('toast-icon');
+            toastText.textContent = 'Message sent successfully';
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#28a745'; // Green
+            toast.classList.add('show');
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 2500);
+        });
+        </script>
+        <?php unset($_SESSION['message_sent']); endif; ?>
+
         <!-- Main Content -->
         <div class="main-content">
 
@@ -1021,16 +1093,16 @@ Closing/Signature:" rows="5" required></textarea>
         </div>
     </div>
     <script>
-        function toggleMenu() {
+       function toggleMenu() {
             var menu = document.getElementById("dropdownMenu");
-            menu.style.display = (menu.style.display === "block") ? "none" : "block";
+            menu.classList.toggle("show");
         }
 
         window.onclick = function(event) {
             if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down')) {
                 var dropdowns = document.getElementsByClassName("dropdown-menu");
                 for (var i = 0; i < dropdowns.length; i++) {
-                    dropdowns[i].style.display = "none";
+                    dropdowns[i].classList.remove("show");
                 }
             }
         }

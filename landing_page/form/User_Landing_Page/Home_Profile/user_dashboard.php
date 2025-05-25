@@ -95,6 +95,19 @@ if (isset($_POST['send_concern'])) {
         exit();
     }
 }
+
+// Handle message deletion
+if (isset($_POST['delete_message'])) {
+    $messageId = intval($_POST['message_id']);
+    
+    // Verify the message belongs to the current user before deleting
+    $stmt = $conn->prepare("DELETE FROM concerns WHERE id = ? AND user_id = ? AND sender = 'user'");
+    $stmt->bind_param("ii", $messageId, $userId);
+    $stmt->execute();
+    
+    header("Location: ".$_SERVER['PHP_SELF']."?page=communication-page");
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -764,7 +777,7 @@ form .label-application + div label {
 
 /* Add this to your <style> section */
 .chat-container {
-    max-width: 600px;
+    max-width: 1200px;
     margin: 30px auto 0 auto;
     background: #fff;
     border-radius: 10px;
@@ -852,6 +865,86 @@ form .label-application + div label {
 
 .chat-input button:hover {
     background: #0056b3;
+}
+
+.message {
+    position: relative;
+}
+
+.message-options {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.message:hover .message-options {
+    opacity: 1;
+}
+
+.options-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    color: #666;
+    font-size: 12px;
+}
+
+.options-btn:hover {
+    background-color: rgba(0,0,0,0.1);
+}
+
+.options-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: none;
+    min-width: 100px;
+    z-index: 1000;
+}
+
+.options-menu.show {
+    display: block;
+}
+
+.options-menu button {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: #dc3545;
+    font-size: 12px;
+}
+
+.options-menu button:hover {
+    background-color: #f8f9fa;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
 }
 </style>
 <body>
@@ -1257,6 +1350,18 @@ form .label-application + div label {
                     <div class="message <?php echo $message['sender'] === 'user' ? 'user-message' : 'admin-message'; ?>">
                         <div class="message-content">
                             <?php echo nl2br(htmlspecialchars($message['message'])); ?>
+                            <?php if ($message['sender'] === 'user'): ?>
+                                <div class="message-options">
+                                    <button class="options-btn" onclick="toggleMessageOptions(<?php echo $message['id']; ?>)">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <div class="options-menu" id="options-<?php echo $message['id']; ?>">
+                                        <button onclick="deleteMessage(<?php echo $message['id']; ?>)">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="message-timestamp">
                             <?php echo date('M d, Y h:i A', strtotime($message['created_at'])); ?>
@@ -1275,6 +1380,19 @@ form .label-application + div label {
                 <i class="fas fa-paper-plane"></i>
             </button>
         </form>
+    </div>
+</div>
+
+<div id="deleteMessageModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">Delete Message</div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete this message? This action cannot be undone.</p>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+        </div>
     </div>
 </div>
             
@@ -1620,6 +1738,75 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     })(window.showPage || function(){});
 });
+
+let messageToDelete = null;
+
+function toggleMessageOptions(messageId) {
+    // Close all other open menus
+    document.querySelectorAll('.options-menu').forEach(menu => {
+        if (menu.id !== `options-${messageId}`) {
+            menu.classList.remove('show');
+        }
+    });
+    
+    // Toggle the clicked menu
+    const menu = document.getElementById(`options-${messageId}`);
+    menu.classList.toggle('show');
+}
+
+function deleteMessage(messageId) {
+    messageToDelete = messageId;
+    document.getElementById('deleteMessageModal').style.display = "block";
+    
+    // Close the options menu
+    document.getElementById(`options-${messageId}`).classList.remove('show');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteMessageModal').style.display = "none";
+    messageToDelete = null;
+}
+
+function confirmDelete() {
+    if (messageToDelete) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.style.display = 'none';
+        
+        const messageIdInput = document.createElement('input');
+        messageIdInput.type = 'hidden';
+        messageIdInput.name = 'message_id';
+        messageIdInput.value = messageToDelete;
+        
+        const deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_message';
+        deleteInput.value = '1';
+        
+        form.appendChild(messageIdInput);
+        form.appendChild(deleteInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Close options menu when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.message-options')) {
+        document.querySelectorAll('.options-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    }
+});
+
+// Close delete modal when clicking outside
+window.onclick = function(event) {
+    const deleteModal = document.getElementById('deleteMessageModal');
+    if (event.target === deleteModal) {
+        closeDeleteModal();
+    }
+}
 </script>
 </body>
 </html>

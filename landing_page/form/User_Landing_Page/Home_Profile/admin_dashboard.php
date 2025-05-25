@@ -154,6 +154,19 @@ if (isset($_POST['send_admin_reply']) && isset($_POST['chat_user_id'])) {
         exit();
     }
 }
+
+if (isset($_POST['delete_admin_message']) && isset($_POST['message_id']) && isset($_POST['chat_user_id'])) {
+    $message_id = intval($_POST['message_id']);
+    $chat_user_id = intval($_POST['chat_user_id']);
+    
+    // Delete the admin message
+    $stmt = $conn->prepare("DELETE FROM concerns WHERE id = ? AND sender = 'admin'");
+    $stmt->bind_param("i", $message_id);
+    $stmt->execute();
+    
+    header("Location: admin_dashboard.php?chat_user=$chat_user_id#user-concerns-page");
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -798,7 +811,7 @@ body {
 /* User Concerns Chat Layout */
 .concerns-chat-container {
     display: flex;
-    max-width: 900px;
+    max-width: 1200px;
     margin: 30px auto;
     background: #fff;
     border-radius: 10px;
@@ -1174,10 +1187,28 @@ body {
                 <?php if ($selectedUserId): ?>
                     <?php foreach ($chatMessages as $msg): ?>
                         <div class="concern-message <?php echo $msg['sender'] === 'admin' ? 'admin-message' : 'user-message'; ?>"
-                             style="max-width:70%;padding:10px 15px;border-radius:15px;margin:5px 0;word-break:break-word;
-                             <?php echo $msg['sender'] === 'admin' ? 'align-self:flex-end;background:#007bff;color:white;' : 'align-self:flex-start;background:#e9ecef;color:#333;'; ?>">
-                            <div class="concern-message-content"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></div>
-                            <div class="concern-message-timestamp" style="font-size:0.7em;opacity:0.7;text-align:right;">
+                             style="max-width:70%;padding:10px 15px;border-radius:15px;margin:5px 0;word-break:break-word;position:relative;
+                             <?php echo $msg['sender'] === 'admin' ? 'align-self:flex-end;background:#007bff;color:white;margin-left:auto;' : 'align-self:flex-start;background:#e9ecef;color:#333;'; ?>">
+                            
+                            <?php if ($msg['sender'] === 'admin'): ?>
+                                <div class="message-options" style="position:absolute;top:5px;right:5px;">
+                                    <span class="three-dots" onclick="toggleMessageMenu(<?php echo $msg['id']; ?>)" style="cursor:pointer;color:rgba(255,255,255,0.7);font-size:16px;padding:2px 5px;">⋮</span>
+                                    <div class="message-menu" id="menu-<?php echo $msg['id']; ?>" style="display:none;position:absolute;top:20px;right:0;background:white;border:1px solid #ddd;border-radius:5px;box-shadow:0 2px 10px rgba(0,0,0,0.1);z-index:1000;min-width:100px;">
+                                        <form method="POST" style="margin:0;">
+                                            <input type="hidden" name="message_id" value="<?php echo $msg['id']; ?>">
+                                            <input type="hidden" name="chat_user_id" value="<?php echo $selectedUserId; ?>">
+                                            <button type="submit" name="delete_admin_message" onclick="return confirm('Are you sure you want to delete this message?')" style="width:100%;padding:8px 12px;border:none;background:none;color:#dc3545;cursor:pointer;text-align:left;font-size:12px;">
+                                                <i class="fas fa-trash-alt" style="margin-right:5px;"></i>Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <div class="concern-message-content" style="<?php echo $msg['sender'] === 'admin' ? 'margin-right:15px;' : ''; ?>">
+                                <?php echo nl2br(htmlspecialchars($msg['message'])); ?>
+                            </div>
+                            <div class="concern-message-timestamp" style="font-size:0.7em;opacity:0.7;text-align:right;margin-top:5px;">
                                 <?php echo date('M d, Y h:i A', strtotime($msg['created_at'])); ?>
                             </div>
                         </div>
@@ -1442,6 +1473,28 @@ Closing/Signature:" rows="5" required></textarea>
                 };
             })(window.showPage || function(){});
         });
+
+        function toggleMessageMenu(messageId) {
+    // Close all other menus first
+    document.querySelectorAll('.message-menu').forEach(menu => {
+        if (menu.id !== 'menu-' + messageId) {
+            menu.style.display = 'none';
+        }
+    });
+    
+    // Toggle current menu
+    const menu = document.getElementById('menu-' + messageId);
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close menus when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.message-options')) {
+        document.querySelectorAll('.message-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    }
+});
     </script>
 </body>
 </html>

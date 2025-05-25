@@ -52,7 +52,7 @@ if (isset($_POST['send_message'])) {
     $_SESSION['message_sent'] = true;
 
     // Redirect to prevent form resubmission
-    header("Location: admin_dashboard.php#communication-page");
+    header("Location: admin_dashboard.php#send-updates-page");
     exit();
 }
 
@@ -108,7 +108,7 @@ if (isset($_POST['delete_message'])) {
     $_SESSION['message_deleted'] = true;
 
     // Redirect to the communication page only (not home)
-    header("Location: admin_dashboard.php#communication-page");
+    header("Location: admin_dashboard.php#send-updates-page");
     exit();
 }
 
@@ -125,6 +125,35 @@ $messagesSql = "SELECT * FROM notifications ORDER BY created_at DESC";
 $messagesResult = $conn->query($messagesSql);
 $messages = $messagesResult->fetch_all(MYSQLI_ASSOC);
 
+$usersWithConcerns = [];
+$userQuery = $conn->query("SELECT DISTINCT u.Id, u.Fname, u.Lname, u.profile_pic FROM user u JOIN concerns c ON u.Id = c.user_id");
+while ($row = $userQuery->fetch_assoc()) {
+    $usersWithConcerns[] = $row;
+}
+
+// Get selected user for chat
+$selectedUserId = isset($_GET['chat_user']) ? intval($_GET['chat_user']) : null;
+$chatMessages = [];
+if ($selectedUserId) {
+    $stmt = $conn->prepare("SELECT * FROM concerns WHERE user_id = ? ORDER BY created_at ASC");
+    $stmt->bind_param("i", $selectedUserId);
+    $stmt->execute();
+    $chatMessages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+// Handle admin reply 
+if (isset($_POST['send_admin_reply']) && isset($_POST['chat_user_id'])) {
+    $reply = trim($_POST['admin_reply']);
+    $chat_user_id = intval($_POST['chat_user_id']);
+    $admin_id = $admin['Id']; // Use the actual admin Id from DB, not session if session is wrong
+    if (!empty($reply)) {
+        $stmt = $conn->prepare("INSERT INTO concerns (user_id, admin_id, sender, message) VALUES (?, ?, 'admin', ?)");
+        $stmt->bind_param("iis", $chat_user_id, $admin_id, $reply);
+        $stmt->execute();
+        header("Location: admin_dashboard.php?chat_user=$chat_user_id#user-concerns-page");
+        exit();
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -440,7 +469,7 @@ body {
     }
 
 
-.communication-form textarea {
+.send-updates-form textarea {
     width: 98%;
     font-size: 12px;
     padding: 10px;
@@ -448,7 +477,7 @@ body {
     border: 1px solid #ccc;
 }
 
-.communication-form input[type="datetime-local"] {
+.send-updates-form input[type="datetime-local"] {
     margin-top: 10px;
     width: 100%;
     font-size: 12px;
@@ -457,7 +486,7 @@ body {
     border: 1px solid #ccc;
 }
 
-.communication-form button {
+.send-updates-form button {
     margin-top: 10px;
     width: 100%;
     background-color: #090549;
@@ -469,11 +498,11 @@ body {
     cursor: pointer;
 }
 
-.communication-form button:hover {
+.send-updates-form button:hover {
     background-color: #10087c;
 }
 
-.main-title-communication {
+.main-title-send-updates {
     color: black;
     margin-top: 0;
     font-size: 25px;
@@ -481,7 +510,7 @@ body {
     margin-top: 20px;
 }
 
-.communication-h3 {
+.send-updates-h3 {
     color:black;
     margin-top: 0;
     font-size: 15px;
@@ -766,11 +795,124 @@ body {
     pointer-events: auto;
 }
 
-/* #toast-icon {
-   margin-left:10px;
-   font-size:16px;
-   vertical-align:middle;
-} */
+/* User Concerns Chat Layout */
+.concerns-chat-container {
+    display: flex;
+    max-width: 900px;
+    margin: 30px auto;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    height: 500px;
+    overflow: hidden;
+}
+.concerns-chat-list {
+    width: 200px;
+    background: #f4f4f4;
+    border-right: 1px solid #eee;
+    padding: 20px 0;
+    overflow-y: auto;
+}
+.concerns-chat-list h3 {
+    text-align: center;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+.concerns-chat-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.concerns-chat-list li {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+}
+.concerns-chat-list li:hover, .concerns-chat-list li.active {
+    background: #e0e7ff;
+    font-weight: bold;
+}
+.concerns-chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.concerns-chat-header {
+    padding: 15px 20px;
+    background: #f7f7fa;
+    border-bottom: 1px solid #eee;
+    font-weight: bold;
+    font-size: 16px;
+}
+.concerns-chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f7f7fa;
+}
+.concern-message {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 5px 0;
+    word-break: break-word;
+}
+.concern-message.user {
+    align-self: flex-start;
+    background-color: #e9ecef;
+    color: #333;
+}
+.concern-message.admin {
+    align-self: flex-end;
+    background-color: #007bff;
+    color: white;
+}
+.concern-message-content {
+    margin-bottom: 5px;
+}
+.concern-message-timestamp {
+    font-size: 0.7em;
+    opacity: 0.7;
+    text-align: right;
+}
+.concerns-chat-input {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    border-top: 1px solid #eee;
+    background: #fff;
+}
+.concerns-chat-input textarea {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    resize: none;
+    height: 40px;
+    font-family: inherit;
+    font-size: 13px;
+}
+.concerns-chat-input button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.concerns-chat-input button:hover {
+    background: #0056b3;
+}
 </style>
 <body>
     <div class="navbar">
@@ -810,9 +952,9 @@ body {
                 <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
                 <div class="nav-text">Scholarship</div>
             </div>
-            <div class="nav-item" id="communication-nav" onclick="showPage('communication-page')">
+            <div class="nav-item" id="communication-nav" onclick="showPage('send-updates-page')">
                 <div class="nav-icon"><i class="fas fa-envelope"></i></div>
-                <div class="nav-text">Communication</div>
+                <div class="nav-text">Send Updates</div>
             </div>
             <div class="nav-item" id="total-applicants-nav" onclick="showPage('total-applicants-page')">
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
@@ -822,6 +964,10 @@ body {
             <div class="nav-item" id="reports-nav" onclick="showPage('reports-page')">
                 <div class="nav-icon"><i class="fas fa-chart-bar"></i></div>
                 <div class="nav-text">Reports</div>
+            </div>
+            <div class="nav-item" id="user-concerns-nav" onclick="showPage('user-concerns-page')">
+                <div class="nav-icon"><i class="fas fa-comments"></i></div>
+                <div class="nav-text">User Concerns</div>
             </div>
         </div>
 
@@ -996,6 +1142,63 @@ body {
                 </div>
             </div>
 
+<!-- User Concerns Page -->
+<div id="user-concerns-page" class="page" style="display:none;">
+    <h2>User Concerns Chat</h2>
+    <div class="concerns-chat-container" style="display: flex;">
+        <div class="concerns-chat-list" style="width: 220px; border-right: 1px solid #eee; padding-right: 10px;">
+            <h3>Users</h3>
+            <ul id="userList" style="list-style: none; padding: 0;">
+                <?php foreach ($usersWithConcerns as $user): ?>
+                    <li onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $user['Id']; ?>#user-concerns-page'"
+                        style="cursor:pointer; padding: 8px; <?php if ($selectedUserId == $user['Id']) echo 'background:#f7f7fa; font-weight:bold;'; ?>">
+                        <img src="../../../../<?php echo htmlspecialchars(!empty($user['profile_pic']) ? $user['profile_pic'] : 'images/user.png'); ?>" style="width:25px;height:25px;border-radius:50%;vertical-align:middle;margin-right:5px;">
+                        <?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <div class="concerns-chat-main" style="flex:1; display:flex; flex-direction:column;">
+            <div class="concerns-chat-header" id="concernChatHeader" style="padding:10px 0; border-bottom:1px solid #eee;">
+                <?php
+                if ($selectedUserId) {
+                    $user = array_filter($usersWithConcerns, fn($u) => $u['Id'] == $selectedUserId);
+                    $user = reset($user);
+                    echo "Chat with " . htmlspecialchars($user['Fname'] . ' ' . $user['Lname']);
+                } else {
+                    echo "Select a user to view concerns";
+                }
+                ?>
+            </div>
+            <div class="concerns-chat-messages" id="concernChatMessages" style="flex:1; overflow-y:auto; padding:20px; background:#f7f7fa;">
+                <?php if ($selectedUserId): ?>
+                    <?php foreach ($chatMessages as $msg): ?>
+                        <div class="concern-message <?php echo $msg['sender'] === 'admin' ? 'admin-message' : 'user-message'; ?>"
+                             style="max-width:70%;padding:10px 15px;border-radius:15px;margin:5px 0;word-break:break-word;
+                             <?php echo $msg['sender'] === 'admin' ? 'align-self:flex-end;background:#007bff;color:white;' : 'align-self:flex-start;background:#e9ecef;color:#333;'; ?>">
+                            <div class="concern-message-content"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></div>
+                            <div class="concern-message-timestamp" style="font-size:0.7em;opacity:0.7;text-align:right;">
+                                <?php echo date('M d, Y h:i A', strtotime($msg['created_at'])); ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div style="color:#888;">No user selected.</div>
+                <?php endif; ?>
+            </div>
+            <?php if ($selectedUserId): ?>
+            <form class="concerns-chat-input" method="POST" autocomplete="off" style="display:flex;gap:10px;padding:15px;border-top:1px solid #eee;background:#fff;">
+                <textarea name="admin_reply" id="concernMessageInput" placeholder="Type your reply..." required style="flex:1;padding:10px;border:1px solid #ddd;border-radius:20px;resize:none;height:40px;font-family:inherit;font-size:13px;"></textarea>
+                <input type="hidden" name="chat_user_id" value="<?php echo $selectedUserId; ?>">
+                <button type="submit" name="send_admin_reply" style="background:#007bff;color:white;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;transition:background 0.3s;font-size:16px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
             <div id="scholarship-page" class="page">
                 <h1 class="main-title-scholar">Manage Scholarships</h1>
                 <!-- Add Scholarship Form -->
@@ -1053,11 +1256,11 @@ body {
             </div>
 
             
-            <div id="communication-page" class="page">
-                <h1 class="main-title-communication">Communication</h1>
+            <div id="send-updates-page" class="page">
+                <h1 class="main-title-send-updates">Send Updates</h1>
                 <!-- Form to Send a Message -->
-                <form class="communication-form" method="POST">
-                    <h3 class="communication-h3">Send a Message to Users</h3>
+                <form class="send-updates-form" method="POST">
+                    <h3 class="send-updates-h3">Send a Updates to Users</h3>
                     <textarea name="message" placeholder="Title/Subject:                 
 Greeting/Opening:
 Body/Message Content:
@@ -1109,33 +1312,36 @@ Closing/Signature:" rows="5" required></textarea>
 
        // Update showPage to close the tree when navigating
         function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(page => {
-                page.style.display = 'none';
-                page.classList.remove('active');
-            });
-            document.getElementById(pageId).style.display = 'block';
-            document.getElementById(pageId).classList.add('active');
-            switch (pageId) {
-                case 'home-page':
-                    highlightActiveNav('home-nav');
-                    break;
-                case 'application-page':
-                    highlightActiveNav('history-nav');
-                    break;
-                case 'scholarship-page':
-                    highlightActiveNav('scholarships-nav');
-                    break;
-                case 'communication-page':
-                    highlightActiveNav('communication-nav');
-                    break;
-                case 'total-applicants-page':
-                    highlightActiveNav('total-applicants-nav');
-                    break;
-                case 'reports-page':
-                    highlightActiveNav('reports-nav');
-                    break;
-            }
+        document.querySelectorAll('.page').forEach(page => {
+            page.style.display = 'none';
+            page.classList.remove('active');
+        });
+        document.getElementById(pageId).style.display = 'block';
+        document.getElementById(pageId).classList.add('active');
+        switch (pageId) {
+            case 'home-page':
+                highlightActiveNav('home-nav');
+                break;
+            case 'application-page':
+                highlightActiveNav('history-nav');
+                break;
+            case 'scholarship-page':
+                highlightActiveNav('scholarships-nav');
+                break;
+            case 'send-updates-page':
+                highlightActiveNav('communication-nav');
+                break;
+            case 'total-applicants-page':
+                highlightActiveNav('total-applicants-nav');
+                break;
+            case 'reports-page':
+                highlightActiveNav('reports-nav');
+                break;
+            case 'user-concerns-page': // <-- Add this case
+                highlightActiveNav('user-concerns-nav');
+                break;
         }
+    }
         
         function highlightActiveNav(navId) {
             // Remove active class from all nav items first
@@ -1185,6 +1391,31 @@ Closing/Signature:" rows="5" required></textarea>
         function viewApplicants(scholarshipId) {
             alert('View applicants for scholarship ID: ' + scholarshipId);
             // Replace this alert with logic to navigate to a detailed applicants page or modal
+        }
+
+        // Demo JS for switching users and showing chat (replace with real AJAX in production)
+        function openConcernChat(userId, userName) {
+            // Highlight selected user
+            document.querySelectorAll('.concerns-chat-list li').forEach(li => li.classList.remove('active'));
+            event.target.classList.add('active');
+            // Set header
+            document.getElementById('concernChatHeader').textContent = "Chat with " + userName;
+            // Show chat input
+            document.getElementById('concernChatForm').style.display = "flex";
+            // Example messages (replace with AJAX/PHP for real data)
+            document.getElementById('concernChatMessages').innerHTML = `
+                <div class="concern-message user">
+                    <div class="concern-message-content">Hello admin, I have a concern about my application.</div>
+                    <div class="concern-message-timestamp">May 25, 2025 09:00 AM</div>
+                </div>
+                <div class="concern-message admin">
+                    <div class="concern-message-content">Hi ${userName}, how can I assist you?</div>
+                    <div class="concern-message-timestamp">May 25, 2025 09:01 AM</div>
+                </div>
+            `;
+            // Scroll to bottom
+            var chatBox = document.getElementById('concernChatMessages');
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
 </body>

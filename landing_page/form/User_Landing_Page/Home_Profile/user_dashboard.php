@@ -61,7 +61,40 @@ $scholarships = $scholarshipResult->fetch_all(MYSQLI_ASSOC);
 // Count total active scholarships for the Home page
 $totalScholarships = count($scholarships);
 
+if (isset($_POST['send_message'])) {
+    $message = trim($_POST['message']);
+    if (!empty($message)) {
+        $insertSql = "INSERT INTO notifications (message, user_id, status, created_at) VALUES (?, ?, 'unread', NOW())";
+        $insertStmt = $conn->prepare($insertSql);
+        $insertStmt->bind_param("si", $message, $userId);
+        $insertStmt->execute();
+        // Redirect to avoid resubmission
+        header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
+        exit();
+    }
+}
 
+// Fetch all concerns for this user
+$messages = [];
+$stmt = $conn->prepare("SELECT * FROM concerns WHERE user_id = ? ORDER BY created_at ASC");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $messages[] = $row;
+}
+
+// Handle sending a new message
+if (isset($_POST['send_concern'])) {
+    $message = trim($_POST['concern_message']);
+    if (!empty($message)) {
+        $stmt = $conn->prepare("INSERT INTO concerns (user_id, sender, message) VALUES (?, 'user', ?)");
+        $stmt->bind_param("is", $userId, $message);
+        $stmt->execute();
+        header("Location: ".$_SERVER['PHP_SELF']."?page=communication-page");
+        exit();
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -728,6 +761,98 @@ form .label-application + div label {
     text-align: center;
     text-decoration: underline;
 }
+
+/* Add this to your <style> section */
+.chat-container {
+    max-width: 600px;
+    margin: 30px auto 0 auto;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    height: 500px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f7f7fa;
+    border-radius: 10px 10px 0 0;
+}
+
+.message {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 5px 0;
+    word-break: break-word;
+}
+
+.user-message {
+    align-self: flex-end;
+    background-color: #007bff;
+    color: white;
+}
+
+.admin-message {
+    align-self: flex-start;
+    background-color: #e9ecef;
+    color: #333;
+}
+
+.message-content {
+    margin-bottom: 5px;
+}
+
+.message-timestamp {
+    font-size: 0.7em;
+    opacity: 0.7;
+    text-align: right;
+}
+
+.chat-input {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    border-top: 1px solid #eee;
+    background: #fff;
+    border-radius: 0 0 10px 10px;
+}
+
+.chat-input textarea {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    resize: none;
+    height: 40px;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.chat-input button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-input button:hover {
+    background: #0056b3;
+}
 </style>
 <body>
     <div class="navbar">
@@ -1122,15 +1247,36 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <!-- Communication Page -->
-            <div id="communication-page" class="page">
-                <h2>Communication</h2>
-                <p>View and manage your messages here.</p>
-                <!-- Add content for communication, such as a list of messages -->
-                <div class="message-list">
-                    <p>No messages available at the moment.</p>
+<!-- Communication Page -->
+<div id="communication-page" class="page">
+    <h2>Chat with Admin</h2>
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <?php if (!empty($messages)): ?>
+                <?php foreach ($messages as $message): ?>
+                    <div class="message <?php echo $message['sender'] === 'user' ? 'user-message' : 'admin-message'; ?>">
+                        <div class="message-content">
+                            <?php echo nl2br(htmlspecialchars($message['message'])); ?>
+                        </div>
+                        <div class="message-timestamp">
+                            <?php echo date('M d, Y h:i A', strtotime($message['created_at'])); ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="no-messages">
+                    <p>No messages yet. Start a conversation with the admin!</p>
                 </div>
-            </div>
+            <?php endif; ?>
+        </div>
+        <form class="chat-input" method="POST" autocomplete="off">
+            <textarea name="concern_message" required placeholder="Type your message to admin..." rows="1"></textarea>
+            <button type="submit" name="send_concern">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
             
             <!-- Scholarships Listing Page -->
             <div id="scholarships-page" class="page">
@@ -1296,36 +1442,40 @@ form .label-application + div label {
     }
 
     // Page navigation
-    function showPage(pageId) {
-    // Hide all pages
-    document.querySelectorAll('.page').forEach(page => {
-        page.style.display = 'none';
-        page.classList.remove('active'); // Remove active class from pages
-    });
+function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(page => {
+            page.style.display = 'none';
+            page.classList.remove('active');
+        });
 
-    // Show the selected page
-    document.getElementById(pageId).style.display = 'block';
-    document.getElementById(pageId).classList.add('active'); // Add active class to the selected page
+        document.getElementById(pageId).style.display = 'block';
+        document.getElementById(pageId).classList.add('active');
 
-    // Highlight the corresponding nav item
-    switch (pageId) {
-        case 'home-page':
-            highlightActiveNav('home-nav');
-            break;
-        case 'history-page':
-            highlightActiveNav('history-nav');
-            break;
-        case 'scholarships-page':
-            highlightActiveNav('scholarships-nav');
-            break;
-        case 'communication-page':
-            highlightActiveNav('communication-nav');
-            break;
-        case 'spes-page':
-            highlightActiveNav('spes-nav');
-            break;
+        switch (pageId) {
+            case 'home-page':
+                highlightActiveNav('home-nav');
+                break;
+            case 'history-page':
+                highlightActiveNav('history-nav');
+                break;
+            case 'scholarships-page':
+                highlightActiveNav('scholarships-nav');
+                break;
+            case 'communication-page':
+                highlightActiveNav('communication-nav');
+                // Scroll to bottom when communication page is shown
+                setTimeout(() => {
+                    var chatMessages = document.getElementById('chatMessages');
+                    if (chatMessages) {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                }, 100);
+                break;
+            case 'spes-page':
+                highlightActiveNav('spes-nav');
+                break;
+        }
     }
-}
         function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
         fetch('mark_notification_read.php', { method: 'POST' })
@@ -1337,6 +1487,8 @@ form .label-application + div label {
                 }
             });
     }
+
+
 
 
     function closeNotificationModal() {
@@ -1431,16 +1583,34 @@ function showScholarshipsPage() {
 }
 
 function highlightActiveNav(navId) {
-    // Remove active class from all nav items first
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
-    
-    // Add active class to the selected nav item
     document.getElementById(navId).classList.add('active');
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    var chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+});
 
+document.addEventListener('DOMContentLoaded', function() {
+        var chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Auto-resize textarea
+        const textarea = document.querySelector('textarea[name="concern_message"]');
+        if (textarea) {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            });
+        }
+    });
 </script>
 </body>
 </html>

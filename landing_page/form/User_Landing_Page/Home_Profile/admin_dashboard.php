@@ -1417,6 +1417,31 @@ Closing/Signature:" rows="5" required></textarea>
             var chatBox = document.getElementById('concernChatMessages');
             chatBox.scrollTop = chatBox.scrollHeight;
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-scroll chat to bottom when User Concerns page is shown
+            function scrollAdminChatToBottom() {
+                var chatMessages = document.getElementById('concernChatMessages');
+                if (chatMessages) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+
+            // On page load, if user-concerns-page is active, scroll
+            if (document.getElementById('user-concerns-page').classList.contains('active')) {
+                scrollAdminChatToBottom();
+            }
+
+            // Also scroll when switching to user-concerns-page
+            window.showPage = (function(origShowPage) {
+                return function(pageId) {
+                    origShowPage(pageId);
+                    if (pageId === 'user-concerns-page') {
+                        setTimeout(scrollAdminChatToBottom, 100);
+                    }
+                };
+            })(window.showPage || function(){});
+        });
     </script>
 </body>
 </html>

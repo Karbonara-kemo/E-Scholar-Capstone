@@ -1597,20 +1597,29 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll chat to bottom when Communication page is shown
+    function scrollChatToBottom() {
         var chatMessages = document.getElementById('chatMessages');
         if (chatMessages) {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-        
-        // Auto-resize textarea
-        const textarea = document.querySelector('textarea[name="concern_message"]');
-        if (textarea) {
-            textarea.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-            });
-        }
-    });
+    }
+
+    // On page load, if communication page is active, scroll
+    if (document.getElementById('communication-page').classList.contains('active')) {
+        scrollChatToBottom();
+    }
+
+    // Also scroll when switching to communication page
+    window.showPage = (function(origShowPage) {
+        return function(pageId) {
+            origShowPage(pageId);
+            if (pageId === 'communication-page') {
+                setTimeout(scrollChatToBottom, 100);
+            }
+        };
+    })(window.showPage || function(){});
+});
 </script>
 </body>
 </html>

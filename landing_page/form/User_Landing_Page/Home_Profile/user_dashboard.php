@@ -91,7 +91,8 @@ if (isset($_POST['send_concern'])) {
         $stmt = $conn->prepare("INSERT INTO concerns (user_id, sender, message) VALUES (?, 'user', ?)");
         $stmt->bind_param("is", $userId, $message);
         $stmt->execute();
-        header("Location: ".$_SERVER['PHP_SELF']."?page=communication-page");
+        // Redirect to stay on concern page after sending
+        header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
         exit();
     }
 }
@@ -99,13 +100,12 @@ if (isset($_POST['send_concern'])) {
 // Handle message deletion
 if (isset($_POST['delete_message'])) {
     $messageId = intval($_POST['message_id']);
-    
     // Verify the message belongs to the current user before deleting
     $stmt = $conn->prepare("DELETE FROM concerns WHERE id = ? AND user_id = ? AND sender = 'user'");
     $stmt->bind_param("ii", $messageId, $userId);
     $stmt->execute();
-    
-    header("Location: ".$_SERVER['PHP_SELF']."?page=communication-page");
+    // Redirect to stay on concern page after deleting
+    header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
     exit();
 }
 ?>
@@ -114,16 +114,16 @@ if (isset($_POST['delete_message'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PESO Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="../../../../assets/favicon.ico"/>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
 <style>
 body {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Roboto', sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
@@ -137,7 +137,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 39.5%);
+    background: linear-gradient(155deg, #090549 23.3%, #aa0505 50%,rgb(165, 137, 0) 50%);
     position: fixed;
     top: 0;
     left: 0;
@@ -158,6 +158,11 @@ body {
     text-decoration: none;
     margin: 0 15px;
     font-size: 14px;
+}
+
+.san-julian-logo {
+    height: 58px;
+    margin-right: 10px;
 }
 
 .container {
@@ -808,7 +813,7 @@ form .label-application + div label {
 
 .user-message {
     align-self: flex-end;
-    background-color: #007bff;
+    background-color: #090549;
     color: white;
 }
 
@@ -849,7 +854,7 @@ form .label-application + div label {
 }
 
 .chat-input button {
-    background: #007bff;
+    background: #090549;
     color: white;
     border: none;
     border-radius: 50%;
@@ -864,7 +869,7 @@ form .label-application + div label {
 }
 
 .chat-input button:hover {
-    background: #0056b3;
+    background:rgb(21, 12, 158);
 }
 
 .message {
@@ -946,14 +951,353 @@ form .label-application + div label {
 .btn-danger:hover {
     background-color: #c82333;
 }
+
+.upload-btn {
+    background: none;
+    border: none;
+    color: #090549;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 10px;
+    padding: 0 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+.upload-btn:hover {
+    background: #e9ecef;
+}
+.upload-popup {
+    display: none;
+    position: absolute;
+    left: 40px;
+    top: -10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    padding: 15px 20px 15px 15px;
+    z-index: 100;
+    min-width: 180px;
+    font-size: 13px;
+}
+.upload-popup .btn {
+    border-radius: 6px !important;   /* Less rounded corners */
+    width: 100px;                   /* Fixed width for a square look */
+    height: 40px;                   /* Fixed height for a square look */
+    padding: 0;
+    font-size: 13px;
+    background: #090549;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+}
+.upload-popup .btn:hover {
+    background:rgb(15, 7, 121);
+}
+.upload-popup span {
+    display: block;
+    margin-bottom: 10px;
+}
+.close-upload-popup {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 18px;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    cursor: pointer;
+}
+
+/* Add these mobile styles at the end of your existing style section */
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    /* Adjust navbar for mobile */
+    @media (max-width: 768px) {
+    .navbar {
+        height: auto;
+        padding: 15px 10px;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+    .logo-container {
+        margin-left: 0;
+        margin-bottom: 0;
+        flex-direction: row;
+        align-items: center;
+        gap: 5px;
+    }
+    .logo, .san-julian-logo {
+        height: 30px;
+    }
+    .navbar .title {
+        font-size: 11px !important;
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+    .right-nav {
+        width: auto;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .menu-container {
+        width: auto;
+        justify-content: flex-end;
+        padding: 0;
+        gap: 10px;
+    }
+    .user-name {
+        display: none;
+    }
+    .dropdown-menu {
+        top: 40px;
+        right: 5px;
+    }
+}
+    
+    /* Adjust sidebar for mobile */
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        flex-direction: row;
+        z-index: 1000;
+        padding: 5px 0;
+    }
+    
+    .sidebar.collapsed {
+        width: 100%;
+    }
+    
+    .nav-item {
+        margin: 0; /* Adds bottom space and a little side space */
+        display: flex;
+        padding: 10px 5px;
+        justify-content: space-between;
+        flex-direction: column;
+        text-align: center;
+        min-width: 78px; /* Ensures items are not too small */
+        min-height: 40px; /* Ensures items have a minimum height */
+    }
+
+    .nav-item.active {
+        border-left: none;
+        border-bottom: 4px solid #ffffff;
+        background-color: #10087c;
+        border-radius: 0;
+    }
+    
+    .nav-icon {
+        margin-right: 0;
+        font-size: 16px;
+        margin-bottom: 5px;
+    }
+    
+    .nav-text {
+        font-size: 10px;
+        display: block !important;
+        opacity: 1 !important;
+    }
+    
+    .toggle-sidebar {
+        display: none;
+    }
+    
+    /* Adjust main content */
+    .container {
+        padding-top: 10px;
+        /* Space for bottom navbar */
+    }
+    
+    @media (max-width: 768px) {
+    .main-content {
+        margin: 0 !important;
+        padding: 10px;
+        /* display: flex; */
+        flex-direction: column;
+        align-items: center; /* Center horizontally */
+        justify-content: center; /* Center vertically if you want */
+    }
+    .welcome-screen {
+        margin-top: 40px !important;
+        text-align: center;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .dashboard-boxes {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        padding: 0;
+    }
+    .box {
+        width: 90%;
+        margin: 10px 0;
+    }
+}
+    
+    /* Adjust dashboard boxes */
+    .dashboard-boxes {
+        flex-direction: column;
+    }
+    
+    .box {
+        margin: 5px 0;
+    }
+    
+    /* Adjust forms */
+    .form-container-application {
+        padding: 15px;
+    }
+    
+    .input-field, .textarea-field, .select-field {
+        font-size: 14px;
+        padding: 8px;
+    }
+    
+    /* Adjust chat interface */
+    .chat-container {
+        height: calc(100vh - 180px);
+        margin: 10px auto;
+    }
+    
+    .chat-input textarea {
+        height: 35px;
+    }
+    
+    /* Adjust tables */
+    .history-table {
+        font-size: 10px;
+    }
+    
+    .history-table th, 
+    .history-table td {
+        padding: 5px;
+    }
+    
+    /* Hide some elements on mobile */
+    .description {
+        display: none;
+    }
+    
+    /* SPES form adjustments */
+    #spes-application-form-page .form-container-application {
+        padding: 15px;
+    }
+    
+    #spes-application-form-page img {
+        display: none;
+    }
+    
+    .title-description-p {
+        margin-left: 0;
+        margin-right: 0;
+        font-size: 11px;
+    }
+    
+    /* Modal adjustments */
+    .modal-content {
+        width: 90%;
+        margin: 30% auto;
+    }
+    
+    /* Application form adjustments */
+    #application-form-page .form-container-application {
+        padding: 15px;
+    }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+    .nav-item {
+        padding: 8px 3px;
+    }
+    
+    .nav-text {
+        font-size: 8px;
+    }
+    
+    .main-title {
+        font-size: 20px;
+    }
+    
+    .box-title {
+        font-size: 14px;
+    }
+    
+    .box-value {
+        font-size: 25px;
+    }
+    
+    .history-h2 {
+        font-size: 18px;
+    }
+}
+
+/* Prevent zooming on input focus on mobile */
+@media screen and (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Make sure dropdowns are visible on mobile */
+@media (max-width: 768px) {
+    .dropdown-menu {
+        position: fixed;
+        top: 50px;
+        right: 5px;
+        width: 150px;
+    }
+    
+    .options-menu {
+        position: fixed;
+        top: auto;
+        bottom: 60px;
+        right: 10px;
+    }
+}
+
+/* Adjust SPES boxes for mobile */
+@media (max-width: 768px) {
+    #spes-page .dashboard-boxes {
+        flex-direction: column;
+    }
+    
+    #spes-page .box {
+        margin-bottom: 10px;
+    }
+}
+
+/* Make sure modals are centered on mobile */
+@media (max-width: 768px) {
+    .modal-content {
+        margin: 50% auto;
+        width: 85%;
+        font-size: 9px;
+    }
+}
 </style>
 <body>
     <div class="navbar">
         <div class="logo-container">
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
             <img src="../../../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
-            <img src="../../../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">SPESOS MIS SAN JULIAN</div>
+            <img src="../../../../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
+            <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
             <div class="menu-container">
@@ -999,7 +1343,7 @@ form .label-application + div label {
             </div>
             <div class="nav-item" id="communication-nav" onclick="showPage('communication-page')">
                 <div class="nav-icon"><i class="fas fa-envelope"></i></div>
-                <div class="nav-text">Communication</div>
+                <div class="nav-text">Concern</div>
             </div>
         </div>
 
@@ -1015,7 +1359,7 @@ form .label-application + div label {
 
                 <div class="dashboard-boxes">
                     <div class="box">
-                        <div class="box-title">Scholarship Applications History</div>
+                        <div class="box-title">Applications History</div>
                         <div class="box-value">4</div>
                         <div class="box-description">You have 2 approved scholarship applications</div>
                         <!-- Added margin-top for spacing -->
@@ -1060,7 +1404,7 @@ form .label-application + div label {
                     <h2 style="margin-bottom:20px;">Employment Contract Form</h2>
                     <img src="../../../../images/Employment-contract.jpg" alt="Employment contract image" class="image" style="max-width:100%; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); margin-bottom:30px;">
                     <br>
-                    <a href="../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px;">
+                    <a href="../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px; text-decoration: none;">
                         Download Employment Contract
                     </a>
                     <br>
@@ -1077,6 +1421,9 @@ form .label-application + div label {
                 <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:43%; left:50px; opacity:0.1; pointer-events: none;">
                 <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:75%; left:50px; opacity:0.1; pointer-events: none;">
                 <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
+                <a href="../../../../download_assets/SPES-FORM-2-APPLICATION-FORM-1-1.docx" download class="submit-btn" style="padding: 8px 20px;width:auto; display:inline-block; margin-bottom:10px; right: 20px; position: absolute; top: 10px; text-align: center; text-decoration: none;">
+                    Download SPES Application Form
+                </a>
                 <p class="title-description-p">REPUBLIC OF THE PHILIPPINES<br>DEPARTMENT OF LABOR AND EMPLOYMENT<br>Regional Office No. VIII<br>PUBLIC EMPLOYMENT SERVICE OFFICE<br>SAN JULIAN, EASTERN SAMAR<br>City/Municipality/Province<br>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)<br>(RA 7323, as amended by RAs 9547 and 10917)
 </p>
                 <h2 id="spes-application-form-title">Application Form</h2>
@@ -1274,8 +1621,8 @@ form .label-application + div label {
                     <h2 style="margin-bottom:20px;">Employment Contract Form</h2>
                     <img src="../../../../images/spesos-oath-of-undertaking.jpg" alt="Employment contract image" class="image" style="max-width:100%; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); margin-bottom:30px;">
                     <br>
-                    <a href="../../../../download_assets/SPES-FORM-2-A-OATH-OF-UNDERTAKING-.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px;">
-                        Download Employment Contract
+                    <a href="../../../../download_assets/SPES-FORM-2-A-OATH-OF-UNDERTAKING-.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px; text-decoration: none;">
+                        Download Oath-of-Undertaking Form
                     </a>
                     <br>
                     <button class="back-btn" style="margin-top:20px;" onclick="showPage('spes-page')">Back to SPESOS</button>
@@ -1374,8 +1721,18 @@ form .label-application + div label {
                 </div>
             <?php endif; ?>
         </div>
-        <form class="chat-input" method="POST" autocomplete="off">
-            <textarea name="concern_message" required placeholder="Type your message to admin..." rows="1"></textarea>
+        <form class="chat-input" method="POST" enctype="multipart/form-data" autocomplete="off">
+            <div class="upload-container" style="position: relative;">
+                <button type="button" class="upload-btn" onclick="showUploadPopup()" title="Upload">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="file" id="chatUpload" name="chat_upload[]" style="display:none;" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
+                <div id="uploadPopup" class="upload-popup">
+                    <span style="display:block;text-align:center;margin-bottom:10px;">Upload documents or images</span>
+                    <button type="button" class="btn" style="display:block;margin:0 auto;" onclick="triggerFileInput()">Choose File</button>
+                </div>
+            </div>
+            <textarea name="concern_message" placeholder="Type your message to admin..." rows="1"></textarea>
             <button type="submit" name="send_concern">
                 <i class="fas fa-paper-plane"></i>
             </button>
@@ -1566,6 +1923,7 @@ function showPage(pageId) {
             page.classList.remove('active');
         });
 
+        window.location.hash = pageId; // <-- Add this line
         document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
 
@@ -1800,13 +2158,34 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// Close delete modal when clicking outside
-window.onclick = function(event) {
-    const deleteModal = document.getElementById('deleteMessageModal');
-    if (event.target === deleteModal) {
-        closeDeleteModal();
-    }
+
+function showUploadPopup() {
+    document.getElementById('uploadPopup').style.display = 'block';
 }
+function closeUploadPopup() {
+    document.getElementById('uploadPopup').style.display = 'none';
+}
+function triggerFileInput() {
+    document.getElementById('chatUpload').click();
+    closeUploadPopup();
+}
+document.addEventListener('click', function(event) {
+    const popup = document.getElementById('uploadPopup');
+    const btn = document.querySelector('.upload-btn');
+    if (popup && !popup.contains(event.target) && !btn.contains(event.target)) {
+        popup.style.display = 'none';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Show the correct page if there's a hash in the URL
+    if (window.location.hash) {
+        const pageId = window.location.hash.substring(1);
+        if (document.getElementById(pageId)) {
+            showPage(pageId);
+        }
+    }
+});
 </script>
 </body>
 </html>

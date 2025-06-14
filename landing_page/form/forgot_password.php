@@ -9,11 +9,11 @@ include "../../connect.php";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="../../assets/favicon.ico">
     <title>Forgot Password</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f5f7fa;
@@ -24,7 +24,7 @@ include "../../connect.php";
             justify-content: space-between;
             align-items: center;
             padding: 10px;
-            background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
+            background: linear-gradient(155deg, #090549 23.3%, #aa0505 50%,rgb(165, 137, 0) 50%);
             position: fixed;
             top: 0;
             left: 0;
@@ -44,10 +44,16 @@ include "../../connect.php";
             margin-right: 10px;
         }
 
+        .san-julian-logo {
+            height: 58px;
+            margin-right: 10px;
+        }
+
         .title {
             font-size: 20px;
             font-weight: bold;
             color: white;
+            margin-left: 20px;
         }
 
         .navbar .right-nav a {
@@ -169,8 +175,8 @@ include "../../connect.php";
         <div class="logo-container">
             <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
             <img src="../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
-            <img src="../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo" alt="E-Scholar Logo">
-            <div class="title">PESO MIS SAN JULIAN</div>
+            <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
+            <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
             <a href="../../landing_page/index.html">Home</a>
@@ -181,7 +187,7 @@ include "../../connect.php";
     <div class="forgot-password-wrapper">
         <div class="forgot-password-container">
             <div class="forgot-password-header">
-                <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
+                <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo">
                 <h2>Forgot your password</h2>
                 <p>Please enter the email address you'd like your password reset information sent to.</p>
             </div>

@@ -163,7 +163,6 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id']) && isse
     $stmt = $conn->prepare("DELETE FROM concerns WHERE id = ? AND sender = 'admin'");
     $stmt->bind_param("i", $message_id);
     $stmt->execute();
-    
     header("Location: admin_dashboard.php?chat_user=$chat_user_id#user-concerns-page");
     exit();
 }
@@ -178,12 +177,12 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id']) && isse
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="../../../../assets/favicon.ico"  />
     <!-- <link rel="icon" href="../../../../assets/scholar-logo.png" type="image/png"> -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
 <style>
 body {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Roboto', sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
@@ -197,7 +196,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: linear-gradient(155deg, #aa0505 9.5%,rgb(184, 153, 2) 39.5%);
+    background: linear-gradient(155deg, #090549 23.3%, #aa0505 50%,rgb(165, 137, 0) 50%);
     position: fixed;
     top: 0;
     left: 0;
@@ -214,6 +213,11 @@ body {
 
 .logo {
     height: 50px;
+    margin-right: 10px;
+}
+
+.san-julian-logo {
+    height: 58px;
     margin-right: 10px;
 }
 
@@ -426,14 +430,14 @@ body {
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 14px;
+    border-radius: 15px;
     cursor: pointer;
     font-size: 10px;
     margin-top: 10px; /* Added margin for spacing */
 }
 
 .view-details:hover {
-    background: #10087c;
+    background:rgb(12, 5, 105);
 }
 
 /* Additional styles for scholarship management */
@@ -767,7 +771,7 @@ body {
 }
 
 .scholarship-form h3 {
-    color: #090549;
+    color:rgb(0, 0, 0);
     margin-top: 0;
     font-size: 15px;
 }
@@ -811,8 +815,8 @@ body {
 /* User Concerns Chat Layout */
 .concerns-chat-container {
     display: flex;
-    max-width: 1200px;
-    margin: 30px auto;
+    max-width: 100%;
+    /* margin: 30px auto; */
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
@@ -881,7 +885,7 @@ body {
 }
 .concern-message.admin {
     align-self: flex-end;
-    background-color: #007bff;
+    background-color: #090549;
     color: white;
 }
 .concern-message-content {
@@ -910,7 +914,7 @@ body {
     font-size: 13px;
 }
 .concerns-chat-input button {
-    background: #007bff;
+    background: #090549;
     color: white;
     border: none;
     border-radius: 50%;
@@ -924,7 +928,68 @@ body {
     justify-content: center;
 }
 .concerns-chat-input button:hover {
-    background: #0056b3;
+    background:rgb(12, 7, 90);
+}
+
+.upload-btn {
+    background: none;
+    border: none;
+    color: #090549;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 10px;
+    padding: 0 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+.upload-btn:hover {
+    background: #e9ecef;
+}
+.upload-popup {
+    display: none;
+    position: absolute;
+    left: 40px;
+    top: -10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    padding: 15px 20px 15px 15px;
+    z-index: 100;
+    min-width: 180px;
+    font-size: 13px;
+}
+.upload-popup .btn {
+    border-radius: 6px !important;   /* Less rounded corners */
+    width: 100px;                   /* Fixed width for a square look */
+    height: 40px;                   /* Fixed height for a square look */
+    padding: 0;
+    font-size: 13px;
+    background: #090549;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+}
+.upload-popup .btn:hover {
+    background:rgb(9, 18, 136);
+}
+.upload-popup span {
+    display: block;
+    margin-bottom: 10px;
+}
+.close-upload-popup {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 18px;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    cursor: pointer;
 }
 </style>
 <body>
@@ -932,8 +997,8 @@ body {
         <div class="logo-container">
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
             <img src="../../../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
-            <img src="../../../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">SPESOS MIS SAN JULIAN</div>
+            <img src="../../../../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
+            <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
             <div class="menu-container">
@@ -1142,7 +1207,6 @@ body {
                 </div>
             </div>
 
-            <!-- Add this after your other .page sections in .main-content -->
             <div id="reports-page" class="page">
                 <h2>Reports</h2>
                 <p>Access and view system reports here.</p>
@@ -1188,7 +1252,7 @@ body {
                     <?php foreach ($chatMessages as $msg): ?>
                         <div class="concern-message <?php echo $msg['sender'] === 'admin' ? 'admin-message' : 'user-message'; ?>"
                              style="max-width:70%;padding:10px 15px;border-radius:15px;margin:5px 0;word-break:break-word;position:relative;
-                             <?php echo $msg['sender'] === 'admin' ? 'align-self:flex-end;background:#007bff;color:white;margin-left:auto;' : 'align-self:flex-start;background:#e9ecef;color:#333;'; ?>">
+                             <?php echo $msg['sender'] === 'admin' ? 'align-self:flex-end;background:#090549;color:white;margin-left:auto;' : 'align-self:flex-start;background:#e9ecef;color:#333;'; ?>">
                             
                             <?php if ($msg['sender'] === 'admin'): ?>
                                 <div class="message-options" style="position:absolute;top:5px;right:5px;">
@@ -1218,10 +1282,20 @@ body {
                 <?php endif; ?>
             </div>
             <?php if ($selectedUserId): ?>
-            <form class="concerns-chat-input" method="POST" autocomplete="off" style="display:flex;gap:10px;padding:15px;border-top:1px solid #eee;background:#fff;">
+            <form class="concerns-chat-input" method="POST" enctype="multipart/form-data" autocomplete="off" style="display:flex;gap:10px;padding:15px;border-top:1px solid #eee;background:#fff;">
+                <div class="upload-container" style="position: relative;">
+                    <button type="button" class="upload-btn" onclick="showUploadPopup()" title="Upload">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <input type="file" id="chatUpload" name="chat_upload[]" style="display:none;" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
+                    <div id="uploadPopup" class="upload-popup">
+                        <span style="display:block;text-align:center;margin-bottom:10px;">Upload documents or images</span>
+                        <button type="button" class="btn" style="display:block;margin:0 auto;" onclick="triggerFileInput()">Choose File</button>
+                    </div>
+                </div>
                 <textarea name="admin_reply" id="concernMessageInput" placeholder="Type your reply..." required style="flex:1;padding:10px;border:1px solid #ddd;border-radius:20px;resize:none;height:40px;font-family:inherit;font-size:13px;"></textarea>
                 <input type="hidden" name="chat_user_id" value="<?php echo $selectedUserId; ?>">
-                <button type="submit" name="send_admin_reply" style="background:#007bff;color:white;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;transition:background 0.3s;font-size:16px;display:flex;align-items:center;justify-content:center;">
+                <button type="submit" name="send_admin_reply" style="background:#090549;color:white;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;transition:background 0.3s;font-size:16px;display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
@@ -1347,6 +1421,7 @@ Closing/Signature:" rows="5" required></textarea>
             page.style.display = 'none';
             page.classList.remove('active');
         });
+        window.location.hash = pageId; // <-- This keeps the URL in sync
         document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
         switch (pageId) {
@@ -1387,11 +1462,8 @@ Closing/Signature:" rows="5" required></textarea>
         // Check if there's a hash in the URL and show that page
         document.addEventListener('DOMContentLoaded', function() {
             let hash = window.location.hash.substr(1);
-            if (hash) {
-                let pageId = hash + '-page';
-                if (document.getElementById(pageId)) {
-                    showPage(pageId);
-                }
+            if (hash && document.getElementById(hash)) {
+                showPage(hash);
             }
         });
 
@@ -1495,6 +1567,26 @@ document.addEventListener('click', function(event) {
         });
     }
 });
+
+function showUploadPopup() {
+    document.getElementById('uploadPopup').style.display = 'block';
+}
+function closeUploadPopup() {
+    document.getElementById('uploadPopup').style.display = 'none';
+}
+function triggerFileInput() {
+    document.getElementById('chatUpload').click();
+    closeUploadPopup();
+}
+document.addEventListener('click', function(event) {
+    const popup = document.getElementById('uploadPopup');
+    const btn = document.querySelector('.upload-btn');
+    if (popup && !popup.contains(event.target) && !btn.contains(event.target)) {
+        popup.style.display = 'none';
+    }
+});
+
+
     </script>
 </body>
 </html>

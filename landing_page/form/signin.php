@@ -103,13 +103,13 @@ window.onload = function() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../form/User_Landing_Page/style.css">
     <link rel="icon" type="image/x-icon" href="../../assets/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <title>Sign In</title>
 </head>
 <style>
     body {
-        font-family: 'Montserrat', sans-serif;
+        font-family: 'Roboto', sans-serif;
         overflow: hidden;
     }
 
@@ -122,7 +122,7 @@ window.onload = function() {
         justify-content: center;
         align-items: center;
         padding: 50px 40px 20px 40px;
-        background-color: #ffffff;
+        background-color: #f4f4f4;
         gap: 15px;
         box-shadow: 0px 106px 42px rgba(0, 0, 0, 0.01),
         0px 59px 36px rgba(0, 0, 0, 0.05), 0px 26px 26px rgba(0, 0, 0, 0.09),
@@ -136,7 +136,7 @@ window.onload = function() {
         justify-content: space-between;
         align-items: center;
         padding: 10px;
-        background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
+        background: linear-gradient(155deg, #090549 23.3%, #aa0505 50%,rgb(165, 137, 0) 50%);
         position: fixed;
         top: 0;
         left: 0;
@@ -191,6 +191,11 @@ window.onload = function() {
         display: flex;
         align-items: center;
         margin-left: 20px;
+    }
+
+    .san-julian-logo {
+        height: 58px;
+        margin-right: 10px;
     }
     
     .input_container {
@@ -376,7 +381,7 @@ window.onload = function() {
         color: white;
         border: none;
         padding: 10px 15px;
-        border-radius: 10px;
+        border-radius: 7px;
         cursor: pointer;
         width: 88%;
         font-size: 10px;
@@ -385,7 +390,7 @@ window.onload = function() {
     }
     
     .btn:hover {
-        background-color: #0a036b;
+        background-color:rgb(14, 7, 105);
     }
     
     .error {
@@ -530,19 +535,20 @@ window.onload = function() {
         <div class="logo-container">
             <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
             <img src="../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
-            <img src="../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">PESO MIS SAN JULIAN</div>
+            <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
+            <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
             <a href="../../landing_page/index.html" class="home">Home</a>
         </div>
     </div>
+    
 
     <div class="main-content">
         <div class="container">
             <form id="signin-form" class="form active" method="POST" action="process_signin.php">
                 <div class="form-header">
-                    <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
+                    <img src="../../images/logo-san-julian_index.jpeg" alt="E-Scholar Logo">
                     <h2 class="title-h2">Welcome Back</h2>
                     <p class="desc-p">Sign in to continue to your account</p>
                 </div>

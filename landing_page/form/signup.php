@@ -132,10 +132,10 @@ include "../../connect.php";
     <link rel="stylesheet" href="../form/User_Landing_Page/style.css">
     <link rel="icon" type="image/x-icon" href="../../assets/favicon.ico">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif+JP:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style> 
     body {
-        font-family: 'Montserrat', sans-serif;
+        font-family: "Roboto", sans-serif;
     }
 
     .form_container {
@@ -161,7 +161,7 @@ include "../../connect.php";
             justify-content: space-between;
             align-items: center;
             padding: 10px;
-            background: linear-gradient(155deg, #aa0505 9.5%, #b99b03 49.5%);
+            background: linear-gradient(155deg, #090549 23.3%, #aa0505 50.5%,rgb(165, 137, 0) 50.5%);
             position: fixed;
             top: 0;
             left: 0;
@@ -179,6 +179,11 @@ include "../../connect.php";
     display: flex;
     align-items: center;
     margin-left: 20px;
+}
+
+.san-julian-logo {
+    height: 58px;
+    margin-right: 10px;
 }
 
 .navbar .title {
@@ -419,7 +424,7 @@ include "../../connect.php";
         color: white;
         border: none;
         padding: 10px 20px;
-        border-radius: 10px;
+        border-radius: 7px;
         cursor: pointer;
         width: 100%;
         font-size: 11px;
@@ -427,7 +432,7 @@ include "../../connect.php";
     }
     
     .btn:hover {
-        background-color: #0a036b;
+        background-color:rgb(14, 7, 105);
     }
     
     .error {
@@ -563,8 +568,8 @@ include "../../connect.php";
         <div class="logo-container">
             <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
             <img src="../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
-            <img src="../../images/Municipality_of_San_Julian_Logo.png" alt="E-Scholar Logo" class="logo">
-            <div class="title">PESO MIS SAN JULIAN</div>
+            <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
+            <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
             <a href="../../landing_page/index.html" class="home">Home</a>
@@ -575,7 +580,7 @@ include "../../connect.php";
     <div class="container">
         <form id="signup-form" class="form active" method="POST" action="process_signup.php" onsubmit="return validateSignupForm()">
             <div class="form-header">
-                <img src="../../assets/scholar-logo.png" alt="E-Scholar Logo">
+                <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo">
                 <h2>Create an Account</h2>
                 <p>Fill in your information to get started</p>
             </div>

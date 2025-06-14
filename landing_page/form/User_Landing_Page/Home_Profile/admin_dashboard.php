@@ -175,7 +175,7 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id']) && isse
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/x-icon" href="../../../../assets/favicon.ico"  />
+    <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png"  />
     <!-- <link rel="icon" href="../../../../assets/scholar-logo.png" type="image/png"> -->
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">

@@ -102,7 +102,7 @@ window.onload = function() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../form/User_Landing_Page/style.css">
-    <link rel="icon" type="image/x-icon" href="../../assets/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <title>Sign In</title>
@@ -548,7 +548,7 @@ window.onload = function() {
         <div class="container">
             <form id="signin-form" class="form active" method="POST" action="process_signin.php">
                 <div class="form-header">
-                    <img src="../../images/logo-san-julian_index.jpeg" alt="E-Scholar Logo">
+                    <img src="../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
                     <h2 class="title-h2">Welcome Back</h2>
                     <p class="desc-p">Sign in to continue to your account</p>
                 </div>

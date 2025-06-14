@@ -7,7 +7,7 @@ include "../../connect.php";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="../../assets/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <title>Reset Password</title>
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style>
@@ -202,7 +202,7 @@ include "../../connect.php";
     <div class="reset-password-wrapper">
         <div class="reset-password-container">
             <div class="reset-password-header">
-                <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo">
+                <img src="../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
                 <h2>Reset Your Password</h2>
                 <p>Enter your new password below</p>
             </div>

@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authentication Code</title>
-    <link rel="icon" type="image/x-icon" href="../../assets/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <<link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="auth-code-wrapper">
         <div class="auth-code-container">
             <div class="auth-code-header">
-                <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo">
+                <img src="../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
                 <h2>Authentication Code</h2>
                 <p>Please enter the code sent to your registered email address</p>
             </div>

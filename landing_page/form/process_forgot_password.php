@@ -52,12 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mail->Port = 587;
 
         // Email settings
-        $mail->setFrom('your-email@gmail.com', 'E-Scholar Support');
+        $mail->setFrom('your-email@gmail.com', 'PESO San Julian Eastern Samar Team'); // Your email address and name
         $mail->addAddress($email);
         $mail->Subject = 'Password Reset Code';
         $mail->Body = "Hello,\n\nWe received a request to reset your password. Your authentication code is:\n\n"
             . $auth_code
-            . "\n\nThis code is valid for 10 minutes.\n\nIf you did not request a password reset, please ignore this email.\n\nThank you,\nE-Scholar Team";
+            . "\n\nThis code is valid for 10 minutes.\n\nIf you did not request a password reset, please ignore this email.\n\nThank you,\nPESO San Julian Eastern Samar Team";
 
         $mail->send();
 

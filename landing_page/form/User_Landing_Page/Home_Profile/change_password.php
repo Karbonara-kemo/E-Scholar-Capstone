@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Change Password</title>
-    <link rel="icon" type="image/x-icon" href="../../../../assets/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png">
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style>
         body {
@@ -245,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="change-password-wrapper">
         <div class="change-password-container">
             <div class="change-password-header">
-            <img src="../../../../images/final-logo-san-julian.png" alt="E-Scholar Logo">
+            <img src="../../../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
                 <h2>Change Your Password</h2>
                 <p>Keep your account secure by updating your password</p>
             </div>

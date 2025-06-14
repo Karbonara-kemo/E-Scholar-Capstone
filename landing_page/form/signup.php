@@ -130,7 +130,7 @@ include "../../connect.php";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up</title>
     <link rel="stylesheet" href="../form/User_Landing_Page/style.css">
-    <link rel="icon" type="image/x-icon" href="../../assets/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style> 
@@ -580,7 +580,7 @@ include "../../connect.php";
     <div class="container">
         <form id="signup-form" class="form active" method="POST" action="process_signup.php" onsubmit="return validateSignupForm()">
             <div class="form-header">
-                <img src="../../images/final-logo-san-julian.png" alt="E-Scholar Logo">
+                <img src="../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
                 <h2>Create an Account</h2>
                 <p>Fill in your information to get started</p>
             </div>

@@ -208,6 +208,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
             margin-top: 15px;
         }
+
+        .resend-link {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #090549;
+            text-decoration: underline;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .resend-link:hover {
+            color: #aa0505;
+        }
+
+@media (max-width: 768px) {
+    .main-content {
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        min-height: 100vh;
+        margin-top: 0;
+        padding: 0;
+    }
+    .auth-code-container, .container {
+        margin: 0 auto;
+        width: 100%;
+        max-width: 370px;      /* Keeps a nice readable width */
+        min-width: 0;          /* Prevents overflow */
+        padding: 24px 16px;    /* Ensures space inside the box */
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .auth-code-form, .form {
+        width: 100%;
+    }
+    .navbar {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        height: 45px;
+        padding: 5px 10px;
+    }
+    .logo-container {
+        flex-direction: row;
+        align-items: center;
+        margin-left: 0;
+        gap: 5px;
+    }
+    .navbar .logo-container .logo {
+        height: 33px !important;
+        margin-right: 2px !important;
+    }
+    .logo, .san-julian-logo {
+        height: 38px !important;
+        margin-right: 2px !important;
+    }
+    .navbar .title {
+        font-size: 10px !important;
+        margin-left: 0 !important;
+    }
+    .navbar .right-nav a,
+    .navbar a {
+        font-size: 8px !important;
+        margin: 0 6px !important;
+    }
+    .right-nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+}
     </style>
 </head>
 <body>
@@ -242,11 +315,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" id="code_5" name="code_5" class="code-box" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
                     <input type="text" id="code_6" name="code_6" class="code-box" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
                 </div>
-                <input type="hidden" name="email" value="<?php echo htmlspecialchars($_GET['email'] ?? ''); ?>">
+                <input type="hidden" name="email" value="<?php echo htmlspecialchars($_POST['email'] ?? $_GET['email'] ?? ''); ?>">
                 <button type="submit">Verify</button>
             </form>
             <?php if (!empty($error)) { echo "<div class='error-message'>$error</div>"; } ?>
             <a href="forgot_password.php" class="back-to-forgot">Back to Forgot Password</a>
+            <a href="process_forgot_password.php?email=<?php echo urlencode($_GET['email'] ?? ''); ?>" class="resend-link">Resend code</a>
         </div>
     </div>
 

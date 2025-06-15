@@ -147,17 +147,33 @@ window.onload = function() {
 
     .navbar .title {
         font-size: 20px;
-        font-weight: bold;
         color: white;
-        margin-left: 20px;
+        margin-left: 0;
     }
 
     .navbar a {
-        color: white;
-        text-decoration: none;
-        margin: 0 15px;
-        font-size: 14px;
-    }
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 14px;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.navbar a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 0;
+    height: 2px;
+    background: #fff;
+    transition: width 0.3s cubic-bezier(.4,0,.2,1);
+}
+
+.navbar a:hover::after {
+    width: 100%;
+}
     
     .title_container {
       display: flex;
@@ -524,11 +540,55 @@ window.onload = function() {
         .home 
         {
             text-decoration: none;
-            font-weight: 600;
+            /* font-weight: 600; */
             font-size: 13px;
             color: #545863;
             margin-left: 20px;
         }
+
+        @media (max-width: 768px) {
+            .main-content {
+                justify-content: center;
+            }
+            .navbar {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        height: 45px;
+        padding: 5px 10px;
+    }
+    .logo-container {
+        flex-direction: row;
+        align-items: center;
+        margin-left: 0;
+        gap: 5px;
+    }
+    .navbar .logo-container .logo {
+        height: 33px !important;
+        margin-right: 2px !important;
+    }
+    .logo, .san-julian-logo {
+        height: 38px !important;
+        margin-right: 2px !important;
+    }
+    .navbar .title {
+        font-size: 10px !important;
+        margin-left: 0 !important;
+    }
+    .navbar a,
+    .right-nav a,
+    .home {
+        font-size: 8px !important;
+        margin: 0 6px !important;
+    }
+    .right-nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+        }
+        
 </style>
 <body>
     <div class="navbar">

@@ -174,7 +174,7 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id']) && isse
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- <link rel="stylesheet" href="style.css"> -->
     <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png"  />
     <!-- <link rel="icon" href="../../../../assets/scholar-logo.png" type="image/png"> -->
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
@@ -230,7 +230,7 @@ body {
 .right-nav {
     display: flex;
     align-items: center;
-    margin-right: 20px;
+    margin-right: 25px;
 }
 
 .user-icon {
@@ -244,7 +244,8 @@ body {
 .user-name {
     color: white;
     font-size: 12px;
-    margin-left: 5px;
+    /* margin-left: 5px; */
+    margin-right: 10px;
 }
 
 .menu-container {
@@ -263,8 +264,8 @@ body {
     background-color: white;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-    padding: 10px 10px;
-    top: 55px;
+    padding: 15px 30px;
+    top: 60px;
     z-index: 1000;
 }
 
@@ -991,6 +992,14 @@ body {
     right: 10px;
     cursor: pointer;
 }
+
+.chevron-icon {
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    transform: rotate(-90deg); /* Point right by default */
+}
+.chevron-icon.open {
+    transform: rotate(0deg);   /* Point down when open */
+}
 </style>
 <body>
     <div class="navbar">
@@ -1004,7 +1013,7 @@ body {
             <div class="menu-container">
             <img src="../../../../<?php echo htmlspecialchars($profile_pic); ?>" alt="Admin Icon" class="user-icon">
             <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
-                <i class="fas fa-chevron-down" style="color: white; cursor: pointer;" onclick="toggleMenu()"></i>
+                <i class="fas fa-chevron-down chevron-icon" id="chevronIcon" style="color: white; cursor: pointer;" onclick="toggleMenu()"></i>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <!-- <a href="admin_profile.php">Profile</a> -->
                     <a href="../../signin.php"><i class="fas fa-sign-out-alt"></i>  Logout</a>  
@@ -1403,14 +1412,24 @@ Closing/Signature:" rows="5" required></textarea>
     <script>
        function toggleMenu() {
             var menu = document.getElementById("dropdownMenu");
-            menu.classList.toggle("show");
+            var chevron = document.getElementById("chevronIcon");
+            const isOpen = menu.classList.toggle("show");
+            if (isOpen) {
+                chevron.classList.add("open");
+            } else {
+                chevron.classList.remove("open");
+            }
         }
 
         window.onclick = function(event) {
             if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down')) {
                 var dropdowns = document.getElementsByClassName("dropdown-menu");
+                var chevron = document.getElementById("chevronIcon");
                 for (var i = 0; i < dropdowns.length; i++) {
                     dropdowns[i].classList.remove("show");
+                }
+                if (chevron) {
+                    chevron.classList.remove("open");
                 }
             }
         }

@@ -9,12 +9,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 </head>
 <style>
-body {
-    font-family: "Roboto", sans-serif;
+html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
 }
+
+body {
+    font-family: 'Roboto', sans-serif;
+    position: relative;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -1;
+    background: url('../assets/municipality_of_san_julian_bg.jpg') center center / cover no-repeat;
+    filter: blur(8px); /* Adjust blur strength */
+    width: 100vw;
+    height: 100vh;
+}
+
+.main-wrapper {
+    flex: 1;
+}
+
 
 .navbar {
     display: flex;
@@ -53,6 +79,23 @@ body {
     text-decoration: none;
     margin: 0 15px;
     font-size: 14px;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.navbar a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 0;
+    height: 2px;
+    background: #fff;
+    transition: width 0.3s cubic-bezier(.4,0,.2,1);
+}
+
+.navbar a:hover::after {
+    width: 100%;
 }
 
 .container {
@@ -67,6 +110,7 @@ body {
 .image-container {
     flex: 1;
     padding: 20px;
+    left: -30px;
     display: flex;
     justify-content: center;
     position: relative;
@@ -98,9 +142,9 @@ body {
 
 .slide img {
     width: 100%;
-    height: 100%;
+    height: 103%;
     object-fit: cover;
-    border-radius: 7px;
+    border-radius: 0;
 }
 
 .content-container {
@@ -116,14 +160,14 @@ body {
 .main-title {
     font-size: 40px;
     font-weight: bold;
-    color: #000000;
+    color: #fcfcfc;
     margin-bottom: 15px;
 }
 
 
 .description {
     font-size: 12px;
-    color: #555;
+    color: #e4e4e4;
     margin-bottom: 30px;
 }
 
@@ -131,7 +175,7 @@ body {
     padding: 10px 25px;
     font-size: 15px;
     color: white;
-    background: #bf934b;
+    background: #090549;
     border: none;
     cursor: pointer;
     border-radius: 7px;
@@ -139,7 +183,7 @@ body {
 }
 
 .get-started:hover {
-    background: #8b6c39;
+    background: #0b0566;
 }
 
 .san-julian-logo {
@@ -151,7 +195,7 @@ footer {
     background: #090549;
     color: white;
     text-align: center;
-    padding: 20px;
+    padding: 15px 0;
     margin-top: 50px;
 }
 
@@ -178,6 +222,51 @@ footer p {
     }
 }
 
+/* Mobile View Navbar */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        height: 45px;
+        padding: 5px 10px;
+    }
+    .logo-container {
+        flex-direction: row;
+        align-items: center;
+        margin-left: 0;
+        gap: 5px;
+    }
+    
+    .navbar .logo-container .logo {
+        height: 33px !important;
+        margin-right: 2px !important;
+    }
+
+    .logo, .san-julian-logo {
+        height: 38px;
+        margin-right: 2px;
+    }
+    .navbar a {
+        font-size: 8px;
+        margin: 0 6px; /* Adjust gap between links */
+    }
+    .navbar .title {
+        font-size: 10px;
+        margin-left: 0;
+    }
+    .right-nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+    .home {
+        font-size: 12px;
+        margin-left: 0;
+    }
+}
+
 .logo-E-Scholar {
     width: 150px !important;
     height: 150px !important;
@@ -187,53 +276,56 @@ footer p {
 .description-h1 {
     font-size: 16px;
     font-weight: bold;
-    color: #333;
+    color: #ffffff;
     margin-bottom: 15px;
 }
 </style>
 <body>
-    <div class="navbar">
-        <div class="logo-container">
-            <img src="../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
-            <img src="../images/PESO_Logo.png" alt="PESO Logo" class="logo">
-            <img src="../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
-            <div class="title">PESO SAN JULIAN MIS </div>
-        </div>
-        <div>
-            <a href="#">About Us</a>
-            <a href="#">Contact Us</a>
-            <a href="form/signup.php">Sign Up</a>
-            <a href="form/signin.php">Sign In</a>
-        </div>
-    </div>
-    
-    <div class="container">
-        <div class="image-container">
-            <div class="slideshow">
-                <div class="slide active">
-                    <img src="https://pia.gov.ph/uploads/2024/01/38568a97baa458646466c10fb143f7ad.jpg" alt="Scholarship Image 1">
-                </div>
-                <div class="slide">
-                    <img src="https://essu.edu.ph/images/TDP_5.jpg" alt="Scholarship Image 2">
-                </div>
-                <div class="slide">
-                    <img src="https://pia.gov.ph/uploads/2024/01/249b44d33fe0815122c2c79bf19f2cfb.jpg" alt="Scholarship Image 3">
-                </div>
-                <div class="slide">
-                    <img src="https://essu.edu.ph/images/36M_CHED_4.jpg" alt="Scholarship Image 3">
-                </div>
+    <div class="main-wrapper">
+        <div class="navbar">
+            <div class="logo-container">
+                <img src="../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
+                <img src="../images/PESO_Logo.png" alt="PESO Logo" class="logo">
+                <img src="../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
+                <div class="title">PESO SAN JULIAN MIS </div>
+            </div>
+            <div>
+                <a href="#" class="right-nav-text">About Us</a>
+                <a href="#" class="right-nav-text">Contact Us</a>
+                <a href="form/signup.php" class="right-nav-text">Sign Up</a>
+                <a href="form/signin.php" class="right-nav-text">Sign In</a>
             </div>
         </div>
         
-        <div class="content-container">
-            <!-- Add the scholar logo above the title -->
-            <img src="../assets/PESO Logo Assets.png" alt="Scholar Logo" class="logo-E-Scholar">
-            <div class="main-title">PESO San Julian MIS </div>
-            <h1 class="description-h1">Paghatag Hin Kusog ha Imo mga Pangandoy Pinaagi han Edukasyon</h1>
-            <p class="description">Ini nga scholarship nga programa in ginhimo para buligan an mga karuyag mag-aram nga estudyante tikang ha San Julian, Eastern Samar. Nagpapasabot ini hin pinansyal nga bulig para ha ira edukasyon, nga may tuyo nga makaghatag hin mas maupay nga kabubwason ngan pag-uswag ha komunidad.</p>
-            <button class="get-started" onclick="location.href='form/signin.php'">Get Started</button>
+        <div class="container">
+            <div class="image-container">
+                <div class="slideshow">
+                    <div class="slide active">
+                        <img src="https://pia.gov.ph/uploads/2024/01/38568a97baa458646466c10fb143f7ad.jpg" alt="Scholarship Image 1">
+                    </div>
+                    <div class="slide">
+                        <img src="https://essu.edu.ph/images/TDP_5.jpg" alt="Scholarship Image 2">
+                    </div>
+                    <div class="slide">
+                        <img src="https://pia.gov.ph/uploads/2024/01/249b44d33fe0815122c2c79bf19f2cfb.jpg" alt="Scholarship Image 3">
+                    </div>
+                    <div class="slide">
+                        <img src="https://essu.edu.ph/images/36M_CHED_4.jpg" alt="Scholarship Image 3">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-container">
+                <!-- Add the scholar logo above the title -->
+                <img src="../assets/PESO Logo Assets.png" alt="Scholar Logo" class="logo-E-Scholar">
+                <div class="main-title">PESO San Julian MIS </div>
+                <h1 class="description-h1">Paghatag Hin Kusog ha Imo mga Pangandoy Pinaagi han Edukasyon</h1>
+                <p class="description">Ini nga scholarship nga programa in ginhimo para buligan an mga karuyag mag-aram nga estudyante tikang ha San Julian, Eastern Samar. Nagpapasabot ini hin pinansyal nga bulig para ha ira edukasyon, nga may tuyo nga makaghatag hin mas maupay nga kabubwason ngan pag-uswag ha komunidad.</p>
+                <button class="get-started" onclick="location.href='form/signin.php'">Get Started</button>
+            </div>
         </div>
     </div>
+    
 
     <footer>
         <img src="../images/final-logo-san-julian.png" class="footer-logo">

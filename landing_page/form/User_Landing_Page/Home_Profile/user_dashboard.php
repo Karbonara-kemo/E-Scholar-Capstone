@@ -150,7 +150,7 @@ body {
     font-size: 20px;
     font-weight: bold;
     color: white;
-    margin-left: 20px;
+    margin-left: 0;
 }
 
 .navbar a {
@@ -392,9 +392,9 @@ body {
     background-color: white;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-    padding: 10px 10px;
-    right: 10px;
-    top: 55px;
+    padding: 5px 0;
+    right: 0px;
+    top: 45px;
     z-index: 1000;
 }
 
@@ -1290,6 +1290,14 @@ form .label-application + div label {
         font-size: 9px;
     }
 }
+
+.chevron-icon {
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    transform: rotate(-90deg); /* Point right by default */
+}
+.chevron-icon.open {
+    transform: rotate(0deg);   /* Point down when open */
+}
 </style>
 <body>
     <div class="navbar">
@@ -1310,7 +1318,7 @@ form .label-application + div label {
                 <div class="user-menu-container">
                     <img src="../../../../<?php echo htmlspecialchars($user['profile_pic'] ?? 'images/default-user.png'); ?>" alt="User Icon" class="user-icon">
                     <span class="user-name"><?php echo htmlspecialchars($user['Fname'] . " " . $user['Lname']); ?></span>
-                    <i class="fas fa-chevron-down" style="color: white; cursor: pointer;" onclick="toggleMenu()"></i>
+                    <i class="fas fa-chevron-down chevron-icon" style="color: white; cursor: pointer;" onclick="toggleMenu()" id="chevronIcon"></i>
                     <div class="dropdown-menu" id="dropdownMenu">
                         <a href="user_profile.php"><i class="fas fa-user"></i>  Profile</a>
                         <a href="../../signin.php"><i class="fas fa-sign-out-alt"></i>  Logout</a>
@@ -1353,7 +1361,8 @@ form .label-application + div label {
             <div id="home-page" class="page active">
                 <div class="welcome-screen" style="margin-top: 100px;">
                     <h1 class="main-title">Welcome to PESO MIS SAN JULIAN</h1>
-                    <p class="description">Your Pathway to Educational Support. Helping Local Scholars Thrive. Supporting Students, Building Tomorrow. <br>Empowering Futures Through Education. A Gateway to Academic Opportunities.</p>
+                    <p class="description">
+                        Connecting Students and Out-of-School Youth in San Julian to Life-Changing Opportunities. Supporting Education,  <br>Building Careers, and Shaping Tomorrow Through Scholarships and SPES Programs.</p>
                     <!-- <button class="get-started" onclick="showPage('scholarships-page')">Browse Scholarships</button> -->
                 </div>
 
@@ -1378,7 +1387,7 @@ form .label-application + div label {
             
             <!-- Add this after your other .page sections in .main-content -->
             <div id="spes-page" class="page">
-                <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH</h3>
+                <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH (SPESOS)</h3>
                 <div class="dashboard-boxes">
                     <div class="box">
                         <div class="box-title">Employment Contract Form</div>
@@ -1890,15 +1899,26 @@ form .label-application + div label {
     // Toggle user menu
     function toggleMenu() {
         var menu = document.getElementById("dropdownMenu");
-        menu.classList.toggle("show");
+        var chevron = document.getElementById("chevronIcon");
+        const isOpen = menu.classList.toggle("show");
+        if (isOpen) {
+            chevron.classList.add("open");
+        } else {
+            chevron.classList.remove("open");
+        }
     }
 
     // Optional: Hide dropdown when clicking outside
     window.onclick = function(event) {
         if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down')) {
             var dropdowns = document.getElementsByClassName("dropdown-menu");
+            var chevron = document.getElementById("chevronIcon");
             for (var i = 0; i < dropdowns.length; i++) {
                 dropdowns[i].classList.remove("show");
+            }
+            // Remove the .open class from the chevron when closing the menu
+            if (chevron) {
+                chevron.classList.remove("open");
             }
         }
     }

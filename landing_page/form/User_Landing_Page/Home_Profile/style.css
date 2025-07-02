@@ -32,7 +32,7 @@ body {
     display: flex;
     margin: 0;
     padding: 0;
-    height: calc(100vh - 80px); /* Adjust for navbar height */
+    height: calc(100vh - 80px); 
 }
 
 .sidebar {
@@ -420,9 +420,9 @@ body {
 .user-icon {
     width: 40px;
     height: 40px;
-    border-radius: 50%; /* Makes the image circular */
-    object-fit: cover; /* Ensures the image scales correctly inside the circle */
-    border: 2px solid white; /* Optional: adds a white border around the circle */
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
 }
 
 .user-name {

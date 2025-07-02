@@ -9,7 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-// Count unread notifications
 $sql = "SELECT COUNT(*) AS unread_count FROM notifications WHERE (user_id IS NULL OR user_id = ?) AND status = 'unread'";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);

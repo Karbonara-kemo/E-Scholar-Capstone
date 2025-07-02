@@ -14,5 +14,5 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 
-http_response_code(200); // Success response
+http_response_code(200);
 ?>

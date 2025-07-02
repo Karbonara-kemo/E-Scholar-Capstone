@@ -1,30 +1,23 @@
 <?php
-// Start session
 session_start();
 
-// Include database connection
 include "../../../../connect.php";
 
-// Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../signin.php"); // Redirect to login page if not logged in
+    header("Location: ../../signin.php");
     exit();
 }
 
-// Get logged-in user's ID from session
 $userId = $_SESSION['user_id'];
 
-// Initialize variables for error/success messages
 $error = "";
 $success = "";
 
-// Process form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $currentPassword = $_POST['current_password'];
     $newPassword = $_POST['new_password'];
     $confirmNewPassword = $_POST['confirm_new_password'];
 
-    // Fetch current password hash from database
     $sql = "SELECT Password FROM user WHERE Id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $userId);
@@ -35,14 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $user = $result->fetch_assoc();
         $hashedPassword = $user['Password'];
 
-        // Verify current password
         if (password_verify($currentPassword, $hashedPassword)) {
-            // Check if new passwords match
             if ($newPassword === $confirmNewPassword) {
-                // Hash the new password
+
                 $newHashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
 
-                // Update password in the database
                 $updateSql = "UPDATE user SET Password = ? WHERE Id = ?";
                 $updateStmt = $conn->prepare($updateSql);
                 $updateStmt->bind_param("si", $newHashedPassword, $userId);
@@ -120,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: calc(100vh - 70px); /* Adjust height excluding navbar */
+            min-height: calc(100vh - 70px);
             padding: 20px;
         }
 
@@ -132,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             max-width: 400px;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
             text-align: center;
-            margin-top: 70px; /* Adjust for navbar height */
+            margin-top: 70px;
         }
 
         .change-password-header img {
@@ -231,7 +221,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <div class="navbar">
         <div class="logo-container">
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
@@ -241,7 +230,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 
-    <!-- Change Password Content -->
     <div class="change-password-wrapper">
         <div class="change-password-container">
             <div class="change-password-header">

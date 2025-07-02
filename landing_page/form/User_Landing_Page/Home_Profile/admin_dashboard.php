@@ -1,20 +1,15 @@
 <?php
 include '../../../../connect.php';
 
-// Start session to access user data
 session_start();
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    // Redirect to login page if not logged in
     header("Location: ../../signin.php");
     exit();
 }
 
-// Get admin ID from session
 $admin_id = $_SESSION['user_id'];
 
-// Fetch admin details from the database
 $sql = "SELECT * FROM admin WHERE Id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $admin_id);
@@ -24,11 +19,10 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $admin = $result->fetch_assoc();
     $admin_name = $admin['Fname'] . " " . $admin['Lname'];
-    $profile_pic = $admin['profile_pic'] ?? 'images\admin-default.png'; // Use default image if profile pic is not set
+    $profile_pic = $admin['profile_pic'] ?? 'images\admin-default.png';
 } else {
-    // If admin details are not found, use default values
     $admin_name = "Admin";
-    $profile_pic = 'images/admin-default.png'; // Default profile picture
+    $profile_pic = 'images/admin-default.png';
 }
 
 if (isset($_POST['send_message'])) {
@@ -48,16 +42,13 @@ if (isset($_POST['send_message'])) {
         die("Error executing statement: " . $insertMessageStmt->error);
     }
 
-    // Set session flag for alert
     $_SESSION['message_sent'] = true;
 
-    // Redirect to prevent form resubmission
     header("Location: admin_dashboard.php#send-updates-page");
     exit();
 }
 
-// Handle scholarship actions
-$scholarshipAdded = false; // Flag to control the success notification
+$scholarshipAdded = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_scholarship'])) {
         $title = $_POST['title'];
@@ -71,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($insertStmt->execute()) {
             $_SESSION['scholarship_added'] = true;
         }
-        // Redirect to stay on scholarship page and prevent resubmission
+
         header("Location: admin_dashboard.php#scholarship-page");
         exit();
     } elseif (isset($_POST['delete_scholarship'])) {
@@ -89,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uploadStmt = $conn->prepare($uploadSql);
         $uploadStmt->bind_param("i", $id);
         $uploadStmt->execute();
-        $_SESSION['scholarship_published'] = true; // <-- Add this line
+        $_SESSION['scholarship_published'] = true;
         header("Location: admin_dashboard.php#scholarship-page");
         exit();
     }
@@ -98,29 +89,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_POST['delete_message'])) {
     $messageId = $_POST['message_id'];
 
-    // Delete the message and its related notifications
     $deleteMessageSql = "DELETE FROM notifications WHERE id = ?";
     $deleteMessageStmt = $conn->prepare($deleteMessageSql);
     $deleteMessageStmt->bind_param("i", $messageId);
     $deleteMessageStmt->execute();
 
-    // Set a flag to trigger JS alert after reload
     $_SESSION['message_deleted'] = true;
 
-    // Redirect to the communication page only (not home)
     header("Location: admin_dashboard.php#send-updates-page");
     exit();
 }
 
-// Fetch all scholarships
 $fetchSql = "SELECT * FROM scholarships";
 $fetchResult = $conn->query($fetchSql);
 $scholarships = $fetchResult->fetch_all(MYSQLI_ASSOC);
 
-// Count total scholarships for the "Listed Scholarships" box
 $totalScholarships = count($scholarships);
 
-// Fetch all messages
 $messagesSql = "SELECT * FROM notifications ORDER BY created_at DESC";
 $messagesResult = $conn->query($messagesSql);
 $messages = $messagesResult->fetch_all(MYSQLI_ASSOC);
@@ -131,7 +116,6 @@ while ($row = $userQuery->fetch_assoc()) {
     $usersWithConcerns[] = $row;
 }
 
-// Get selected user for chat
 $selectedUserId = isset($_GET['chat_user']) ? intval($_GET['chat_user']) : null;
 $chatMessages = [];
 if ($selectedUserId) {
@@ -141,11 +125,10 @@ if ($selectedUserId) {
     $chatMessages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-// Handle admin reply 
 if (isset($_POST['send_admin_reply']) && isset($_POST['chat_user_id'])) {
     $reply = trim($_POST['admin_reply']);
     $chat_user_id = intval($_POST['chat_user_id']);
-    $admin_id = $admin['Id']; // Use the actual admin Id from DB, not session if session is wrong
+    $admin_id = $admin['Id'];
     if (!empty($reply)) {
         $stmt = $conn->prepare("INSERT INTO concerns (user_id, admin_id, sender, message) VALUES (?, ?, 'admin', ?)");
         $stmt->bind_param("iis", $chat_user_id, $admin_id, $reply);
@@ -158,8 +141,7 @@ if (isset($_POST['send_admin_reply']) && isset($_POST['chat_user_id'])) {
 if (isset($_POST['delete_admin_message']) && isset($_POST['message_id']) && isset($_POST['chat_user_id'])) {
     $message_id = intval($_POST['message_id']);
     $chat_user_id = intval($_POST['chat_user_id']);
-    
-    // Delete the admin message
+
     $stmt = $conn->prepare("DELETE FROM concerns WHERE id = ? AND sender = 'admin'");
     $stmt->bind_param("i", $message_id);
     $stmt->execute();
@@ -174,9 +156,7 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id']) && isse
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin</title>
-    <!-- <link rel="stylesheet" href="style.css"> -->
     <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png"  />
-    <!-- <link rel="icon" href="../../../../assets/scholar-logo.png" type="image/png"> -->
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
@@ -244,7 +224,6 @@ body {
 .user-name {
     color: white;
     font-size: 12px;
-    /* margin-left: 5px; */
     margin-right: 10px;
 }
 
@@ -296,7 +275,7 @@ body {
 .sidebar {
             background: #090549;
             color: white;
-            width: 250px; /* Default expanded width */
+            width: 250px;
             height: 100vh;
             position: fixed;
             top: 70px;
@@ -305,11 +284,11 @@ body {
             flex-direction: column;
             overflow-y: auto;
             z-index: 900;
-            transition: width 0.3s ease; /* Smooth transition when collapsing/expanding */
+            transition: width 0.3s ease;
         }
 
         .sidebar.collapsed {
-            width: 60px; /* Width when collapsed */
+            width: 60px;
         }
 
         .nav-item {
@@ -318,8 +297,8 @@ body {
             align-items: center;
             cursor: pointer;
             font-size: 14px;
-            white-space: nowrap; /* Prevent text wrapping */
-            overflow: hidden; /* Hide overflowing text */
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .nav-item:hover {
@@ -327,12 +306,12 @@ body {
         }
 
         .nav-item.active {
-            background-color: #10087c; /* Highlighted background color */
-            border-left: 4px solid #ffffff; /* Left border indicator */
+            background-color: #10087c;
+            border-left: 4px solid #ffffff;
         }
 
         .nav-item.active .nav-icon {
-            margin-left: -4px; /* Adjust padding to compensate for border */
+            margin-left: -4px;
         }
 
         .sidebar.collapsed .nav-item.active {
@@ -341,23 +320,23 @@ body {
         }
 
         .sidebar.collapsed .nav-item.active .nav-icon {
-            margin-left: -2px; /* Adjust for collapsed state */
+            margin-left: -2px;
         }
 
 .nav-icon {
             margin-right: 10px;
             font-size: 14px;
-            min-width: 20px; /* Ensure icon has fixed width */
-            text-align: center; /* Center the icon */
+            min-width: 20px;
+            text-align: center;
         }
 
         .nav-text {
             color: white;
-            transition: opacity 0.2s ease; /* Smooth transition for text appearance */
+            transition: opacity 0.2s ease;
         }
 
         .sidebar.collapsed .nav-text {
-            opacity: 0; /* Hide text when sidebar is collapsed */
+            opacity: 0;
             display: none;
         }
 
@@ -367,11 +346,11 @@ body {
             border: none;
             cursor: pointer;
             padding: 15px;
-            text-align: left; /* Align the arrow to the left */
+            text-align: left;
             font-size: 14px;
             display: flex;
             margin-left: 10px;
-            justify-content: flex-start; /* Move arrow to the left */
+            justify-content: flex-start;
             align-items: center;
         }
 
@@ -380,7 +359,7 @@ body {
         }
 
         .main-content.sidebar-collapsed {
-            margin-left: 60px; /* Reduced margin when sidebar is collapsed */
+            margin-left: 60px;
         }
 
 .main-content {
@@ -405,7 +384,7 @@ body {
     margin: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-align: center;
-    flex: 1; /* Allow boxes to grow equally */
+    flex: 1;
 }
 
 .box-title {
@@ -434,14 +413,13 @@ body {
     border-radius: 15px;
     cursor: pointer;
     font-size: 10px;
-    margin-top: 10px; /* Added margin for spacing */
+    margin-top: 10px;
 }
 
 .view-details:hover {
     background:rgb(12, 5, 105);
 }
 
-/* Additional styles for scholarship management */
     .scholarship-form {
         margin: 20px 0;
         background: white;
@@ -559,24 +537,22 @@ body {
     background-color: #f9f9f9;
 }
 
-/* Message delete button styles */
 .btn-delete-message {
-    background-color:#f44336; /* Orange color for delete */
-    color: white; /* White text color */
-    font-size: 10px !important; /* Adjust text size if needed */
-    padding: 8px 14px !important; /* Adjust padding */
-    border: none; /* Remove border */
-    border-radius: 14px !important; /* Rounded corners */
-    cursor: pointer; /* Pointer cursor on hover */
-    transition: background 0.3s ease, box-shadow 0.3s ease; /* Smooth transition for hover effects */
+    background-color:#f44336; 
+    color: white;
+    font-size: 10px !important;
+    padding: 8px 14px !important;
+    border: none;
+    border-radius: 14px !important;
+    cursor: pointer;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn-delete-message:hover {
-    background-color:#d32f2f; /* Darker orange on hover */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow effect on hover */
+    background-color:#d32f2f;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Scholarship Card Layout */
 .scholarship-card {
     background: #ffffff;
     border: 1px solid #ddd;
@@ -625,7 +601,6 @@ body {
     color: #155724;
 }
 
-/* Footer Buttons Below Fields */
 .scholarship-footer {
     margin-top: 20px;
     display: flex;
@@ -644,19 +619,16 @@ body {
     transition: background 0.3s ease;
 }
 
-/* Button Styles */
-
 .btn-publish {
     background-color: #28A745;
-    border-radius: 14px !important; /* Adjust as needed */
-    font-size: 10px !important; /* Adjust text size if needed */
+    border-radius: 14px !important;
+    font-size: 10px !important;
 }
 
 .btn-publish:hover {
     background-color: #218838;
 }
 
-/* Button Styles */
 .btn-primary {
     background-color: #090549;
     color: white;
@@ -707,12 +679,12 @@ body {
 
 .message-status {
     display: inline-block;
-    padding: 5px 10px; /* Match the width with 'status-active' */
+    padding: 5px 10px;
     border-radius: 15px;
     font-size: 12px;
     font-weight: bold;
     text-align: center;
-    background-color: #D4EDDA; /* Same green color as 'status-active' */
+    background-color: #D4EDDA;
     color: #155724;
     margin-bottom: 10px;
 }
@@ -725,21 +697,19 @@ body {
     display: inline;
 }
 
-/* Scholarship delete button styles */
 .btn-delete-scholarship {
-    background-color: #f44336; /* Red color for delete */
-    color: white; /* White text color */
-    font-size: 10px !important; /* Adjust text size if needed */
- /* Adjust padding */
-    border: none; /* Remove border */
+    background-color: #f44336;
+    color: white;
+    font-size: 10px !important;
+    border: none;
     border-radius: 14px !important;
-    cursor: pointer; /* Pointer cursor on hover */
-    transition: background 0.3s ease, box-shadow 0.3s ease; /* Smooth transition for hover effects */
+    cursor: pointer;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn-delete-scholarship:hover {
-    background-color: #d32f2f; /* Darker red on hover */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow effect on hover */
+    background-color: #d32f2f;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .main-title-scholar {
@@ -813,7 +783,6 @@ body {
     pointer-events: auto;
 }
 
-/* User Concerns Chat Layout */
 .concerns-chat-container {
     display: flex;
     max-width: 100%;
@@ -961,9 +930,9 @@ body {
     font-size: 13px;
 }
 .upload-popup .btn {
-    border-radius: 6px !important;   /* Less rounded corners */
-    width: 100px;                   /* Fixed width for a square look */
-    height: 40px;                   /* Fixed height for a square look */
+    border-radius: 6px !important;
+    width: 100px;
+    height: 40px;
     padding: 0;
     font-size: 13px;
     background: #090549;
@@ -995,10 +964,10 @@ body {
 
 .chevron-icon {
     transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-    transform: rotate(-90deg); /* Point right by default */
+    transform: rotate(-90deg);
 }
 .chevron-icon.open {
-    transform: rotate(0deg);   /* Point down when open */
+    transform: rotate(0deg);
 }
 </style>
 <body>
@@ -1047,7 +1016,6 @@ body {
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
                 <div class="nav-text">Total Applicants</div>
             </div>
-            <!-- Reports Sidebar Item (no tree) -->
             <div class="nav-item" id="reports-nav" onclick="showPage('reports-page')">
                 <div class="nav-icon"><i class="fas fa-chart-bar"></i></div>
                 <div class="nav-text">Reports</div>
@@ -1067,7 +1035,7 @@ body {
             var toastIcon = document.getElementById('toast-icon');
             toastText.textContent = 'Scholarship added successfully';
             toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#28a745'; // Green
+            toast.style.background = '#28a745';
             toast.classList.add('show');
             setTimeout(function() {
                 toast.classList.remove('show');
@@ -1085,7 +1053,7 @@ body {
             var toastIcon = document.getElementById('toast-icon');
             toastText.textContent = 'Scholarship deleted successfully';
             toastIcon.className = 'fas fa-trash-alt';
-            toast.style.background = '#B22222'; // Red
+            toast.style.background = '#B22222';
             toast.classList.add('show');
             setTimeout(function() {
                 toast.classList.remove('show');
@@ -1103,7 +1071,7 @@ body {
             var toastIcon = document.getElementById('toast-icon');
             toastText.textContent = 'Scholarship published successfully';
             toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#191970'; // Blue
+            toast.style.background = '#191970';
             toast.classList.add('show');
             setTimeout(function() {
                 toast.classList.remove('show');
@@ -1127,7 +1095,7 @@ body {
             var toastIcon = document.getElementById('toast-icon');
             toastText.textContent = 'Message deleted successfully';
             toastIcon.className = 'fas fa-trash-alt';
-            toast.style.background = '#B22222'; // Red
+            toast.style.background = '#B22222';
             toast.classList.add('show');
             setTimeout(function() {
                 toast.classList.remove('show');
@@ -1145,7 +1113,7 @@ body {
             var toastIcon = document.getElementById('toast-icon');
             toastText.textContent = 'Message sent successfully';
             toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#28a745'; // Green
+            toast.style.background = '#28a745';
             toast.classList.add('show');
             setTimeout(function() {
                 toast.classList.remove('show');
@@ -1154,7 +1122,6 @@ body {
         </script>
         <?php unset($_SESSION['message_sent']); endif; ?>
 
-        <!-- Main Content -->
         <div class="main-content">
 
             <div id="home-page" class="page active">
@@ -1193,7 +1160,7 @@ body {
                 <div class="dashboard-boxes">
                     <div class="box">
                         <div class="box-title">Total Applicants</div>
-                        <div class="box-value">150</div> <!-- Replace with dynamic value if needed -->
+                        <div class="box-value">150</div>
                         <div class="box-description">All applicants in the system</div>
                     </div>
                 </div>
@@ -1250,7 +1217,11 @@ body {
                 if ($selectedUserId) {
                     $user = array_filter($usersWithConcerns, fn($u) => $u['Id'] == $selectedUserId);
                     $user = reset($user);
-                    echo "Chat with " . htmlspecialchars($user['Fname'] . ' ' . $user['Lname']);
+                    if ($user) {
+                        echo "Chat with " . htmlspecialchars($user['Fname'] . ' ' . $user['Lname']);
+                    } else {
+                        echo "User not found or conversation deleted";
+                    }
                 } else {
                     echo "Select a user to view concerns";
                 }
@@ -1315,7 +1286,6 @@ body {
 
             <div id="scholarship-page" class="page">
                 <h1 class="main-title-scholar">Manage Scholarships</h1>
-                <!-- Add Scholarship Form -->
                 <form class="scholarship-form" method="POST">
                     <h3>Add New Scholarship</h3>
                     <input type="text" name="title" placeholder="Scholarship Title" required>
@@ -1325,7 +1295,6 @@ body {
                     <textarea name="eligibility" placeholder="Eligibility Criteria" required></textarea>
                     <button type="submit" name="add_scholarship">Add Scholarship</button>
                 </form>
-                <!-- List of Scholarships -->
 
                 <h3>Scholarship List</h3>
                 <?php foreach ($scholarships as $scholarship): ?>
@@ -1372,7 +1341,6 @@ body {
             
             <div id="send-updates-page" class="page">
                 <h1 class="main-title-send-updates">Send Updates</h1>
-                <!-- Form to Send a Message -->
                 <form class="send-updates-form" method="POST">
                     <h3 class="send-updates-h3">Send a Updates to Users</h3>
                     <textarea name="message" placeholder="Title/Subject:                 
@@ -1382,7 +1350,6 @@ Closing/Signature:" rows="5" required></textarea>
                     <button type="submit" name="send_message">Send Message</button>
                 </form>
 
-                <!-- Display Sent Messages -->
                 <h3 class="message-sent-h3">Messages Sent</h3>
                 <div class="sent-messages">
                 <?php foreach ($messages as $message): ?>
@@ -1434,13 +1401,12 @@ Closing/Signature:" rows="5" required></textarea>
             }
         }
 
-       // Update showPage to close the tree when navigating
         function showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.style.display = 'none';
             page.classList.remove('active');
         });
-        window.location.hash = pageId; // <-- This keeps the URL in sync
+        window.location.hash = pageId;
         document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
         switch (pageId) {
@@ -1462,23 +1428,20 @@ Closing/Signature:" rows="5" required></textarea>
             case 'reports-page':
                 highlightActiveNav('reports-nav');
                 break;
-            case 'user-concerns-page': // <-- Add this case
+            case 'user-concerns-page':
                 highlightActiveNav('user-concerns-nav');
                 break;
         }
     }
         
         function highlightActiveNav(navId) {
-            // Remove active class from all nav items first
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
             });
-            
-            // Add active class to the selected nav item
+        
             document.getElementById(navId).classList.add('active');
         }
         
-        // Check if there's a hash in the URL and show that page
         document.addEventListener('DOMContentLoaded', function() {
             let hash = window.location.hash.substr(1);
             if (hash && document.getElementById(hash)) {
@@ -1486,7 +1449,6 @@ Closing/Signature:" rows="5" required></textarea>
             }
         });
 
-        // Add sidebar toggle functionality
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.querySelector('.main-content');
@@ -1496,8 +1458,7 @@ Closing/Signature:" rows="5" required></textarea>
             toggleBtn.addEventListener('click', function() {
                 sidebar.classList.toggle('collapsed');
                 mainContent.classList.toggle('sidebar-collapsed');
-                
-                // Change icon direction based on sidebar state
+            
                 if (sidebar.classList.contains('collapsed')) {
                     toggleIcon.classList.remove('fa-chevron-left');
                     toggleIcon.classList.add('fa-chevron-right');
@@ -1506,25 +1467,17 @@ Closing/Signature:" rows="5" required></textarea>
                     toggleIcon.classList.add('fa-chevron-left');
                 }
             });
-            
-            // Rest of your initialization code
         });
 
         function viewApplicants(scholarshipId) {
             alert('View applicants for scholarship ID: ' + scholarshipId);
-            // Replace this alert with logic to navigate to a detailed applicants page or modal
         }
 
-        // Demo JS for switching users and showing chat (replace with real AJAX in production)
         function openConcernChat(userId, userName) {
-            // Highlight selected user
             document.querySelectorAll('.concerns-chat-list li').forEach(li => li.classList.remove('active'));
             event.target.classList.add('active');
-            // Set header
             document.getElementById('concernChatHeader').textContent = "Chat with " + userName;
-            // Show chat input
             document.getElementById('concernChatForm').style.display = "flex";
-            // Example messages (replace with AJAX/PHP for real data)
             document.getElementById('concernChatMessages').innerHTML = `
                 <div class="concern-message user">
                     <div class="concern-message-content">Hello admin, I have a concern about my application.</div>
@@ -1535,13 +1488,11 @@ Closing/Signature:" rows="5" required></textarea>
                     <div class="concern-message-timestamp">May 25, 2025 09:01 AM</div>
                 </div>
             `;
-            // Scroll to bottom
             var chatBox = document.getElementById('concernChatMessages');
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-scroll chat to bottom when User Concerns page is shown
             function scrollAdminChatToBottom() {
                 var chatMessages = document.getElementById('concernChatMessages');
                 if (chatMessages) {
@@ -1549,12 +1500,10 @@ Closing/Signature:" rows="5" required></textarea>
                 }
             }
 
-            // On page load, if user-concerns-page is active, scroll
             if (document.getElementById('user-concerns-page').classList.contains('active')) {
                 scrollAdminChatToBottom();
             }
 
-            // Also scroll when switching to user-concerns-page
             window.showPage = (function(origShowPage) {
                 return function(pageId) {
                     origShowPage(pageId);
@@ -1566,19 +1515,16 @@ Closing/Signature:" rows="5" required></textarea>
         });
 
         function toggleMessageMenu(messageId) {
-    // Close all other menus first
     document.querySelectorAll('.message-menu').forEach(menu => {
         if (menu.id !== 'menu-' + messageId) {
             menu.style.display = 'none';
         }
     });
     
-    // Toggle current menu
     const menu = document.getElementById('menu-' + messageId);
     menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 
-// Close menus when clicking outside
 document.addEventListener('click', function(event) {
     if (!event.target.closest('.message-options')) {
         document.querySelectorAll('.message-menu').forEach(menu => {

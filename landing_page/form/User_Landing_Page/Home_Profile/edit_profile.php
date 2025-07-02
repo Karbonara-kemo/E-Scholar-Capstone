@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <div class="form-container">
             <div class="form-header">
-                <img src="../../../../images/final-logo-san-julian.png" alt="E-Scholar Logo">
+                <img src="../../../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
                 <h2 class="title-h2">Edit Profile</h2>
                 <p class="desc-p">Update personal information</p>
             </div>

@@ -5,7 +5,6 @@ include "../../connect.php";
 <!DOCTYPE html>
 <html lang="en">
 <script>
-       // Function to display a popup notification
        function showPopupNotification(message, type = 'success') {
             const notification = document.createElement('div');
             notification.className = `popup-notification ${type}`;
@@ -15,17 +14,14 @@ include "../../connect.php";
             `;
             document.body.appendChild(notification);
 
-            // Show the notification
             notification.style.display = 'flex';
 
-            // Automatically hide it after 3 seconds
             setTimeout(() => {
                 notification.style.display = 'none';
                 notification.remove();
             }, 3000);
         }
-
-            // Function to validate the signup form
+        
     function validateSignupForm() {
         const requiredFields = [
             { id: "name", errorId: "fname-error", errorMessage: "First Name required." },
@@ -41,12 +37,10 @@ include "../../connect.php";
 
         let isValid = true;
 
-        // Reset all error messages
         requiredFields.forEach(field => {
             document.getElementById(field.errorId).style.display = 'none';
         });
 
-        // Check for empty fields
         requiredFields.forEach(field => {
             const input = document.getElementById(field.id);
             if (!input.value.trim()) {
@@ -57,7 +51,6 @@ include "../../connect.php";
             }
         });
 
-        // Additional validations for password
         if (isValid) {
             const passwordField = document.getElementById("signup-password");
             const confirmPasswordField = document.getElementById("confirm-password");
@@ -81,22 +74,19 @@ include "../../connect.php";
             }
         }
 
-        return isValid; // True if the form is valid
+        return isValid;
     }
 
         function checkSuccessMessage() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
-                // Show the success notification
                 showPopupNotification('Account created successfully! You can now sign in.', 'success');
 
-                // Remove the 'success' query parameter from the URL
                 const newUrl = window.location.href.split('?')[0];
                 window.history.replaceState({}, document.title, newUrl);
             }
         }
 
-        // Call the success message function on page load
         window.onload = checkSuccessMessage;
 
         function checkErrorMessage() {
@@ -108,7 +98,6 @@ include "../../connect.php";
                     emailError.style.display = 'block';
                     emailError.textContent = 'Email is already taken. Please use a different email.';
 
-                    // Pre-fill the email field with the entered email
                     const email = urlParams.get('email');
                     if (email) {
                         document.getElementById('signup-email').value = email;
@@ -117,10 +106,9 @@ include "../../connect.php";
             }
         }
 
-        // Call the error message function on page load
         window.onload = () => {
-            checkSuccessMessage(); // Existing function for success messages
-            checkErrorMessage();   // Updated function for error messages
+            checkSuccessMessage();
+            checkErrorMessage();
         };
     </script>
     
@@ -368,8 +356,7 @@ include "../../connect.php";
       cursor: pointer;
       transition: background 0.3s ease, transform 0.2s ease;
     }
-  
-    /* Hover Effect */
+
     .back_btn_signup:hover {
         background-color: #10087c;
     }
@@ -389,7 +376,7 @@ include "../../connect.php";
         justify-content: center;
         align-items: center;
         padding: 40px 20px;
-        margin-top: 60px; /* Adjusted to account for fixed navbar height */
+        margin-top: 60px;
     }
     
     .container {
@@ -467,7 +454,6 @@ include "../../connect.php";
         display: none;
     }
 
-    /* New styles for the form header with image and title */
     .form-header {
         display: flex;
         flex-direction: column;
@@ -495,7 +481,6 @@ include "../../connect.php";
         font-size: 12px;
     }
 
-    /* New styles for the form toggle link */
     .form-toggle {
         text-align: center;
         margin-top: 20px;
@@ -521,7 +506,6 @@ include "../../connect.php";
         text-decoration: underline;
     }
 
-      /* Styling for the popup notification */
       .popup-notification {
             position: fixed;
             top: 50%;
@@ -553,7 +537,6 @@ include "../../connect.php";
             font-size: 24px;
         }
 
-        /* Inline validation error messages */
         .error-message {
             color: #f44336;
             font-size: 12px;
@@ -564,7 +547,6 @@ include "../../connect.php";
         .home 
         {
             text-decoration: none;
-            /* font-weight: 600; */
             font-size: 13px;
             color: #545863;
             margin-left: 20px;

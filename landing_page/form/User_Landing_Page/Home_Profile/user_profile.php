@@ -1,20 +1,15 @@
 <?php
-// Start session to retrieve logged-in user information
 session_start();
 
-// Include database connection
 include "../../../../connect.php";
 
-// Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../signin.php"); // Redirect to login page if not logged in
+    header("Location: ../../signin.php");
     exit();
 }
 
-// Get logged-in user's ID from session
 $userId = $_SESSION['user_id'];
 
-// Fetch user information from the database
 $sql = "SELECT * FROM user WHERE Id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
@@ -28,25 +23,21 @@ if ($result->num_rows > 0) {
     exit();
 }
 
-// Handle profile picture upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
     $targetDir = "../../../../images/";
     $targetFile = $targetDir . basename($_FILES["profilePic"]["name"]);
     $imageFileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
 
-    // Check if the file is an image
     $check = getimagesize($_FILES["profilePic"]["tmp_name"]);
     if ($check !== false) {
-        // Move uploaded file to the target directory
         if (move_uploaded_file($_FILES["profilePic"]["tmp_name"], $targetFile)) {
-            // Update the profile picture path in the database
             $imagePath = "images/" . basename($_FILES["profilePic"]["name"]);
             $updateSql = "UPDATE user SET profile_pic = ? WHERE Id = ?";
             $updateStmt = $conn->prepare($updateSql);
             $updateStmt->bind_param("si", $imagePath, $userId);
             if ($updateStmt->execute()) {
                 $successMessage = "Profile picture updated successfully!";
-                $user['profile_pic'] = $imagePath; // Update the user's profile picture in the session
+                $user['profile_pic'] = $imagePath;
             } else {
                 $errorMessage = "Failed to update profile picture in the database.";
             }
@@ -115,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
     .profile-container {
       max-width: 800px;
       margin: 40px auto;
-      margin-top: 120px; /* Adjusted to account for fixed navbar */
+      margin-top: 120px;
       padding: 30px;
       background-color: white;
       border-radius: 12px;
@@ -227,7 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
 </head>
 <body>
 
-  <!-- NAVBAR -->
   <div class="navbar">
     <div class="logo-container">
       <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
@@ -237,9 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
     </div>
   </div>
 
-  <!-- PROFILE SECTION -->
   <div class="profile-container">
-    <!-- Profile Picture Section -->
     <div class="profile-picture-section">
       <img id="profilePic" src="../../../../<?php echo htmlspecialchars($user['profile_pic'] ?? 'images/user.png'); ?>" alt="Profile Picture" class="profile-pic">
       <form action="" method="POST" enctype="multipart/form-data">
@@ -250,7 +238,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
       </form>
     </div>
 
-    <!-- Basic Information Section -->
     <div class="section-header">Basic Information</div>
       <div class="info-grid">
         <div class="info-item">
@@ -283,7 +270,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
         </div>
       </div>
 
-      <!-- Action Buttons -->
       <div class="action-buttons">
         <button onclick="location.href='../../User_Landing_Page/Home_Profile/user_dashboard.php'">Back</button>
         <button onclick="location.href='edit_profile.php'">Edit</button>

@@ -69,7 +69,7 @@ include "../../connect.php";
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: calc(100vh - 70px); /* Adjust height excluding navbar */
+            min-height: calc(100vh - 70px);
             padding: 20px;
         }
 
@@ -77,7 +77,7 @@ include "../../connect.php";
             background-color: #ffffff;
             padding: 40px;
             border-radius: 10px;
-            margin-top: 70px; /* Adjust for navbar height */
+            margin-top: 70px;
             width: 100%;
             max-width: 400px;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
@@ -163,9 +163,9 @@ include "../../connect.php";
         .error-message {
         color: #f44336;
         font-size: 10px;
-        text-align: left;      /* Add this line */
-        width: 100%;           /* Ensure it spans the input width */
-        padding-left: 2px;     /* Optional: small indent for alignment */
+        text-align: left;
+        width: 100%;
+        padding-left: 2px;
     }
 
     @media (max-width: 768px) {
@@ -180,9 +180,9 @@ include "../../connect.php";
     .forgot-password-container, .container {
         margin: 0 auto;
         width: 100%;
-        max-width: 370px;      /* Keeps a nice readable width */
-        min-width: 0;          /* Prevents overflow */
-        padding: 24px 16px;    /* Ensures space inside the box */
+        max-width: 370px;
+        min-width: 0;
+        padding: 24px 16px;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -246,7 +246,6 @@ include "../../connect.php";
 
 <div class="main-content">
     <div class="content-wrapper">
-        <!-- Forgot Password Content -->
     <div class="forgot-password-wrapper">
         <div class="forgot-password-container">
             <div class="forgot-password-header">

@@ -2,7 +2,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$database = "capstone_e-scholar";
+$database = "peso_sj_capstone";
 
 $conn = new mysqli($servername, $username, $password, $database);
 

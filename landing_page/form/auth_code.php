@@ -2,16 +2,13 @@
 include "../../connect.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get the email and code from the form
     $email = trim($_POST['email']);
-    
-    // Combine the 6 code digits into a single auth code
+
     $auth_code = '';
     for ($i = 1; $i <= 6; $i++) {
         $auth_code .= trim($_POST['code_' . $i]);
     }
 
-    // Check if the email and code are valid
     $query = "SELECT reset_token, reset_token_expiry FROM user WHERE Email = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("s", $email);
@@ -23,9 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db_code = $row['reset_token'];
         $expiry = $row['reset_token_expiry'];
 
-        // Check if the code matches and is not expired
         if ($auth_code === $db_code && strtotime($expiry) > time()) {
-            // Code is valid, redirect to reset password page
             header("Location: reset_pass.php?email=" . urlencode($email));
             exit;
         } else {
@@ -103,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: calc(100vh - 70px); /* Adjust height excluding navbar */
+            min-height: calc(100vh - 70px);
             padding: 20px;
         }
 
@@ -111,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: #ffffff;
             padding: 40px;
             border-radius: 10px;
-            margin-top: 70px; /* Adjust for navbar height */
+            margin-top: 70px;
             width: 100%;
             max-width: 400px;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
@@ -233,9 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .auth-code-container, .container {
         margin: 0 auto;
         width: 100%;
-        max-width: 370px;      /* Keeps a nice readable width */
-        min-width: 0;          /* Prevents overflow */
-        padding: 24px 16px;    /* Ensures space inside the box */
+        max-width: 370px;
+        min-width: 0;
+        padding: 24px 16px;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -284,7 +279,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <div class="navbar">
         <div class="logo-container">
             <img src="https://car.neda.gov.ph/wp-content/uploads/2024/07/LOGO-Bagong-Pilipinas-Logo-White.png" class="logo" alt="E-Scholar Logo">
@@ -297,7 +291,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <!-- Authentication Code Content -->
     <div class="auth-code-wrapper">
         <div class="auth-code-container">
             <div class="auth-code-header">
@@ -325,50 +318,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-    // Auto-focus next input when a digit is entered
     document.addEventListener('DOMContentLoaded', function() {
         const codeInputs = document.querySelectorAll('.code-box');
         
-        // Focus the first input box when page loads
         codeInputs[0].focus();
         
         codeInputs.forEach((input, index) => {
-            // Handle key input
             input.addEventListener('input', function() {
                 if (this.value.length === 1) {
-                    // If it's not the last box, focus the next one
                     if (index < codeInputs.length - 1) {
                         codeInputs[index + 1].focus();
                     }
                 }
             });
             
-            // Handle backspace
             input.addEventListener('keydown', function(e) {
-                // If backspace is pressed and the field is empty
                 if (e.key === 'Backspace' && this.value.length === 0) {
-                    // If it's not the first box, focus the previous one
                     if (index > 0) {
                         codeInputs[index - 1].focus();
                     }
                 }
             });
-            
-            // Only allow numbers
+
             input.addEventListener('keypress', function(e) {
                 if (!/[0-9]/.test(e.key)) {
                     e.preventDefault();
                 }
             });
-            
-            // Prevent pasting multiple characters
+
             input.addEventListener('paste', function(e) {
                 e.preventDefault();
                 const pastedData = e.clipboardData.getData('text').slice(0, 1);
                 if (/[0-9]/.test(pastedData)) {
                     this.value = pastedData;
-                    
-                    // Trigger input event to focus next input if needed
+
                     const event = new Event('input');
                     this.dispatchEvent(event);
                 }

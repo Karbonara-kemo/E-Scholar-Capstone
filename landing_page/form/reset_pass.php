@@ -65,7 +65,7 @@ include "../../connect.php";
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: calc(100vh - 70px); /* Adjust height excluding navbar */
+            min-height: calc(100vh - 70px);
             padding: 20px;
         }
 
@@ -156,7 +156,6 @@ include "../../connect.php";
             background-color: #34495e;
         }
 
-        /* Password requirements styling */
         .password-requirements {
             font-size: 12px;
             color: #7f8c8d;
@@ -195,9 +194,9 @@ include "../../connect.php";
             .reset-password-container {
                 margin: 0 auto;
                 width: 100%;
-                max-width: 370px;      /* Keeps a nice readable width */
-                min-width: 0;          /* Prevents overflow */
-                padding: 24px 16px;    /* Ensures space inside the box */
+                max-width: 370px;
+                min-width: 0;
+                padding: 24px 16px;
                 box-sizing: border-box;
                 display: flex;
                 flex-direction: column;
@@ -246,7 +245,6 @@ include "../../connect.php";
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <div class="navbar">
         <div class="logo-container">
             <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
@@ -259,7 +257,6 @@ include "../../connect.php";
         </div>
     </div>
 
-    <!-- Reset Password Content -->
     <div class="reset-password-wrapper">
         <div class="reset-password-container">
             <div class="reset-password-header">
@@ -291,7 +288,6 @@ include "../../connect.php";
                     <input type="password" id="confirm_password" name="confirm_password" required placeholder="Re-enter new password">
                     <div id="confirm-error" class="error-message"></div>
                     <?php
-                    // Display error message directly below the field
                     if (isset($_GET['error'])) {
                         echo '<div class="error-message">' . htmlspecialchars($_GET['error']) . '</div>';
                     }
@@ -310,44 +306,38 @@ include "../../connect.php";
         const confirmPasswordInput = document.getElementById('confirm_password');
         const passwordError = document.getElementById('password-error');
         const confirmError = document.getElementById('confirm-error');
-        
-        // Password requirement elements
+
         const lengthReq = document.getElementById('length-req');
         const uppercaseReq = document.getElementById('uppercase-req');
         const specialReq = document.getElementById('special-req');
         
-        // Check password requirements as user types
         newPasswordInput.addEventListener('input', validatePassword);
         confirmPasswordInput.addEventListener('input', validatePasswordMatch);
         
         function validatePassword() {
             const password = newPasswordInput.value;
             
-            // Check for minimum length (8 characters)
             const hasLength = password.length >= 8;
             if (hasLength) {
                 lengthReq.classList.add('valid');
             } else {
                 lengthReq.classList.remove('valid');
             }
-            
-            // Check for uppercase letter
+
             const hasUppercase = /[A-Z]/.test(password);
             if (hasUppercase) {
                 uppercaseReq.classList.add('valid');
             } else {
                 uppercaseReq.classList.remove('valid');
             }
-            
-            // Check for special character
+
             const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
             if (hasSpecial) {
                 specialReq.classList.add('valid');
             } else {
                 specialReq.classList.remove('valid');
             }
-            
-            // Check if confirm password needs to be validated
+
             if (confirmPasswordInput.value) {
                 validatePasswordMatch();
             }
@@ -369,7 +359,6 @@ include "../../connect.php";
             const confirmPassword = confirmPasswordInput.value;
             let isValid = true;
             
-            // Check password requirements
             if (password.length < 8) {
                 passwordError.textContent = "Password must be at least 8 characters";
                 isValid = false;
@@ -383,7 +372,6 @@ include "../../connect.php";
                 passwordError.textContent = "";
             }
             
-            // Check if passwords match
             if (password !== confirmPassword) {
                 confirmError.textContent = "Passwords do not match";
                 isValid = false;
@@ -394,7 +382,6 @@ include "../../connect.php";
             return isValid;
         }
 
-        // Initialize visual indicators when page loads
         document.addEventListener('DOMContentLoaded', function() {
             validatePassword();
         });

@@ -1,28 +1,22 @@
 <?php
 include '../../../../connect.php';
 
-// Start session to access user data
 session_start();
 
-// Set no-cache headers for all protected pages
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 header("Expires: 0");
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    // Redirect to login page if not logged in
     header("Location: ../../signin.php");
     exit();
 }
 
 $userId = $_SESSION['user_id'];
 
-// Get user name from session
 $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : "User";
 
-// Get user information from the database
 $userId = $_SESSION['user_id'];
 $sql = "SELECT * FROM user WHERE Id = ?";
 $stmt = $conn->prepare($sql);
@@ -44,7 +38,6 @@ $notificationStmt->execute();
 $notificationResult = $notificationStmt->get_result();
 $notifications = $notificationResult->fetch_all(MYSQLI_ASSOC);
 
-// Count unread notifications
 $countUnreadSql = "SELECT COUNT(*) AS unread_count FROM notifications WHERE (user_id IS NULL OR user_id = ?) AND status = 'unread'";
 $countUnreadStmt = $conn->prepare($countUnreadSql);
 $countUnreadStmt->bind_param("i", $userId);
@@ -52,13 +45,10 @@ $countUnreadStmt->execute();
 $countUnreadResult = $countUnreadStmt->get_result();
 $unreadCount = $countUnreadResult->fetch_assoc()['unread_count'];
 
-
-// Fetch all active scholarships
 $scholarshipSql = "SELECT * FROM scholarships WHERE status = 'active'";
 $scholarshipResult = $conn->query($scholarshipSql);
 $scholarships = $scholarshipResult->fetch_all(MYSQLI_ASSOC);
 
-// Count total active scholarships for the Home page
 $totalScholarships = count($scholarships);
 
 if (isset($_POST['send_message'])) {
@@ -68,13 +58,11 @@ if (isset($_POST['send_message'])) {
         $insertStmt = $conn->prepare($insertSql);
         $insertStmt->bind_param("si", $message, $userId);
         $insertStmt->execute();
-        // Redirect to avoid resubmission
         header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
         exit();
     }
 }
 
-// Fetch all concerns for this user
 $messages = [];
 $stmt = $conn->prepare("SELECT * FROM concerns WHERE user_id = ? ORDER BY created_at ASC");
 $stmt->bind_param("i", $userId);
@@ -84,27 +72,22 @@ while ($row = $result->fetch_assoc()) {
     $messages[] = $row;
 }
 
-// Handle sending a new message
 if (isset($_POST['send_concern'])) {
     $message = trim($_POST['concern_message']);
     if (!empty($message)) {
         $stmt = $conn->prepare("INSERT INTO concerns (user_id, sender, message) VALUES (?, 'user', ?)");
         $stmt->bind_param("is", $userId, $message);
         $stmt->execute();
-        // Redirect to stay on concern page after sending
         header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
         exit();
     }
 }
 
-// Handle message deletion
 if (isset($_POST['delete_message'])) {
     $messageId = intval($_POST['message_id']);
-    // Verify the message belongs to the current user before deleting
     $stmt = $conn->prepare("DELETE FROM concerns WHERE id = ? AND user_id = ? AND sender = 'user'");
     $stmt->bind_param("ii", $messageId, $userId);
     $stmt->execute();
-    // Redirect to stay on concern page after deleting
     header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
     exit();
 }
@@ -168,7 +151,7 @@ body {
 .container {
     display: flex;
     flex: 1;
-    padding-top: 50px; /* Equal to navbar height */
+    padding-top: 50px;
 }
 
         .sidebar {
@@ -187,7 +170,7 @@ body {
         }
 
         .sidebar.collapsed {
-            width: 60px; /* Width when collapsed */
+            width: 60px;
         }
 
         .nav-item {
@@ -206,24 +189,20 @@ body {
 
 
         .nav-item.active {
-            background-color: #10087c; /* Highlighted background color */
-            border-left: 4px solid #ffffff; /* Left border indicator */
+            background-color: #10087c;
+            border-left: 4px solid #ffffff;
         }
 
-        /* Adjust padding when active to compensate for the border */
         .nav-item.active .nav-icon {
             margin-left: -4px; 
         }
 
-        /* Style for active item in collapsed state */
         .sidebar.collapsed .nav-item.active {
             background-color: #10087c;
             border-left: 4px solid #ffffff;
         }
 
-        /* Ensure the icon is centered in collapsed state */
         .sidebar.collapsed .nav-item.active .nav-icon {
-            /* Adjust for the border and center the icon */
             margin-left: -2px;
         }
 
@@ -272,8 +251,8 @@ body {
     display: flex;
     justify-content: center;
     position: relative;
-    height: 400px; /* Fixed height for slideshow */
-    overflow: hidden; /* Hide overflowing images */
+    height: 400px;
+    overflow: hidden;
 }
 
 .slideshow {
@@ -347,7 +326,7 @@ body {
     }
     
     .image-container {
-        height: 300px; /* Smaller height on mobile */
+        height: 300px;
     }
 }
 
@@ -355,12 +334,12 @@ body {
     padding: 30px;
     flex: 1;
     box-sizing: border-box;
-    margin-left: 250px; /* Default margin - same as sidebar width */
-    transition: margin-left 0.3s ease; /* Smooth transition */
+    margin-left: 250px;
+    transition: margin-left 0.3s ease;
 }
 
 .main-content.sidebar-collapsed {
-    margin-left: 60px; /* Reduced margin when sidebar is collapsed */
+    margin-left: 60px;
 }
 
 .user-icon {
@@ -387,7 +366,7 @@ body {
     transform: translateY(-10px);
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
-    display: block; /* Always block for transition, hide with opacity/pointer-events */
+    display: block;
     position: absolute;
     background-color: white;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
@@ -417,7 +396,7 @@ body {
 }
 
 .modal {
-    display: none; /* Hidden by default */
+    display: none;
     position: fixed;
     z-index: 1000;
     left: 0;
@@ -497,7 +476,6 @@ body {
     background:rgb(9, 114, 44);
 }
 
-/* New styles for notification bell */
 .notification-bell {
     position: relative;
     color: white;
@@ -525,10 +503,9 @@ body {
 .user-menu-container {
     display: flex;
     align-items: center;
-    gap: 10px; /* Increased gap for better spacing */
+    gap: 10px;
 }
 
-/* Replace the notification-badge style with this simpler dot style */
 .notification-dot {
     position: absolute;
     top: -3px;
@@ -537,7 +514,7 @@ body {
     height: 8px;
     background-color: red;
     border-radius: 50%;
-    display: none; /* Initially hidden */
+    display: none;
 }
 
 .box {
@@ -547,7 +524,7 @@ body {
     margin: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-align: center;
-    flex: 1; /* Allow boxes to grow equally */
+    flex: 1;
 }
 
 .box-title {
@@ -571,7 +548,7 @@ body {
     display: flex;
     justify-content: space-between;
     margin-top: 20px;
-    padding: 0 20px; /* Added padding for spacing */
+    padding: 0 20px;
 }
 .get-started {
     background-color: #090549;
@@ -581,7 +558,7 @@ body {
     border-radius: 14px;
     cursor: pointer;
     font-size: 10px;
-    margin-top: 10px; /* Added margin for spacing */
+    margin-top: 10px;
 }
 .history-table {
     width: 100%;
@@ -624,7 +601,6 @@ body {
 }
 
 .page {
-        /* padding: 20px; */
         max-width: 1200px;
         margin: auto;
     }
@@ -637,7 +613,7 @@ body {
     border-radius: 14px;
     cursor: pointer;
     font-size: 12px;
-    margin-top: 20px; /* Added margin for spacing */
+    margin-top: 20px;
 }
 
 .form-container-application {
@@ -733,7 +709,7 @@ body {
 }
 
 .label-application {
-    font-size: 13px; /* Increased font size for main labels */
+    font-size: 13px;
     color: black;
     font-weight: bold;
     margin-top: 15px;
@@ -741,23 +717,21 @@ body {
     display: block;
 }
 
-/* Decrease font size for radio/checkbox option labels */
 form .label-application + div label,
 form .label-application + div label input {
     font-size: 10px !important;
     font-weight: normal;
 }
 
-/* Optional: Add spacing between radio/checkbox options */
 form .label-application + div label {
     margin-right: 18px;
 }
 
 .doc-req-section {
-    font-size: 13px; /* Adjust this value as needed */
+    font-size: 13px;
 }
 .doc-req-section label {
-    font-size: 13px; /* Adjust this value as needed */
+    font-size: 13px;
 }
 
 .title-description-p{
@@ -780,7 +754,6 @@ form .label-application + div label {
     text-decoration: underline;
 }
 
-/* Add this to your <style> section */
 .chat-container {
     max-width: 1200px;
     margin: 30px auto 0 auto;
@@ -981,9 +954,9 @@ form .label-application + div label {
     font-size: 13px;
 }
 .upload-popup .btn {
-    border-radius: 6px !important;   /* Less rounded corners */
-    width: 100px;                   /* Fixed width for a square look */
-    height: 40px;                   /* Fixed height for a square look */
+    border-radius: 6px !important;
+    width: 100px;
+    height: 40px;
     padding: 0;
     font-size: 13px;
     background: #090549;
@@ -1013,11 +986,8 @@ form .label-application + div label {
     cursor: pointer;
 }
 
-/* Add these mobile styles at the end of your existing style section */
 
-/* Mobile Responsive Styles */
 @media (max-width: 768px) {
-    /* Adjust navbar for mobile */
     @media (max-width: 768px) {
     .navbar {
         height: auto;
@@ -1062,8 +1032,7 @@ form .label-application + div label {
         right: 5px;
     }
 }
-    
-    /* Adjust sidebar for mobile */
+
     .sidebar {
         width: 100%;
         height: auto;
@@ -1080,14 +1049,14 @@ form .label-application + div label {
     }
     
     .nav-item {
-        margin: 0; /* Adds bottom space and a little side space */
+        margin: 0;
         display: flex;
         padding: 10px 5px;
         justify-content: space-between;
         flex-direction: column;
         text-align: center;
-        min-width: 78px; /* Ensures items are not too small */
-        min-height: 40px; /* Ensures items have a minimum height */
+        min-width: 78px;
+        min-height: 40px;
     }
 
     .nav-item.active {
@@ -1112,21 +1081,18 @@ form .label-application + div label {
     .toggle-sidebar {
         display: none;
     }
-    
-    /* Adjust main content */
+
     .container {
         padding-top: 10px;
-        /* Space for bottom navbar */
     }
     
     @media (max-width: 768px) {
     .main-content {
         margin: 0 !important;
         padding: 10px;
-        /* display: flex; */
         flex-direction: column;
-        align-items: center; /* Center horizontally */
-        justify-content: center; /* Center vertically if you want */
+        align-items: center;
+        justify-content: center;
     }
     .welcome-screen {
         margin-top: 40px !important;
@@ -1148,8 +1114,7 @@ form .label-application + div label {
         margin: 10px 0;
     }
 }
-    
-    /* Adjust dashboard boxes */
+
     .dashboard-boxes {
         flex-direction: column;
     }
@@ -1157,8 +1122,7 @@ form .label-application + div label {
     .box {
         margin: 5px 0;
     }
-    
-    /* Adjust forms */
+
     .form-container-application {
         padding: 15px;
     }
@@ -1167,8 +1131,7 @@ form .label-application + div label {
         font-size: 14px;
         padding: 8px;
     }
-    
-    /* Adjust chat interface */
+
     .chat-container {
         height: calc(100vh - 180px);
         margin: 10px auto;
@@ -1177,8 +1140,7 @@ form .label-application + div label {
     .chat-input textarea {
         height: 35px;
     }
-    
-    /* Adjust tables */
+
     .history-table {
         font-size: 10px;
     }
@@ -1187,13 +1149,11 @@ form .label-application + div label {
     .history-table td {
         padding: 5px;
     }
-    
-    /* Hide some elements on mobile */
+
     .description {
         display: none;
     }
     
-    /* SPES form adjustments */
     #spes-application-form-page .form-container-application {
         padding: 15px;
     }
@@ -1207,20 +1167,17 @@ form .label-application + div label {
         margin-right: 0;
         font-size: 11px;
     }
-    
-    /* Modal adjustments */
+
     .modal-content {
         width: 90%;
         margin: 30% auto;
     }
     
-    /* Application form adjustments */
     #application-form-page .form-container-application {
         padding: 15px;
     }
 }
 
-/* For very small screens */
 @media (max-width: 480px) {
     .nav-item {
         padding: 8px 3px;
@@ -1247,14 +1204,12 @@ form .label-application + div label {
     }
 }
 
-/* Prevent zooming on input focus on mobile */
 @media screen and (max-width: 768px) {
     input, select, textarea {
         font-size: 16px !important;
     }
 }
 
-/* Make sure dropdowns are visible on mobile */
 @media (max-width: 768px) {
     .dropdown-menu {
         position: fixed;
@@ -1271,7 +1226,6 @@ form .label-application + div label {
     }
 }
 
-/* Adjust SPES boxes for mobile */
 @media (max-width: 768px) {
     #spes-page .dashboard-boxes {
         flex-direction: column;
@@ -1282,7 +1236,6 @@ form .label-application + div label {
     }
 }
 
-/* Make sure modals are centered on mobile */
 @media (max-width: 768px) {
     .modal-content {
         margin: 50% auto;
@@ -1293,10 +1246,10 @@ form .label-application + div label {
 
 .chevron-icon {
     transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-    transform: rotate(-90deg); /* Point right by default */
+    transform: rotate(-90deg);
 }
 .chevron-icon.open {
-    transform: rotate(0deg);   /* Point down when open */
+    transform: rotate(0deg);
 }
 </style>
 <body>
@@ -1309,7 +1262,6 @@ form .label-application + div label {
         </div>
         <div class="right-nav">
             <div class="menu-container">
-                <!-- Add notification bell icon -->
                 <div class="notification-bell" onclick="openNotificationModal()">
                     <i class="fas fa-bell"></i>
                     <span id="notificationBadge" class="notification-dot" style="display: none;"></span>
@@ -1355,9 +1307,7 @@ form .label-application + div label {
             </div>
         </div>
 
-        <!-- Main Content Area -->
         <div class="main-content">
-            <!-- Home Page -->
             <div id="home-page" class="page active">
                 <div class="welcome-screen" style="margin-top: 100px;">
                     <h1 class="main-title">Welcome to PESO MIS SAN JULIAN</h1>
@@ -1371,21 +1321,17 @@ form .label-application + div label {
                         <div class="box-title">Applications History</div>
                         <div class="box-value">4</div>
                         <div class="box-description">You have 2 approved scholarship applications</div>
-                        <!-- Added margin-top for spacing -->
                         <button class="get-started" style="margin-top: 20px;" onclick="showPage('history-page')">Browse</button>
                     </div>
                     <div class="box">
                         <div class="box-title">Total Scholarships</div>
                         <div class="box-value"><?php echo $totalScholarships; ?></div>
                         <div class="box-description"><?php echo $totalScholarships; ?> scholarship programs available for application</div>
-                        <!-- Added margin-top for spacing -->
                         <button class="get-started" style="margin-top: 20px;" onclick="showPage('scholarships-page')">Browse</button>
                     </div>
                 </div>
             </div>
 
-            
-            <!-- Add this after your other .page sections in .main-content -->
             <div id="spes-page" class="page">
                 <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH (SPESOS)</h3>
                 <div class="dashboard-boxes">
@@ -1407,7 +1353,6 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <!-- Employment Contract Form Page (hidden by default) -->
             <div id="spes-employment-contract-page" class="page" style="display:none;">
                 <div class="form-container-application" style="position:relative; z-index:1; text-align:center;">
                     <h2 style="margin-bottom:20px;">Employment Contract Form</h2>
@@ -1421,7 +1366,6 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <!-- SPES Application Form Page -->
            <div id="spes-application-form-page" class="page" style="display:none; position:relative;">
             <div class="form-container-application" style="position:relative; z-index:1;">
                 <img src="../../../../images/Peso_logo1.gif"  alt="SPES_Logo1" style="width: 80px; position:absolute; top: 130px; left:7%; opacity:1; pointer-events: none;">
@@ -1637,8 +1581,7 @@ form .label-application + div label {
                     <button class="back-btn" style="margin-top:20px;" onclick="showPage('spes-page')">Back to SPESOS</button>
                 </div>
             </div>
-            
-            <!-- Application History Page -->
+
             <div id="history-page" class="page">
                 <div class="application-history">
                     <h2 class="history-h2">Application History</h2>
@@ -1651,7 +1594,7 @@ form .label-application + div label {
                                 <th>Scholarship</th>
                                 <th>Date Applied</th>
                                 <th>Status</th>
-                                <th>Action</th> <!-- New column for the View Details button -->
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1662,15 +1605,6 @@ form .label-application + div label {
                                 <td class="status-approved">Approved</td>
                                 <td>
                                     <button class="btn btn-outline" onclick="viewDetails('APP-2023-001')">View Details</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>APP-2023-002</td>
-                                <td>UNIFAST Scholarship</td>
-                                <td>Feb 28, 2023</td>
-                                <td class="status-approved">Approved</td>
-                                <td>
-                                    <button class="btn btn-outline" onclick="viewDetails('APP-2023-002')">View Details</button>
                                 </td>
                             </tr>
                             <tr>
@@ -1696,7 +1630,6 @@ form .label-application + div label {
                 </div>
             </div>
 
-<!-- Communication Page -->
 <div id="communication-page" class="page">
     <h2>Chat with Admin</h2>
     <div class="chat-container">
@@ -1761,8 +1694,7 @@ form .label-application + div label {
         </div>
     </div>
 </div>
-            
-            <!-- Scholarships Listing Page -->
+
             <div id="scholarships-page" class="page">
                 <div class="scholarship-list">
                     <h2>Available Scholarships</h2>
@@ -1863,17 +1795,16 @@ form .label-application + div label {
             <div class="modal-body">
                 <?php if (!empty($notifications)): ?>
                     <?php 
-                    $currentDate = null; // Track the current date
+                    $currentDate = null;
                     foreach ($notifications as $notification): 
-                        $notificationDate = date('F j, Y', strtotime($notification['created_at'])); // Format the date
+                        $notificationDate = date('F j, Y', strtotime($notification['created_at'])); 
                     ?>
                         <?php if ($currentDate !== $notificationDate): ?>
-                            <!-- Display a new header when the date changes -->
                             <?php if ($currentDate !== null): ?>
                                 <hr style="border: 1px solid #ccc;" />
                             <?php endif; ?>
                             <h4><?php echo $notificationDate; ?></h4>
-                            <?php $currentDate = $notificationDate; // Update the current date ?>
+                            <?php $currentDate = $notificationDate;?>
                         <?php endif; ?>
                         
                         <li>
@@ -1896,7 +1827,6 @@ form .label-application + div label {
     </div>
     
     <script>
-    // Toggle user menu
     function toggleMenu() {
         var menu = document.getElementById("dropdownMenu");
         var chevron = document.getElementById("chevronIcon");
@@ -1907,8 +1837,6 @@ form .label-application + div label {
             chevron.classList.remove("open");
         }
     }
-
-    // Optional: Hide dropdown when clicking outside
     window.onclick = function(event) {
         if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down')) {
             var dropdowns = document.getElementsByClassName("dropdown-menu");
@@ -1916,7 +1844,6 @@ form .label-application + div label {
             for (var i = 0; i < dropdowns.length; i++) {
                 dropdowns[i].classList.remove("show");
             }
-            // Remove the .open class from the chevron when closing the menu
             if (chevron) {
                 chevron.classList.remove("open");
             }
@@ -1930,20 +1857,18 @@ form .label-application + div label {
         document.getElementById('modalEligibility').innerHTML = eligibility;
         document.getElementById('detailsModal').style.display = "block";
     }
-    
-    // Close modal
+
     function closeModal() {
         document.getElementById('detailsModal').style.display = "none";
     }
 
-    // Page navigation
 function showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.style.display = 'none';
             page.classList.remove('active');
         });
 
-        window.location.hash = pageId; // <-- Add this line
+        window.location.hash = pageId;
         document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
 
@@ -1959,7 +1884,6 @@ function showPage(pageId) {
                 break;
             case 'communication-page':
                 highlightActiveNav('communication-nav');
-                // Scroll to bottom when communication page is shown
                 setTimeout(() => {
                     var chatMessages = document.getElementById('chatMessages');
                     if (chatMessages) {
@@ -1979,7 +1903,7 @@ function showPage(pageId) {
             .then(data => {
                 if (data.status === 'success') {
                     document.getElementById('notificationBadge').style.display = 'none';
-                    updateNotificationDot(); // Optionally refresh the dot
+                    updateNotificationDot();
                 }
             });
     }
@@ -1990,7 +1914,6 @@ function showPage(pageId) {
     function closeNotificationModal() {
         document.getElementById('notificationModal').style.display = "none";
 
-        // Hide the red dot
         document.getElementById('notificationBadge').style.display = 'none';
     }
 
@@ -2010,36 +1933,31 @@ function showPage(pageId) {
             });
     }
 
-// Call this function every 10 seconds to check for new notifications
     document.addEventListener('DOMContentLoaded', function() {
-        // ...existing code...
-        updateNotificationDot(); // Initial check
-        setInterval(updateNotificationDot, 10000); // Check every 10 seconds
+        updateNotificationDot();
+        setInterval(updateNotificationDot, 10000);
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-    // Set up default page
+
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
     });
 
     document.getElementById('home-page').style.display = 'block';
     highlightActiveNav('home-nav');
-    
-    // Handle back button and page reload
+
     window.addEventListener('pageshow', function(event) {
         if (event.persisted) {
             window.location.reload();
         }
     });
 
-    // Disable browser cache for this page
     window.history.pushState(null, '', window.location.href);
     window.onpopstate = function() {
         window.history.pushState(null, '', window.location.href);
     };
 
-    // Add sidebar toggle functionality
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.querySelector('.main-content');
     const toggleBtn = document.getElementById('toggleSidebar');
@@ -2049,7 +1967,6 @@ function showPage(pageId) {
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('sidebar-collapsed');
         
-        // Change icon direction based on sidebar state
         if (sidebar.classList.contains('collapsed')) {
             toggleIcon.classList.remove('fa-chevron-left');
             toggleIcon.classList.add('fa-chevron-right');
@@ -2067,7 +1984,6 @@ function showApplicationForm(scholarshipTitle) {
     });
     document.getElementById('application-form-page').style.display = 'block';
     document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
-    // No need to change highlight - scholarship nav should remain highlighted
 }
 
 function showScholarshipsPage() {
@@ -2093,7 +2009,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-scroll chat to bottom when Communication page is shown
     function scrollChatToBottom() {
         var chatMessages = document.getElementById('chatMessages');
         if (chatMessages) {
@@ -2101,12 +2016,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // On page load, if communication page is active, scroll
     if (document.getElementById('communication-page').classList.contains('active')) {
         scrollChatToBottom();
     }
 
-    // Also scroll when switching to communication page
     window.showPage = (function(origShowPage) {
         return function(pageId) {
             origShowPage(pageId);
@@ -2120,14 +2033,12 @@ document.addEventListener('DOMContentLoaded', function() {
 let messageToDelete = null;
 
 function toggleMessageOptions(messageId) {
-    // Close all other open menus
     document.querySelectorAll('.options-menu').forEach(menu => {
         if (menu.id !== `options-${messageId}`) {
             menu.classList.remove('show');
         }
     });
-    
-    // Toggle the clicked menu
+
     const menu = document.getElementById(`options-${messageId}`);
     menu.classList.toggle('show');
 }
@@ -2136,7 +2047,6 @@ function deleteMessage(messageId) {
     messageToDelete = messageId;
     document.getElementById('deleteMessageModal').style.display = "block";
     
-    // Close the options menu
     document.getElementById(`options-${messageId}`).classList.remove('show');
 }
 
@@ -2147,7 +2057,6 @@ function closeDeleteModal() {
 
 function confirmDelete() {
     if (messageToDelete) {
-        // Create a form and submit it
         const form = document.createElement('form');
         form.method = 'POST';
         form.style.display = 'none';
@@ -2169,7 +2078,6 @@ function confirmDelete() {
     }
 }
 
-// Close options menu when clicking outside
 document.addEventListener('click', function(event) {
     if (!event.target.closest('.message-options')) {
         document.querySelectorAll('.options-menu').forEach(menu => {
@@ -2198,7 +2106,6 @@ document.addEventListener('click', function(event) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Show the correct page if there's a hash in the URL
     if (window.location.hash) {
         const pageId = window.location.hash.substring(1);
         if (document.getElementById(pageId)) {

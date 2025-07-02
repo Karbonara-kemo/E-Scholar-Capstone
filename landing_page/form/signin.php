@@ -5,21 +5,18 @@ include "../../connect.php";
 <!DOCTYPE html>
 <html lang="en">
 <script>
-        // Function to display error messages for specific fields
         function displayError(fieldId, message) {
             const errorElement = document.getElementById(fieldId);
             errorElement.textContent = message;
             errorElement.classList.remove('hidden');
         }
 
-        // Function to check for error messages in the URL
         function checkMessages() {
             const urlParams = new URLSearchParams(window.location.search);
 
             if (urlParams.has('error')) {
                 const errorType = urlParams.get('error');
 
-                // Display specific error messages
                 if (errorType === 'invalid_password') {
                     displayError('password-error', 'Incorrect password. Please try again.');
                 } else if (errorType === 'email_not_found') {
@@ -28,10 +25,8 @@ include "../../connect.php";
             }
         }
 
-        // Call the function on page load
         window.onload = checkMessages;
 
-        // Function to display a popup notification
 function showPopupNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `popup-notification ${type}`;
@@ -41,15 +36,12 @@ function showPopupNotification(message, type = 'success') {
     `;
     document.body.appendChild(notification);
 
-    // Show the notification
     notification.style.display = 'flex';
 
-    // Automatically redirect after notification is shown
     setTimeout(() => {
         notification.style.display = 'none';
         notification.remove();
-        
-        // Get redirect URL from data attribute
+
         const redirectUrl = notification.getAttribute('data-redirect');
         if (redirectUrl) {
             window.location.href = redirectUrl;
@@ -57,14 +49,12 @@ function showPopupNotification(message, type = 'success') {
     }, 2000);
 }
 
-// Function to check for success and redirect messages in the URL
 function checkSuccessMessage() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('success')) {
         const successType = urlParams.get('success');
         const redirectTo = urlParams.get('redirect_to');
-        
-        // Create notification element
+
         const notification = document.createElement('div');
         notification.className = 'popup-notification success';
         notification.innerHTML = '<i>✔️</i><span>Login successful! Redirecting...</span>';
@@ -73,10 +63,8 @@ function checkSuccessMessage() {
         }
         document.body.appendChild(notification);
         
-        // Show the notification
         notification.style.display = 'flex';
-        
-        // Automatically redirect after notification is shown
+
         setTimeout(() => {
             notification.style.display = 'none';
             notification.remove();
@@ -85,14 +73,12 @@ function checkSuccessMessage() {
                 window.location.href = redirectTo;
             }
         }, 2000);
-        
-        // Remove the query parameters from the URL
+
         const newUrl = window.location.href.split('?')[0];
         window.history.replaceState({}, document.title, newUrl);
     }
 }
 
-// Call both functions on page load
 window.onload = function() {
     checkMessages();
     checkSuccessMessage();
@@ -335,13 +321,13 @@ window.onload = function() {
         }
         
     .main-content {
-        height: 100vh`; /* Adjusted to account for fixed navbar height */
+        height: 100vh`;
         display: flex;
         justify-content: center;
         align-items: center;
         padding: 40px 20px;
         overflow: hidden;
-        margin-top: 60px; /* Adjusted to account for fixed navbar height */
+        margin-top: 60px; 
     }
     
     .container {
@@ -424,7 +410,6 @@ window.onload = function() {
         display: none;
     }
 
-    /* New styles for the form header with image and title */
     .form-header {
         display: flex;
         flex-direction: column;
@@ -452,7 +437,6 @@ window.onload = function() {
         font-size: 12px;
     }
 
-    /* New styles for the form toggle link */
     .form-toggle {
         text-align: center;
         margin-top: 20px;
@@ -478,7 +462,6 @@ window.onload = function() {
         text-decoration: underline;
     }
 
-     /* Styling for the popup notification */
      .popup-notification {
             position: fixed;
             top: 50%;
@@ -510,15 +493,12 @@ window.onload = function() {
             font-size: 24px;
         }
 
-        /* Inline error message for input fields */
-         /* Inline error message for input fields */
          .error-message {
             color: #f44336;
             font-size: 10px;
             margin-top: 5px;
         }
 
-        /* Hide error message by default */
         .error-message.hidden {
             display: none;
         }
@@ -540,7 +520,6 @@ window.onload = function() {
         .home 
         {
             text-decoration: none;
-            /* font-weight: 600; */
             font-size: 13px;
             color: #545863;
             margin-left: 20px;

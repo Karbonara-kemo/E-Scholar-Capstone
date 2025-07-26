@@ -9,12 +9,34 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-$sql = "SELECT COUNT(*) AS unread_count FROM notifications WHERE (user_id IS NULL OR user_id = ?) AND status = 'unread'";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$result = $stmt->get_result();
-$unreadCount = $result->fetch_assoc()['unread_count'];
+// Count unread global notifications for this user
+$sqlGlobal = "SELECT COUNT(*) AS cnt FROM notifications n
+              WHERE n.user_id IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM notification_reads r
+                  WHERE r.notification_id = n.id AND r.user_id = ?
+              )";
 
-echo json_encode(['status' => 'success', 'unread_count' => $unreadCount]);
+// Count unread personal notifications
+$sqlPersonal = "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = ? AND status = 'unread'";
+
+// Prepare and execute global count
+$stmtGlobal = $conn->prepare($sqlGlobal);
+$stmtGlobal->bind_param("i", $userId);
+$stmtGlobal->execute();
+$stmtGlobal->bind_result($unreadGlobal);
+$stmtGlobal->fetch();
+$stmtGlobal->close();
+
+// Prepare and execute personal count
+$stmtPersonal = $conn->prepare($sqlPersonal);
+$stmtPersonal->bind_param("i", $userId);
+$stmtPersonal->execute();
+$stmtPersonal->bind_result($unreadPersonal);
+$stmtPersonal->fetch();
+$stmtPersonal->close();
+
+$totalUnread = $unreadGlobal + $unreadPersonal;
+
+echo json_encode(['status' => 'success', 'unread_count' => $totalUnread]);
 ?>

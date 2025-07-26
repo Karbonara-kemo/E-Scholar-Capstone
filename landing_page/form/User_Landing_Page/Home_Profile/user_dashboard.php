@@ -486,20 +486,22 @@ body {
 
 .notification-badge {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 15px;
-    height: 15px;
+    top: -5px;         /* Move higher above the bell */
+    right: -5px;       /* Move closer to the right edge */
+    min-width: 11px;
+    height: 11px;
     background-color: red;
-    border-radius: 50%;
+    border-radius: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 10px;
-    color: white;
+    font-size: 8px;
+    color: black;
     font-weight: bold;
+    padding: 0 2px;
+    line-height: 1;
+    z-index: 2;
 }
-
 .user-menu-container {
     display: flex;
     align-items: center;
@@ -1264,7 +1266,7 @@ form .label-application + div label {
             <div class="menu-container">
                 <div class="notification-bell" onclick="openNotificationModal()">
                     <i class="fas fa-bell"></i>
-                    <span id="notificationBadge" class="notification-dot" style="display: none;"></span>
+                    <span id="notificationBadge" class="notification-badge" style="display: none;"></span>
                 </div>
                 
                 <div class="user-menu-container">
@@ -1921,15 +1923,18 @@ function showPage(pageId) {
         fetch('get_unread_count_notifcation.php')
             .then(response => response.json())
             .then(data => {
-                const notificationDot = document.getElementById('notificationBadge');
+                const notificationBadge = document.getElementById('notificationBadge');
                 if (data.status === 'success' && data.unread_count > 0) {
-                    notificationDot.style.display = 'block';
+                    notificationBadge.style.display = 'flex';
+                    notificationBadge.textContent = data.unread_count; // Show the count
                 } else {
-                    notificationDot.style.display = 'none';
+                    notificationBadge.style.display = 'none';
+                    notificationBadge.textContent = '';
                 }
             })
             .catch(() => {
                 document.getElementById('notificationBadge').style.display = 'none';
+                document.getElementById('notificationBadge').textContent = '';
             });
     }
 

@@ -610,7 +610,7 @@ window.onload = function() {
                 <a href="forgot_password.php" class="forgot-password">Forgot Password?</a>
                 
                 <div class="form-toggle">
-                    <p>Don't have an account? <a href="signup.php">Sign Up</a></p>
+                    <p>Don't have an account? <a href="signup.php">Send Request</a></p>
                 </div>
             </form>
         </div>
@@ -649,6 +649,22 @@ window.onload = function() {
             e.preventDefault();
         }
     });
+
+    function checkMessages() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (urlParams.has('error')) {
+        const errorType = urlParams.get('error');
+
+        if (errorType === 'invalid_password') {
+            displayError('password-error', 'Incorrect password. Please try again.');
+        } else if (errorType === 'email_not_found') {
+            displayError('email-error', 'Email not found. Please check your email or sign up.');
+        } else if (errorType === 'not_approved') {
+            displayError('email-error', 'Your account is pending approval. You cannot login until an admin approves your request.');
+        }
+    }
+}
 </script>
 </body>
 </html>

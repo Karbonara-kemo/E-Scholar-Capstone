@@ -14,7 +14,7 @@ $sqlGlobal = "SELECT COUNT(*) AS cnt FROM notifications n
               WHERE n.user_id IS NULL
               AND NOT EXISTS (
                   SELECT 1 FROM notification_reads r
-                  WHERE r.notification_id = n.id AND r.user_id = ?
+                  WHERE r.notification_id = n.notification_id AND r.user_id = ?
               )";
 
 // Count unread personal notifications

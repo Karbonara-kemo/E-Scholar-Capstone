@@ -10,7 +10,8 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-$sql = "SELECT * FROM user WHERE Id = ?";
+// Corrected: Changed 'Id' to 'user_id'
+$sql = "SELECT * FROM user WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
@@ -32,7 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profilePic'])) {
     if ($check !== false) {
         if (move_uploaded_file($_FILES["profilePic"]["tmp_name"], $targetFile)) {
             $imagePath = "images/" . basename($_FILES["profilePic"]["name"]);
-            $updateSql = "UPDATE user SET profile_pic = ? WHERE Id = ?";
+            // Corrected: Changed 'Id' to 'user_id'
+            $updateSql = "UPDATE user SET profile_pic = ? WHERE user_id = ?";
             $updateStmt = $conn->prepare($updateSql);
             $updateStmt->bind_param("si", $imagePath, $userId);
             if ($updateStmt->execute()) {

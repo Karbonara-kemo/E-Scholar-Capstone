@@ -80,7 +80,7 @@ include "../../connect.php";
         function checkSuccessMessage() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('success')) {
-                showPopupNotification('Account created successfully! You can now sign in.', 'success');
+                showPopupNotification('Thank you for registering. Your request has been submitted successfully and is pending administrator approval.');
 
                 const newUrl = window.location.href.split('?')[0];
                 window.history.replaceState({}, document.title, newUrl);
@@ -616,7 +616,7 @@ include "../../connect.php";
 
     <div class="main-content">
     <div class="container">
-        <form id="signup-form" class="form active" method="POST" action="process_signup.php" onsubmit="return validateSignupForm()">
+        <form id="signup-form" class="form active" method="POST" action="process_signup.php" enctype="multipart/form-data" onsubmit="return validateSignupForm()">
             <div class="form-header">
                 <img src="../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
                 <h2>Create an Account</h2>
@@ -685,19 +685,38 @@ include "../../connect.php";
             </div>
 
             <div class="form-row">
-                <div class="form-group">
+                <div class="form-group" style="position:relative;">
                     <label for="signup-password">Password</label>
                     <input type="password" id="signup-password" name="password" placeholder="Create a password">
+                    <span class="toggle-password" onclick="togglePassword('signup-password', this)" style="position:absolute; right:10px; top:26px; cursor:pointer;">
+                        <svg id="eye-signup-password" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+                            <circle cx="12" cy="12" r="3" stroke-width="1"/>
+                        </svg>
+                    </span>
                     <div id="password-error" class="error-message"></div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="position:relative;">
                     <label for="confirm-password">Confirm Password</label>
                     <input type="password" id="confirm-password" name="confirm-password" placeholder="Re-enter your password">
+                    <span class="toggle-password" onclick="togglePassword('confirm-password', this)" style="position:absolute; right:10px; top:26px; cursor:pointer;">
+                        <svg id="eye-confirm-password" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+                            <circle cx="12" cy="12" r="3" stroke-width="1"/>
+                        </svg>
+                    </span>
                     <div id="confirm-password-error" class="error-message"></div>
                 </div>
             </div>
 
-            <button type="submit" class="btn">Sign Up</button>
+            <div class="form-group">
+                <label for="valid-id">Upload Valid ID (Front and Back)</label>
+                <input type="file" id="valid-id" name="valid_id[]" accept="image/*,.pdf" multiple>
+                <div id="valid-id-error" class="error-message"></div>
+                <small style="font-size:11px;color:#8B8E98;">Upload both front and back. Accepted formats: JPG, PNG, PDF</small>
+            </div>
+            
+            <button type="submit" class="btn">Submit Request</button>
 
             <div class="form-toggle">
                 <p>Already have an account? <a href="signin.php">Sign In</a></p>
@@ -706,4 +725,87 @@ include "../../connect.php";
     </div>
 </div>
 </body>
+<script>
+function togglePassword(fieldId, iconSpan) {
+    const input = document.getElementById(fieldId);
+    const svg = iconSpan.querySelector('svg');
+    if (input.type === "password") {
+        input.type = "text";
+        svg.innerHTML = `<path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" stroke-width="2"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2"/>`; // eye with slash
+    } else {
+        input.type = "password";
+        svg.innerHTML = `<path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" stroke-width="2"/>`; // normal eye
+    }
+}
+
+function validateSignupForm() {
+    const requiredFields = [
+        { id: "name", errorId: "fname-error", errorMessage: "First Name required." },
+        { id: "last-name", errorId: "lname-error", errorMessage: "Last Name required." },
+        { id: "age", errorId: "age-error", errorMessage: "Age required." },
+        { id: "gender", errorId: "gender-error", errorMessage: "Gender required." },
+        { id: "signup-address", errorId: "address-error", errorMessage: "Address required." },
+        { id: "contact-number", errorId: "contact-error", errorMessage: "Contact Number required." },
+        { id: "signup-email", errorId: "email-error", errorMessage: "Email required." },
+        { id: "signup-password", errorId: "password-error", errorMessage: "Password required." },
+        { id: "confirm-password", errorId: "confirm-password-error", errorMessage: "Confirm Password required." }
+    ];
+
+    let isValid = true;
+
+    // Hide all error messages first
+    requiredFields.forEach(field => {
+        document.getElementById(field.errorId).style.display = 'none';
+    });
+    document.getElementById("valid-id-error").style.display = 'none';
+
+    // Show error for each empty field
+    requiredFields.forEach(field => {
+        const input = document.getElementById(field.id);
+        if (!input.value.trim()) {
+            const errorElement = document.getElementById(field.errorId);
+            errorElement.style.display = 'block';
+            errorElement.textContent = field.errorMessage;
+            isValid = false;
+        }
+    });
+
+    // Check valid ID upload
+    const validIdInput = document.getElementById("valid-id");
+    const validIdError = document.getElementById("valid-id-error");
+    validIdError.style.display = 'none';
+    if (!validIdInput.files || validIdInput.files.length < 2) {
+        validIdError.style.display = 'block';
+        validIdError.textContent = "Please upload both front and back images of your valid ID.";
+        isValid = false;
+    }
+
+
+    // Password checks only if password fields are not empty
+    const passwordField = document.getElementById("signup-password");
+    const confirmPasswordField = document.getElementById("confirm-password");
+    const password = passwordField.value;
+    const confirmPassword = confirmPasswordField.value;
+
+    if (password && confirmPassword) {
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            const passwordError = document.getElementById("password-error");
+            passwordError.style.display = 'block';
+            passwordError.textContent = "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one special character, and one number.";
+            isValid = false;
+        }
+        if (password !== confirmPassword) {
+            const confirmPasswordError = document.getElementById("confirm-password-error");
+            confirmPasswordError.style.display = 'block';
+            confirmPasswordError.textContent = "Passwords do not match.";
+            isValid = false;
+        }
+    }
+
+    return isValid;
+}
+
+
+</script>
 </html>

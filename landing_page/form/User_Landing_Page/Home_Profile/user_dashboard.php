@@ -13,23 +13,93 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// FETCH USER FIRST!
 $userId = $_SESSION['user_id'];
-
-$user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : "User";
-
-$userId = $_SESSION['user_id'];
-$sql = "SELECT * FROM user WHERE Id = ?";
+$sql = "SELECT * FROM user WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
-
 if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
 } else {
     echo "User not found.";
     exit();
 }
+
+// --- START: MODIFIED FORM SUBMISSION LOGIC ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
+    $scholarshipId = $_POST['scholarship_id'];
+    $fullname = trim($_POST['lname'] . ', ' . $_POST['fname'] . ' ' . $_POST['mname']);
+    $birthdate = $_POST['dob'];
+    $address = $_POST['address'];
+    $contact = $_POST['contact'];
+    // Email is no longer collected from the form
+    $school = $_POST['college_school'];
+    $course = $_POST['college_course'];
+    $year_level = ''; // This field seems unused but kept for structure
+    $family_income = $_POST['family_income'];
+    $facebook = $_POST['facebook'];
+    $civil_status = $_POST['civil_status'];
+    $gender = $_POST['gender'];
+    $place_of_birth = $_POST['pob'];
+    $mother_name = $_POST['mother_name'];
+    $mother_occupation = $_POST['mother_occupation'];
+    $father_name = $_POST['father_name'];
+    $father_occupation = $_POST['father_occupation'];
+    $dependents = $_POST['dependents'];
+    $elem_school = $_POST['elem_school'];
+    $elem_honors = $_POST['elem_honors'];
+    $elem_grad = $_POST['elem_grad'];
+    $hs_school = $_POST['hs_school'];
+    $hs_honors = $_POST['hs_honors'];
+    $hs_grad = $_POST['hs_grad'];
+    $voc_school = $_POST['voc_school'];
+    $voc_honors = $_POST['voc_honors'];
+    $voc_grad = $_POST['voc_grad'];
+    $college_school = $_POST['college_school'];
+    $college_course = $_POST['college_course'];
+    $college_average = $_POST['college_average'];
+    $college_awards = $_POST['college_awards'];
+
+    $documents = [];
+    if (!empty($_FILES['supporting_documents']['name'][0])) {
+        foreach ($_FILES['supporting_documents']['tmp_name'] as $key => $tmp_name) {
+            $file_name = basename($_FILES['supporting_documents']['name'][$key]);
+            $target_dir = "../../../../uploads/";
+            $target_file = $target_dir . uniqid() . "_" . $file_name;
+            if (move_uploaded_file($tmp_name, $target_file)) {
+                $documents[] = $target_file;
+            }
+        }
+    }
+    $documents_json = json_encode($documents);
+
+    // SQL statement updated to remove the 'email' column
+    $sql = "INSERT INTO applications (
+        user_id, scholarship_id, fullname, birthdate, address, contact, school, course, year_level, family_income, documents, status,
+        facebook, civil_status, gender, place_of_birth, mother_name, mother_occupation, father_name, father_occupation, dependents,
+        elem_school, elem_honors, elem_grad, hs_school, hs_honors, hs_grad, voc_school, voc_honors, voc_grad, college_school, college_course, college_average, college_awards
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending',
+        ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    )";
+    $stmt = $conn->prepare($sql);
+    // Bind parameters updated to remove the email variable and its type 's'
+    $stmt->bind_param(
+        "iisssssssssssssssssssssssssssssss",
+        $userId, $scholarshipId, $fullname, $birthdate, $address, $contact, $school, $course, $year_level, $family_income, $documents_json,
+        $facebook, $civil_status, $gender, $place_of_birth, $mother_name, $mother_occupation, $father_name, $father_occupation, $dependents,
+        $elem_school, $elem_honors, $elem_grad, $hs_school, $hs_honors, $hs_grad, $voc_school, $voc_honors, $voc_grad, $college_school, $college_course, $college_average, $college_awards
+    );
+    if (!$stmt->execute()) {
+        die("Error: " . $stmt->error);
+    } else {
+        header("Location: user_dashboard.php");
+        exit();
+    }
+}
+// --- END: MODIFIED FORM SUBMISSION LOGIC ---
 
 $notificationSql = "SELECT * FROM notifications WHERE user_id IS NULL OR user_id = ? ORDER BY created_at DESC";
 $notificationStmt = $conn->prepare($notificationSql);
@@ -45,32 +115,75 @@ $countUnreadStmt->execute();
 $countUnreadResult = $countUnreadStmt->get_result();
 $unreadCount = $countUnreadResult->fetch_assoc()['unread_count'];
 
-$scholarshipSql = "SELECT * FROM scholarships WHERE status = 'active'";
+$scholarshipSql = "
+    SELECT s.*, COUNT(CASE WHEN a.status IN ('pending', 'approved') THEN 1 ELSE NULL END) as total_applicants
+    FROM scholarships s
+    LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id
+    WHERE s.status = 'active'
+    GROUP BY s.scholarship_id
+";
 $scholarshipResult = $conn->query($scholarshipSql);
 $scholarships = $scholarshipResult->fetch_all(MYSQLI_ASSOC);
 
 $totalScholarships = count($scholarships);
 
-if (isset($_POST['send_message'])) {
-    $message = trim($_POST['message']);
-    if (!empty($message)) {
-        $insertSql = "INSERT INTO notifications (message, user_id, status, created_at) VALUES (?, ?, 'unread', NOW())";
-        $insertStmt = $conn->prepare($insertSql);
-        $insertStmt->bind_param("si", $message, $userId);
-        $insertStmt->execute();
-        header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
-        exit();
+$countApplicationsSql = "SELECT COUNT(application_id) as total_applications FROM applications WHERE user_id = ?";
+$countStmt = $conn->prepare($countApplicationsSql);
+$countStmt->bind_param("i", $userId);
+$countStmt->execute();
+$countResult = $countStmt->get_result()->fetch_assoc();
+$totalApplications = $countResult['total_applications'];
+
+// Fetch scholarship groups the user is APPROVED for
+$approvedGroups = [];
+$approvedSql = "SELECT s.scholarship_id, s.title 
+                FROM scholarships s 
+                JOIN applications a ON s.scholarship_id = a.scholarship_id 
+                WHERE a.user_id = ? AND a.status = 'approved'";
+$approvedStmt = $conn->prepare($approvedSql);
+$approvedStmt->bind_param("i", $userId);
+$approvedStmt->execute();
+$approvedResult = $approvedStmt->get_result();
+while ($row = $approvedResult->fetch_assoc()) {
+    $approvedGroups[] = $row;
+}
+
+// Handle chat logic
+$selectedGroupId = isset($_GET['chat_group']) ? intval($_GET['chat_group']) : null;
+$messages = [];
+$chatTitle = 'Chat with Admin'; // Default title
+
+if ($selectedGroupId) {
+    // Security check: Make sure the user is a member of the group they're trying to view.
+    $isMember = false;
+    foreach ($approvedGroups as $group) {
+        if ($group['scholarship_id'] == $selectedGroupId) {
+            $isMember = true;
+            $chatTitle = htmlspecialchars($group['title']) . " (Updates)";
+            break;
+        }
+    }
+
+    if ($isMember) {
+        // Fetch group messages (admin posts)
+        $stmt = $conn->prepare("SELECT * FROM concerns WHERE scholarship_id = ? ORDER BY created_at ASC");
+        $stmt->bind_param("i", $selectedGroupId);
+    }
+} else {
+    // Fetch personal messages
+    $stmt = $conn->prepare("SELECT * FROM concerns WHERE user_id = ? AND scholarship_id IS NULL ORDER BY created_at ASC");
+    $stmt->bind_param("i", $userId);
+}
+
+// Execute the prepared statement if it was set
+if (isset($stmt)) {
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $messages[] = $row;
     }
 }
 
-$messages = [];
-$stmt = $conn->prepare("SELECT * FROM concerns WHERE user_id = ? ORDER BY created_at ASC");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $messages[] = $row;
-}
 
 if (isset($_POST['send_concern'])) {
     $message = trim($_POST['concern_message']);
@@ -758,13 +871,14 @@ form .label-application + div label {
 
 .chat-container {
     max-width: 1200px;
-    margin: 30px auto 0 auto;
+    margin: 0;
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     display: flex;
     flex-direction: column;
-    height: 500px;
+    height: 100%;
+    width: 100%;
 }
 
 .chat-messages {
@@ -1173,6 +1287,7 @@ form .label-application + div label {
     .modal-content {
         width: 90%;
         margin: 30% auto;
+        font-size: 9px;
     }
     
     #application-form-page .form-container-application {
@@ -1253,6 +1368,73 @@ form .label-application + div label {
 .chevron-icon.open {
     transform: rotate(0deg);
 }
+
+.status-pending {
+    background-color: #FFF3CD;
+    color: #856404;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+.status-approved {
+    background-color: #D4EDDA;
+    color: #155724;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+.status-rejected {
+    background-color: #F8D7DA;
+    color: #721C24;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+/* New Chat Layout Styles */
+.concerns-layout {
+    display: flex;
+    height: calc(100vh - 120px);
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.concerns-list {
+    width: 220px;
+    background: #f4f4f4;
+    border-right: 1px solid #eee;
+    padding: 10px 0;
+    overflow-y: auto;
+}
+.concerns-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.concerns-list li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    text-decoration: none;
+    color: #333;
+    font-size: 12px;
+}
+.concerns-list li a:hover {
+    background: #e9ecef;
+}
+.concerns-list li.active a {
+    background: #090549;
+    color: white;
+    font-weight: bold;
+}
+.concerns-chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
 </style>
 <body>
     <div class="navbar">
@@ -1315,15 +1497,12 @@ form .label-application + div label {
                     <h1 class="main-title">Welcome to PESO MIS SAN JULIAN</h1>
                     <p class="description">
                         Connecting Students and Out-of-School Youth in San Julian to Life-Changing Opportunities. Supporting Education,  <br>Building Careers, and Shaping Tomorrow Through Scholarships and SPES Programs.</p>
-                    <!-- <button class="get-started" onclick="showPage('scholarships-page')">Browse Scholarships</button> -->
-                </div>
+                    </div>
 
                 <div class="dashboard-boxes">
                     <div class="box">
                         <div class="box-title">Applications History</div>
-                        <div class="box-value">4</div>
-                        <div class="box-description">You have 2 approved scholarship applications</div>
-                        <button class="get-started" style="margin-top: 20px;" onclick="showPage('history-page')">Browse</button>
+                        <div class="box-value"><?php echo $totalApplications; ?></div> <div class="box-description">You have <?php echo $totalApplications; ?> application(s) in your history</div> <button class="get-started" style="margin-top: 20px;" onclick="showPage('history-page')">Browse</button>
                     </div>
                     <div class="box">
                         <div class="box-title">Total Scholarships</div>
@@ -1458,9 +1637,9 @@ form .label-application + div label {
                         <label><input type="radio" name="parent_status" value="Person With Disability"> Person With Disability</label>
                         <label><input type="radio" name="parent_status" value="Senior Citizen"> Senior Citizen</label>
                         <label><input type="radio" name="parent_status" value="Sugar Plantation Worker"> Sugar Plantation Worker</label>
-                        <label><input type="radio" name="parent_status" value="Indigenous People"> Indigenous People</label>
-                        <label><input type="radio" name="parent_status" value="Displaced Worker (Local)"> Displaced Worker (Local)</label>
-                        <label><input type="radio" name="parent_status" value="Displaced Worker (OFW)"> Displaced Worker (OFW)</label>
+                        <label><input type="checkbox" name="parent_status_indigenous"> Indigenous People</label>
+                        <label><input type="checkbox" name="parent_status_displaced_local"> Displaced Worker (Local)</label>
+                        <label><input type="checkbox" name="parent_status_displaced_ofw"> Displaced Worker (OFW)</label>
                     </div>
 
                     <label class="label-application">Present Address</label>
@@ -1565,7 +1744,6 @@ form .label-application + div label {
                         <label><input type="checkbox" name="spesid_2"> 2nd Availment</label>
                         <label><input type="checkbox" name="spesid_3"> 3rd Availment</label>
                         <label><input type="checkbox" name="spesid_4"> 4th Availment</label>
-
                         <button type="submit" class="submit-btn">Submit Application</button>
                     </form>
                 </div>
@@ -1584,103 +1762,157 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <div id="history-page" class="page">
-                <div class="application-history">
-                    <h2 class="history-h2">Application History</h2>
-                    <p class="history-p">Review your previous scholarship applications</p>
-                    
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>Application ID</th>
-                                <th>Scholarship</th>
-                                <th>Date Applied</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>APP-2023-001</td>
-                                <td>TDP Scholarship</td>
-                                <td>Jan 15, 2023</td>
-                                <td class="status-approved">Approved</td>
-                                <td>
-                                    <button class="btn btn-outline" onclick="viewDetails('APP-2023-001')">View Details</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>APP-2023-003</td>
-                                <td>TES Scholarship</td>
-                                <td>Mar 10, 2023</td>
-                                <td class="status-pending">Pending</td>
-                                <td>
-                                    <button class="btn btn-outline" onclick="viewDetails('APP-2023-003')">View Details</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>APP-2022-001</td>
-                                <td>DOST Scholarship</td>
-                                <td>Aug 05, 2022</td>
-                                <td class="status-rejected">Rejected</td>
-                                <td>
-                                    <button class="btn btn-outline" onclick="viewDetails('APP-2022-001')">View Details</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+           <div id="history-page" class="page">
+    <div class="application-history">
+        <h2 class="history-h2">Application History</h2>
+        <p class="history-p">Review your previous scholarship applications</p>
+
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Application ID</th>
+                    <th>Scholarship</th>
+                    <th>Date Applied</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php
+            $applicationsSql = "
+                SELECT a.application_id, s.title, a.created_at, a.status, a.rejection_message
+                FROM applications a
+                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                WHERE a.user_id = ?
+                ORDER BY a.created_at DESC
+            ";
+            $applicationsStmt = $conn->prepare($applicationsSql);
+            $applicationsStmt->bind_param("i", $userId);
+            $applicationsStmt->execute();
+            $applicationsResult = $applicationsStmt->get_result();
+
+            if ($applicationsResult->num_rows > 0):
+                while ($application = $applicationsResult->fetch_assoc()):
+                    // Determine status class for styling
+                    $statusClass = 'status-pending';
+                    if ($application['status'] === 'approved') {
+                        $statusClass = 'status-approved';
+                    } elseif ($application['status'] === 'rejected') {
+                        $statusClass = 'status-rejected';
+                    }
+            ?>
+                <tr>
+                    <td style="padding:10px;"><?php echo htmlspecialchars($application['application_id']); ?></td>
+                    <td style="padding:10px;"><?php echo htmlspecialchars($application['title']); ?></td>
+                    <td style="padding:10px;"><?php echo date('M d, Y', strtotime($application['created_at'])); ?></td>
+                    <td style="padding:10px;">
+                        <span class="<?php echo $statusClass; ?>">
+                            <?php echo ucfirst($application['status']); ?>
+                        </span>
+                    </td>
+                    <td style="padding:10px;">
+                        <?php if ($application['status'] === 'rejected'): ?>
+                            <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>, <?php echo json_encode($application); ?>)'>See Why...</button>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php
+                endwhile;
+            else:
+            ?>
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:20px;">No application history found.</td>
+                </tr>
+            <?php
+            endif;
+            ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+            <div id="rejectionMessageModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="modal-close" onclick="closeRejectionMessageModal()">&times;</span>
+                    <div class="modal-header">Rejection Reason</div>
+                    <div class="modal-body">
+                        <p id="rejectionMessageText"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="userApplicationFormModal" class="modal" style="display:none;">
+                <div class="modal-content" style="max-width:800px;text-align:left;font-size:12px;">
+                    <span class="modal-close" onclick="closeUserApplicationFormModal()">&times;</span>
+                    <div class="modal-header">Your Application Details</div>
+                    <div class="modal-body" id="userApplicationFormBody"></div>
                 </div>
             </div>
 
 <div id="communication-page" class="page">
-    <h2>Chat with Admin</h2>
-    <div class="chat-container">
-        <div class="chat-messages" id="chatMessages">
-            <?php if (!empty($messages)): ?>
-                <?php foreach ($messages as $message): ?>
-                    <div class="message <?php echo $message['sender'] === 'user' ? 'user-message' : 'admin-message'; ?>">
-                        <div class="message-content">
-                            <?php echo nl2br(htmlspecialchars($message['message'])); ?>
-                            <?php if ($message['sender'] === 'user'): ?>
-                                <div class="message-options">
-                                    <button class="options-btn" onclick="toggleMessageOptions(<?php echo $message['id']; ?>)">
-                                        <i class="fas fa-ellipsis-v"></i>
-                                    </button>
-                                    <div class="options-menu" id="options-<?php echo $message['id']; ?>">
-                                        <button onclick="deleteMessage(<?php echo $message['id']; ?>)">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="message-timestamp">
-                            <?php echo date('M d, Y h:i A', strtotime($message['created_at'])); ?>
-                        </div>
-                    </div>
+    <div class="concerns-layout">
+        <div class="concerns-list">
+            <ul>
+                <li class="<?php if(!$selectedGroupId) echo 'active'; ?>">
+                    <a href="user_dashboard.php#communication-page">
+                       <i class="fas fa-user"></i>&nbsp; Chat with Admin
+                    </a>
+                </li>
+                <?php foreach ($approvedGroups as $group): ?>
+                    <li class="<?php if($selectedGroupId == $group['scholarship_id']) echo 'active'; ?>">
+                        <a href="user_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#communication-page">
+                            <i class="fas fa-users"></i>&nbsp; <?php echo htmlspecialchars($group['title']); ?>
+                        </a>
+                    </li>
                 <?php endforeach; ?>
-            <?php else: ?>
-                <div class="no-messages">
-                    <p>No messages yet. Start a conversation with the admin!</p>
-                </div>
-            <?php endif; ?>
+            </ul>
         </div>
-        <form class="chat-input" method="POST" enctype="multipart/form-data" autocomplete="off">
-            <div class="upload-container" style="position: relative;">
-                <button type="button" class="upload-btn" onclick="showUploadPopup()" title="Upload">
-                    <i class="fas fa-paperclip"></i>
-                </button>
-                <input type="file" id="chatUpload" name="chat_upload[]" style="display:none;" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
-                <div id="uploadPopup" class="upload-popup">
-                    <span style="display:block;text-align:center;margin-bottom:10px;">Upload documents or images</span>
-                    <button type="button" class="btn" style="display:block;margin:0 auto;" onclick="triggerFileInput()">Choose File</button>
+        <div class="concerns-chat-area">
+             <div class="chat-container">
+                <div class="chat-header" style="padding: 15px 20px; font-weight: bold; border-bottom: 1px solid #eee; background: #f7f7fa;">
+                    <?php echo $chatTitle; ?>
                 </div>
+                <div class="chat-messages" id="chatMessages">
+                    <?php if (!empty($messages)): ?>
+                        <?php foreach ($messages as $message): ?>
+                            <div class="message <?php echo $message['sender'] === 'user' ? 'user-message' : 'admin-message'; ?>">
+                                <div class="message-content">
+                                    <?php echo nl2br(htmlspecialchars($message['message'])); ?>
+                                    <?php if ($message['sender'] === 'user'): ?>
+                                        <div class="message-options">
+                                            <button class="options-btn" onclick="toggleMessageOptions(<?php echo $message['id']; ?>)">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <div class="options-menu" id="options-<?php echo $message['id']; ?>">
+                                                <button onclick="deleteMessage(<?php echo $message['id']; ?>)">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="message-timestamp">
+                                    <?php echo date('M d, Y h:i A', strtotime($message['created_at'])); ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="no-messages" style="text-align: center; color: #888; margin-top: 20px;">
+                            <p>No messages in this conversation yet.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <?php if (!$selectedGroupId): // Only show input form for personal chat ?>
+                <form class="chat-input" method="POST" autocomplete="off">
+                    <textarea name="concern_message" placeholder="Type your message to admin..." rows="1" required></textarea>
+                    <button type="submit" name="send_concern">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+                <?php endif; ?>
             </div>
-            <textarea name="concern_message" placeholder="Type your message to admin..." rows="1"></textarea>
-            <button type="submit" name="send_concern">
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </form>
+        </div>
     </div>
 </div>
 
@@ -1702,7 +1934,26 @@ form .label-application + div label {
                     <h2>Available Scholarships</h2>
                     <p>Browse and apply for available scholarship programs</p>
                     
-                    <?php foreach ($scholarships as $scholarship): ?>
+                    <?php foreach ($scholarships as $scholarship): 
+                        // Calculate remaining slots
+                        $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
+
+                        // Check if the user has a pending or approved application for this scholarship
+                        $hasPendingOrApproved = false;
+                        $applicationStatus = '';
+                        $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? ORDER BY created_at DESC LIMIT 1";
+                        $checkStmt = $conn->prepare($checkSql);
+                        $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
+                        $checkStmt->execute();
+                        $checkResult = $checkStmt->get_result();
+                        if ($checkResult->num_rows > 0) {
+                            $app = $checkResult->fetch_assoc();
+                            $applicationStatus = $app['status'];
+                            if ($applicationStatus === 'pending' || $applicationStatus === 'approved') {
+                                $hasPendingOrApproved = true;
+                            }
+                        }
+                    ?>
                         <div class="scholarship-card">
                             <div class="scholarship-header">
                                 <div class="scholarship-title"><?php echo htmlspecialchars($scholarship['title']); ?></div>
@@ -1710,6 +1961,7 @@ form .label-application + div label {
                             <div class="scholarship-body">
                                 <div class="scholarship-info">
                                     <p><?php echo htmlspecialchars($scholarship['description']); ?></p>
+                                    <p><strong>Slots:</strong> <?php echo max(0, $remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining</p>
                                 </div>
                             </div>
                             <div class="scholarship-actions">
@@ -1720,7 +1972,20 @@ form .label-application + div label {
                                         <?php echo json_encode(nl2br($scholarship["benefits"])); ?>, 
                                         <?php echo json_encode(nl2br($scholarship["eligibility"])); ?>
                                     )'>View Details</button>
-                                <button class="btn btn-primary" onclick="showApplicationForm('<?php echo htmlspecialchars($scholarship['title']); ?>')">Apply Now</button>
+                                
+                                <?php 
+                                $isDisabled = $hasPendingOrApproved || ($remainingSlots <= 0);
+                                $buttonText = ($remainingSlots <= 0) ? 'Fully Booked' : 'Apply Now';
+                                if ($hasPendingOrApproved) {
+                                    $buttonText = ucfirst($applicationStatus);
+                                }
+                                ?>
+                                
+                                <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?> 
+                                    style="<?php echo $isDisabled ? 'background-color:#ccc; cursor:not-allowed;' : ''; ?>"
+                                    onclick="showApplicationForm('<?php echo htmlspecialchars($scholarship['title']); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
+                                    <?php echo $buttonText; ?>
+                                </button>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -1730,65 +1995,179 @@ form .label-application + div label {
             <div id="application-form-page" class="page">
                 <div class="form-container-application">
                     <button class="back-btn" onclick="showScholarshipsPage()">Back to Scholarships</button>
-                    <h2 id="application-form-title">Scholarship Application Form</h2>
-                    <form>
-                        <label class="label-application" for="fullname">Full Name</label>
-                        <input type="text" id="fullname" name="fullname" class="input-field" placeholder="Enter your full name" required />
+                    <h2 id="application-form-title">SCHOLARSHIP FORM</h2>
+                     <form enctype="multipart/form-data" method="POST">
+                        <input type="hidden" name="scholarship_id" id="scholarship_id_field" value="">
+                        <p style="font-weight:bold; margin-bottom:10px;">Section 1. Student Applicant’s Information.</p>
+                        <p style="font-weight:bold; margin-bottom:10px;">1. Personal Information</p>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1;">
+                                <label class="label-application" for="lname">Last Name</label>
+                                <input type="text" id="lname" name="lname" class="input-field" required />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="fname">First Name</label>
+                                <input type="text" id="fname" name="fname" class="input-field" required />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="mname">Middle Name</label>
+                                <input type="text" id="mname" name="mname" class="input-field" />
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1;">
+                                <label class="label-application" for="gender">Gender</label>
+                                <select id="gender" name="gender" class="input-field" required>
+                                    <option value="">--Select--</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="civil_status">Civil Status</label>
+                                <select id="civil_status" name="civil_status" class="input-field" required>
+                                    <option value="">--Select--</option>
+                                    <option value="Single">Single</option>
+                                    <option value="Married">Married</option>
+                                    <option value="Widow/er">Widow/er</option>
+                                    <option value="Separated">Separated</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="dob">Date of Birth</label>
+                                <input type="date" id="dob" name="dob" class="input-field" required />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="pob">Place of Birth</label>
+                                <input type="text" id="pob" name="pob" class="input-field" required />
+                            </div>
+                        </div>
+                        <label class="label-application" for="address">Home Address</label>
+                        <input type="text" id="address" name="address" class="input-field" required />
 
-                        <label class="label-application" for="birthdate">Date of Birth</label>
-                        <input type="date" id="birthdate" name="birthdate" class="input-field" required />
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1;">
+                                <label class="label-application" for="contact">Contact Number</label>
+                                <input type="text" id="contact" name="contact" class="input-field" required />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="facebook">Facebook Account</label>
+                                <input type="text" id="facebook" name="facebook" class="input-field" />
+                            </div>
+                        </div>
 
-                        <label class="label-application" for="address">Complete Address</label>
-                        <textarea id="address" name="address" class="input-field textarea-field" rows="3" placeholder="Enter your complete address" required></textarea>
+                        <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">2. Family Background</p>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1;">
+                                <label class="label-application" for="mother_name">Mother’s Name (Last, First, Middle)</label>
+                                <input type="text" id="mother_name" name="mother_name" class="input-field" required />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="mother_occupation">Mother’s Occupation</label>
+                                <input type="text" id="mother_occupation" name="mother_occupation" class="input-field" />
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1;">
+                                <label class="label-application" for="father_name">Father’s Name (Last, First, Middle)</label>
+                                <input type="text" id="father_name" name="father_name" class="input-field" required />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="father_occupation">Father’s Occupation</label>
+                                <input type="text" id="father_occupation" name="father_occupation" class="input-field" />
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1;">
+                                <label class="label-application" for="family_income">Monthly Family Income (Gross Amount)</label>
+                                <input type="number" id="family_income" name="family_income" class="input-field" required />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="dependents">Number of Dependents in the Family</label>
+                                <input type="number" id="dependents" name="dependents" class="input-field" required />
+                            </div>
+                        </div>
 
-                        <label class="label-application" for="email">Email Address</label>
-                        <input type="email" id="email" name="email" class="input-field" placeholder="Enter your email" required />
+                        <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">3. Educational Background</p>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Level</th>
+                                    <th>Name of School</th>
+                                    <th>Honors Received</th>
+                                    <th>Date Graduated/Current Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Elementary</td>
+                                    <td><input type="text" name="elem_school" class="input-field"></td>
+                                    <td><input type="text" name="elem_honors" class="input-field"></td>
+                                    <td><input type="text" name="elem_grad" class="input-field"></td>
+                                </tr>
+                                <tr>
+                                    <td>High School</td>
+                                    <td><input type="text" name="hs_school" class="input-field"></td>
+                                    <td><input type="text" name="hs_honors" class="input-field"></td>
+                                    <td><input type="text" name="hs_grad" class="input-field"></td>
+                                </tr>
+                                <tr>
+                                    <td>Vocational</td>
+                                    <td><input type="text" name="voc_school" class="input-field"></td>
+                                    <td><input type="text" name="voc_honors" class="input-field"></td>
+                                    <td><input type="text" name="voc_grad" class="input-field"></td>
+                                </tr>
+                            </tbody>
+                        </table>
 
-                        <label class="label-application" for="contact">Contact Number</label>
-                        <input type="tel" id="contact" name="contact" class="input-field" placeholder="Enter your contact number" required />
+                        <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">3-A. College Background</p>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:2;">
+                                <label class="label-application" for="college_school">Name of School</label>
+                                <input type="text" id="college_school" name="college_school" class="input-field" />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="college_course">Course & Year</label>
+                                <input type="text" id="college_course" name="college_course" class="input-field" />
+                            </div>
+                            <div style="flex:1;">
+                                <label class="label-application" for="college_average">Average from Previous Semester</label>
+                                <input type="text" id="college_average" name="college_average" class="input-field" />
+                            </div>
+                        </div>
+                        <label class="label-application" for="college_awards" style="margin-top:10px;">Awards and Recognitions</label>
+                        <textarea id="college_awards" name="college_awards" class="input-field textarea-field" rows="2"></textarea>
 
-                        <label class="label-application" for="school">Current School</label>
-                        <input type="text" id="school" name="school" class="input-field" placeholder="Enter your current school" required />
-
-                        <label class="label-application" for="course">Course / Program</label>
-                        <input type="text" id="course" name="course" class="input-field" placeholder="Enter your course or program" required />
-
-                        <label class="label-application" for="year">Year Level</label>
-                        <select id="year" name="year" class="input-field select-field" required>
-                            <option value="">--Select Year Level--</option>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
-                        </select>
-
-                        <label class="label-application" for="income">Family Monthly Income (PHP)</label>
-                        <input type="number" id="income" name="income" class="input-field" placeholder="Enter family monthly income" required />
-
-                        <label class="label-application" for="documents">Upload Requirements (PDF/JPEG)</label>
-                        <input type="file" id="documents" name="documents" class="input-field file-field" accept=".pdf,.jpg,.jpeg,.png" multiple required />
-
-                        <button type="submit" class="submit-btn">Submit Application</button>
-                    </form>
+                        <div style="margin: 20px 0;">
+                            <label class="label-application" for="supporting_documents">Upload Supporting Documents (Certificate of Grades, Certificate of Indigency, etc.)</label>
+                            <input type="file" id="supporting_documents" name="supporting_documents[]" class="input-field file-field" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        </div>
+                        
+                       <button type="submit" name="submit_application" class="submit-btn">Submit Application</button>
+                    </form> 
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="detailsModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal()">&times;</span>
-            <div class="modal-header" id="modalTitle"></div>
-            <div class="modal-body">
-                <h3>Requirements:</h3>
-                <p id="modalRequirements"></p>
-                <h3>Benefits:</h3>
-                <p id="modalBenefits"></p>
-                <h3>Eligibility Criteria:</h3>
-                <p id="modalEligibility"></p>
+<div id="detailsModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <div class="modal-header" id="modalTitle"></div>
+        <div class="modal-body">
+            <h3>Requirements:</h3>
+            <p id="modalRequirements"></p>
+            <h3>Benefits:</h3>
+            <p id="modalBenefits"></p>
+            <h3>Eligibility Criteria:</h3>
+            <p id="modalEligibility"></p>
+
+            <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="submit-btn" style="text-decoration: none; display: inline-block; text-align: center; margin-top: 20px; width: auto; padding: 10px 20px;">
+                Download Application Form
+            </a>
             </div>
-        </div>
     </div>
+</div>
 
     <div id="notificationModal" class="modal">
         <div class="modal-content">
@@ -1828,7 +2207,7 @@ form .label-application + div label {
         </div>
     </div>
     
-    <script>
+<script>
     function toggleMenu() {
         var menu = document.getElementById("dropdownMenu");
         var chevron = document.getElementById("chevronIcon");
@@ -1837,18 +2216,6 @@ form .label-application + div label {
             chevron.classList.add("open");
         } else {
             chevron.classList.remove("open");
-        }
-    }
-    window.onclick = function(event) {
-        if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down')) {
-            var dropdowns = document.getElementsByClassName("dropdown-menu");
-            var chevron = document.getElementById("chevronIcon");
-            for (var i = 0; i < dropdowns.length; i++) {
-                dropdowns[i].classList.remove("show");
-            }
-            if (chevron) {
-                chevron.classList.remove("open");
-            }
         }
     }
 
@@ -1864,13 +2231,22 @@ form .label-application + div label {
         document.getElementById('detailsModal').style.display = "none";
     }
 
-function showPage(pageId) {
+    function showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.style.display = 'none';
             page.classList.remove('active');
         });
 
-        window.location.hash = pageId;
+        const newUrl = new URL(window.location);
+        newUrl.hash = pageId;
+        
+        const params = newUrl.searchParams;
+        if (pageId !== 'communication-page') {
+             params.delete('chat_group');
+        }
+        
+        window.history.pushState({}, '', newUrl);
+
         document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
 
@@ -1898,25 +2274,23 @@ function showPage(pageId) {
                 break;
         }
     }
-        function openNotificationModal() {
+
+    function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
-        fetch('mark_notification_read.php', { method: 'POST' })
+        fetch('mark_notification_read.php', {
+                method: 'POST'
+            })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    document.getElementById('notificationBadge').style.display = 'none';
                     updateNotificationDot();
                 }
-            });
+            })
+            .catch(error => console.error('Error marking notifications as read:', error));
     }
-
-
-
 
     function closeNotificationModal() {
         document.getElementById('notificationModal').style.display = "none";
-
-        document.getElementById('notificationBadge').style.display = 'none';
     }
 
     function updateNotificationDot() {
@@ -1926,198 +2300,156 @@ function showPage(pageId) {
                 const notificationBadge = document.getElementById('notificationBadge');
                 if (data.status === 'success' && data.unread_count > 0) {
                     notificationBadge.style.display = 'flex';
-                    notificationBadge.textContent = data.unread_count; // Show the count
+                    notificationBadge.textContent = data.unread_count;
                 } else {
                     notificationBadge.style.display = 'none';
                     notificationBadge.textContent = '';
                 }
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('Error fetching unread count:', error);
                 document.getElementById('notificationBadge').style.display = 'none';
-                document.getElementById('notificationBadge').textContent = '';
             });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        updateNotificationDot();
-        setInterval(updateNotificationDot, 10000);
-    });
+        updateNotificationDot(); 
+        setInterval(updateNotificationDot, 15000); 
 
-    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hash = window.location.hash.substring(1);
+        const pageId = hash || 'home-page';
 
-    document.querySelectorAll('.page').forEach(page => {
-        page.style.display = 'none';
-    });
-
-    document.getElementById('home-page').style.display = 'block';
-    highlightActiveNav('home-nav');
-
-    window.addEventListener('pageshow', function(event) {
-        if (event.persisted) {
-            window.location.reload();
-        }
-    });
-
-    window.history.pushState(null, '', window.location.href);
-    window.onpopstate = function() {
-        window.history.pushState(null, '', window.location.href);
-    };
-
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.querySelector('.main-content');
-    const toggleBtn = document.getElementById('toggleSidebar');
-    const toggleIcon = document.getElementById('toggleIcon');
-    
-    toggleBtn.addEventListener('click', function() {
-        sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('sidebar-collapsed');
-        
-        if (sidebar.classList.contains('collapsed')) {
-            toggleIcon.classList.remove('fa-chevron-left');
-            toggleIcon.classList.add('fa-chevron-right');
-        } else {
-            toggleIcon.classList.remove('fa-chevron-right');
-            toggleIcon.classList.add('fa-chevron-left');
-        }
-    });
-});
-
-
-function showApplicationForm(scholarshipTitle) {
-    document.querySelectorAll('.page').forEach(page => {
-        page.style.display = 'none';
-    });
-    document.getElementById('application-form-page').style.display = 'block';
-    document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
-}
-
-function showScholarshipsPage() {
-    document.querySelectorAll('.page').forEach(page => {
-        page.style.display = 'none';
-    });
-    document.getElementById('scholarships-page').style.display = 'block';
-    highlightActiveNav('scholarships-nav');
-}
-
-function highlightActiveNav(navId) {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    document.getElementById(navId).classList.add('active');
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    var chatMessages = document.getElementById('chatMessages');
-    if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    function scrollChatToBottom() {
-        var chatMessages = document.getElementById('chatMessages');
-        if (chatMessages) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-    }
-
-    if (document.getElementById('communication-page').classList.contains('active')) {
-        scrollChatToBottom();
-    }
-
-    window.showPage = (function(origShowPage) {
-        return function(pageId) {
-            origShowPage(pageId);
-            if (pageId === 'communication-page') {
-                setTimeout(scrollChatToBottom, 100);
-            }
-        };
-    })(window.showPage || function(){});
-});
-
-let messageToDelete = null;
-
-function toggleMessageOptions(messageId) {
-    document.querySelectorAll('.options-menu').forEach(menu => {
-        if (menu.id !== `options-${messageId}`) {
-            menu.classList.remove('show');
-        }
-    });
-
-    const menu = document.getElementById(`options-${messageId}`);
-    menu.classList.toggle('show');
-}
-
-function deleteMessage(messageId) {
-    messageToDelete = messageId;
-    document.getElementById('deleteMessageModal').style.display = "block";
-    
-    document.getElementById(`options-${messageId}`).classList.remove('show');
-}
-
-function closeDeleteModal() {
-    document.getElementById('deleteMessageModal').style.display = "none";
-    messageToDelete = null;
-}
-
-function confirmDelete() {
-    if (messageToDelete) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.style.display = 'none';
-        
-        const messageIdInput = document.createElement('input');
-        messageIdInput.type = 'hidden';
-        messageIdInput.name = 'message_id';
-        messageIdInput.value = messageToDelete;
-        
-        const deleteInput = document.createElement('input');
-        deleteInput.type = 'hidden';
-        deleteInput.name = 'delete_message';
-        deleteInput.value = '1';
-        
-        form.appendChild(messageIdInput);
-        form.appendChild(deleteInput);
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-
-document.addEventListener('click', function(event) {
-    if (!event.target.closest('.message-options')) {
-        document.querySelectorAll('.options-menu').forEach(menu => {
-            menu.classList.remove('show');
-        });
-    }
-});
-
-
-function showUploadPopup() {
-    document.getElementById('uploadPopup').style.display = 'block';
-}
-function closeUploadPopup() {
-    document.getElementById('uploadPopup').style.display = 'none';
-}
-function triggerFileInput() {
-    document.getElementById('chatUpload').click();
-    closeUploadPopup();
-}
-document.addEventListener('click', function(event) {
-    const popup = document.getElementById('uploadPopup');
-    const btn = document.querySelector('.upload-btn');
-    if (popup && !popup.contains(event.target) && !btn.contains(event.target)) {
-        popup.style.display = 'none';
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    if (window.location.hash) {
-        const pageId = window.location.hash.substring(1);
         if (document.getElementById(pageId)) {
             showPage(pageId);
+        } else {
+            showPage('home-page');
+        }
+
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.querySelector('.main-content');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const toggleIcon = document.getElementById('toggleIcon');
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-collapsed');
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+            } else {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+            }
+        });
+    });
+
+    function showApplicationForm(scholarshipTitle, scholarshipId) {
+        document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
+        document.getElementById('application-form-page').style.display = 'block';
+        document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
+        document.getElementById('scholarship_id_field').value = scholarshipId;
+    }
+
+    function showScholarshipsPage() {
+        showPage('scholarships-page');
+    }
+
+    function highlightActiveNav(navId) {
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        document.getElementById(navId).classList.add('active');
+    }
+
+    let messageToDelete = null;
+
+    function toggleMessageOptions(messageId) {
+        document.querySelectorAll('.options-menu').forEach(menu => {
+            if (menu.id !== `options-${messageId}`) menu.classList.remove('show');
+        });
+        document.getElementById(`options-${messageId}`).classList.toggle('show');
+    }
+
+    function deleteMessage(messageId) {
+        messageToDelete = messageId;
+        document.getElementById('deleteMessageModal').style.display = "block";
+        document.getElementById(`options-${messageId}`).classList.remove('show');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteMessageModal').style.display = "none";
+        messageToDelete = null;
+    }
+
+    function confirmDelete() {
+        if (messageToDelete) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            const messageIdInput = document.createElement('input');
+            messageIdInput.type = 'hidden';
+            messageIdInput.name = 'message_id';
+            messageIdInput.value = messageToDelete;
+            const deleteInput = document.createElement('input');
+            deleteInput.type = 'hidden';
+            deleteInput.name = 'delete_message';
+            deleteInput.value = '1';
+            form.appendChild(messageIdInput);
+            form.appendChild(deleteInput);
+            document.body.appendChild(form);
+            form.submit();
         }
     }
-});
+
+    function showUploadPopup() {
+        document.getElementById('uploadPopup').style.display = 'block';
+    }
+
+    function closeUploadPopup() {
+        document.getElementById('uploadPopup').style.display = 'none';
+    }
+
+    function triggerFileInput() {
+        document.getElementById('chatUpload').click();
+        closeUploadPopup();
+    }
+    
+    let currentApplicationData = null;
+
+    function showRejectionMessageModal(rejectionMessage, appData) {
+        currentApplicationData = appData;
+        document.getElementById('rejectionMessageText').innerHTML = rejectionMessage;
+        document.getElementById('rejectionMessageModal').style.display = "block";
+    }
+
+    function closeRejectionMessageModal() {
+        document.getElementById('rejectionMessageModal').style.display = "none";
+    }
+
+    function showApplicationDetails(appData) {
+        currentApplicationData = appData;
+        showUserApplicationFormDetails();
+    }
+    
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.message-options')) {
+            document.querySelectorAll('.options-menu').forEach(menu => menu.classList.remove('show'));
+        }
+        if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down') && !event.target.closest('.dropdown-menu')) {
+            document.getElementById("dropdownMenu").classList.remove("show");
+            document.getElementById("chevronIcon").classList.remove("open");
+        }
+        const uploadPopup = document.getElementById('uploadPopup');
+        if (uploadPopup && !uploadPopup.contains(event.target) && !event.target.closest('.upload-btn')) {
+            uploadPopup.style.display = 'none';
+        }
+    });
+
+    window.onclick = function(event) {
+        if (event.target.id === 'rejectionMessageModal') closeRejectionMessageModal();
+        if (event.target.id === 'userApplicationFormModal') closeUserApplicationFormModal();
+        if (event.target.id === 'detailsModal') closeModal();
+        if (event.target.id === 'notificationModal') closeNotificationModal();
+        if (event.target.id === 'deleteMessageModal') closeDeleteModal();
+    };
 </script>
 </body>
 </html>

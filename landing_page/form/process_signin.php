@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $adminRow = mysqli_fetch_assoc($adminResult);
 
         if (password_verify($password, $adminRow['password'])) {
-            $_SESSION['admin_id'] = $adminRow['Id'];
+            $_SESSION['admin_id'] = $adminRow['admin_id']; // FIXED
             $_SESSION['admin_name'] = $adminRow['fname'] . ' ' . $adminRow['lname'];
 
             $redirectUrl = "User_Landing_Page/Home_Profile/admin_dashboard.php";
@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    $userQuery = "SELECT * FROM user WHERE Email = '$email'";
+    $userQuery = "SELECT * FROM user WHERE LOWER(Email) = '$email'";
     $userResult = mysqli_query($conn, $userQuery);
 
     if (!$userResult) {
@@ -44,8 +44,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (mysqli_num_rows($userResult) > 0) {
         $userRow = mysqli_fetch_assoc($userResult);
 
+        if ($userRow['status'] !== 'approved') {
+            header("Location: signin.php?error=not_approved");
+            exit();
+        }
+
         if (password_verify($password, $userRow['Password'])) {
-            $_SESSION['user_id'] = $userRow['Id'];
+            $_SESSION['user_id'] = $userRow['user_id']; // FIXED
             $_SESSION['user_name'] = $userRow['Fname'] . ' ' . $userRow['Lname'];
 
             $redirectUrl = "User_Landing_Page/Home_Profile/user_dashboard.php";

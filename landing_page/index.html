@@ -279,6 +279,7 @@ footer p {
     color: #ffffff;
     margin-bottom: 15px;
 }
+
 </style>
 <body>
     <div class="main-wrapper">
@@ -324,7 +325,7 @@ footer p {
             </div>
         </div>
     </div>
-    
+ 
 
     <footer>
         <img src="../images/final-logo-san-julian.png" class="footer-logo">
@@ -332,24 +333,24 @@ footer p {
     </footer>
 
     <script>
-        let slideIndex = 0;
-        const slides = document.getElementsByClassName("slide");
-        
-        function showSlides() {
-            for (let i = 0; i < slides.length; i++) {
-                slides[i].classList.remove("active");
-            }
-            slideIndex++;
-            if (slideIndex >= slides.length) {
-                slideIndex = 0;
-            }
-            slides[slideIndex].classList.add("active");
-            setTimeout(showSlides, 5000);
+    let slideIndex = 0;
+    const slides = document.getElementsByClassName("slide");
+
+    function showSlides() {
+        for (let i = 0; i < slides.length; i++) {
+            slides[i].classList.remove("active");
         }
-        
-        window.onload = function() {
-            showSlides();
-        };
-    </script>
+        slides[slideIndex].classList.add("active");
+        slideIndex++;
+        if (slideIndex >= slides.length) {
+            slideIndex = 0;
+        }
+        setTimeout(showSlides, 5000);
+    }
+
+    window.onload = function() {
+        showSlides();
+    };
+</script>
 </body>
 </html>

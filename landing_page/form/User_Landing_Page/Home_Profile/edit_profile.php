@@ -15,7 +15,8 @@ if (!isset($_SESSION['user_id'])) {
 $userId = $_SESSION['user_id'];
 
 // Fetch user information from the database
-$sql = "SELECT * FROM user WHERE Id = ?";
+// Corrected: Changed 'Id' to 'user_id'
+$sql = "SELECT * FROM user WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
@@ -40,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
 
     // Update user information in the database
-    $updateSql = "UPDATE user SET Fname = ?, Lname = ?, Mname = ?, Age = ?, Gender = ?, Birthdate = ?, Address = ?, Email = ? WHERE Id = ?";
+    // Corrected: Changed 'Id' to 'user_id'
+    $updateSql = "UPDATE user SET Fname = ?, Lname = ?, Mname = ?, Age = ?, Gender = ?, Birthdate = ?, Address = ?, Email = ? WHERE user_id = ?";
     $updateStmt = $conn->prepare($updateSql);
     $updateStmt->bind_param("sssissssi", $fname, $lname, $mname, $age, $gender, $birthdate, $address, $email, $userId);
 

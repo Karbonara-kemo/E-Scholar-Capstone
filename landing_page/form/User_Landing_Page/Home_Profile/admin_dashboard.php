@@ -1820,6 +1820,7 @@ body {
             <input type="text" name="search" placeholder="Search by Application ID..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
             <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
         </form>
+        <button class="back-btn" onclick="window.location.href='admin_dashboard.php#total-applicants-scholarship'" style="margin-top: 0; margin-bottom: 20px;">Back to program</button>
         <script>
             // This script ensures the page remains on the correct tab after a search
             document.getElementById('searchForm').addEventListener('submit', function(e) {
@@ -1875,7 +1876,6 @@ body {
             <?php endif; ?>
             </tbody>
         </table>
-        <button class="back-btn" onclick="window.location.href='admin_dashboard.php#total-applicants-scholarship'">Back</button>
     </div>
 </div>
 <?php endif; ?>
@@ -2130,7 +2130,7 @@ body {
                             <div class="concern-message-content" style="<?php echo $msg['sender'] === 'admin' ? 'margin-right:15px;' : ''; ?>">
                                 <?php echo nl2br(htmlspecialchars($msg['message'])); ?>
                             </div>
-                            <div class="concern-message-timestamp" style="font-size:0.7em;opacity:0.7;text-align:right;margin-top:5px;">
+                            <div class="message-timestamp" style="font-size:0.7em;opacity:0.7;text-align:right;margin-top:5px;">
                                 <?php echo date('M d, Y h:i A', strtotime($msg['created_at'])); ?>
                             </div>
                         </div>
@@ -2426,7 +2426,6 @@ document.addEventListener('DOMContentLoaded', function() {
         html += '<p><strong>Date of Birth:</strong> ' + (app.birthdate || 'N/A') + '</p>';
         html += '<p><strong>Place of Birth:</strong> ' + (app.place_of_birth || 'N/A') + '</p>';
         html += '<p><strong>Address:</strong> ' + (app.address || 'N/A') + '</p>';
-        html += '<p><strong>Email:</strong> ' + (app.email || 'N/A') + '</p>';
         html += '<p><strong>Contact Number:</strong> ' + (app.contact || 'N/A') + '</p>';
         html += '<p><strong>Facebook Account:</strong> ' + (app.facebook || 'N/A') + '</p>';
         html += '<p><strong>Civil Status:</strong> ' + (app.civil_status || 'N/A') + '</p>';

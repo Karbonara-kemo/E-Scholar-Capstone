@@ -535,6 +535,23 @@ if ($viewScholarshipId) {
     }
 }
 
+// --- START: PHP FOR REPORTS PAGE ---
+// Fetch approved scholarship applicants with their documents
+$scholarshipDocsSql = "SELECT u.Fname, u.Lname, a.documents
+                      FROM user u
+                      JOIN applications a ON u.user_id = a.user_id
+                      WHERE a.status = 'approved'";
+$scholarshipDocsResult = $conn->query($scholarshipDocsSql);
+$scholarship_docs_users = $scholarshipDocsResult->fetch_all(MYSQLI_ASSOC);
+
+// Fetch approved SPES applicants with their documents
+$spesDocsSql = "SELECT u.Fname, u.Lname, sa.id_image_path
+               FROM user u
+               JOIN spes_applications sa ON u.user_id = sa.user_id
+               WHERE sa.status = 'approved'";
+$spesDocsResult = $conn->query($spesDocsSql);
+$spes_docs_users = $spesDocsResult->fetch_all(MYSQLI_ASSOC);
+// --- END: PHP FOR REPORTS PAGE ---
 
 
 ?>
@@ -2170,13 +2187,117 @@ body {
 
             <div id="reports-page" class="page">
                 <h2>Reports</h2>
-                <p>Access and view system reports here.</p>
+                <p>Access and view document reports here.</p>
                 <div class="dashboard-boxes">
                     <div class="box">
-                        <div class="box-title">Open Reports</div>
-                        <div class="box-description">View and download available reports.</div>
-                        <button class="view-details" onclick="alert('Reports feature coming soon!')">Open Reports</button>
+                        <div class="box-title">Scholarship Document</div>
+                        <div class="box-description">View documents of approved scholarship awardees.</div>
+                        <button class="view-details" onclick="showPage('scholarship-document-page')">View Details</button>
                     </div>
+                    <div class="box">
+                        <div class="box-title">SPES Documents</div>
+                        <div class="box-description">View documents of approved SPES awardees.</div>
+                        <button class="view-details" onclick="showPage('spes-document-page')">View Details</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="scholarship-document-page" class="page" style="display:none;">
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">Scholarship Applicant Documents</h2>
+                    <p class="applicants-p">Review the submitted documents for all approved scholarship awardees.</p>
+                    <button class="back-btn" onclick="showPage('reports-page')" style="margin-bottom: 20px;">Back to Reports</button>
+                    <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>View Documents</th>
+                                <th>Applicant Name</th>
+                                <th>Application Form</th>
+                                <th>Documents Requirements</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($scholarship_docs_users as $user): ?>
+                                <?php
+                                    $docs_array = json_decode($user['documents'], true);
+                                    $has_docs = is_array($docs_array) && !empty($docs_array);
+                                    $status = $has_docs ? 'Complete' : 'INC';
+                                ?>
+                                <tr>
+                                    <td>
+                                        <button class="btn-outline" <?php if(!$has_docs) echo 'disabled'; ?> onclick='viewUserDocuments(<?php echo json_encode($user['documents']); ?>)'>View Documents</button>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
+                                    <td style="text-align: center;"><i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i></td>
+                                    <td style="text-align: center;">
+                                        <?php if ($has_docs): ?>
+                                            <i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i>
+                                        <?php else: ?>
+                                            <i class="fas fa-times-circle" style="color: red; font-size: 16px;"></i>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span style="font-weight:bold; padding: 5px 10px; border-radius: 10px; display: inline-block;" class="<?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
+                                            <?php echo $status; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php if (count($scholarship_docs_users) === 0): ?>
+                                <tr><td colspan="5" style="text-align:center; padding: 20px;">No approved scholarship applicants found.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="spes-document-page" class="page" style="display:none;">
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">SPES Applicant Documents</h2>
+                    <p class="applicants-p">Review the submitted documents for all approved SPES awardees.</p>
+                    <button class="back-btn" onclick="showPage('reports-page')" style="margin-bottom: 20px;">Back to Reports</button>
+                    <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>View Documents</th>
+                                <th>Applicant Name</th>
+                                <th>Application Form</th>
+                                <th>Documents Requirements</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($spes_docs_users as $user): ?>
+                                <?php
+                                    $has_docs = !empty($user['id_image_path']);
+                                    $status = $has_docs ? 'Complete' : 'INC';
+                                ?>
+                                <tr>
+                                    <td>
+                                        <button class="btn-outline" <?php if(!$has_docs) echo 'disabled'; ?> onclick='viewUserDocuments(<?php echo json_encode($user['id_image_path']); ?>)'>View Document</button>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
+                                    <td style="text-align: center;"><i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i></td>
+                                    <td style="text-align: center;">
+                                        <?php if ($has_docs): ?>
+                                            <i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i>
+                                        <?php else: ?>
+                                            <i class="fas fa-times-circle" style="color: red; font-size: 16px;"></i>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span style="font-weight:bold; padding: 5px 10px; border-radius: 10px; display: inline-block;" class="<?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
+                                            <?php echo $status; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                             <?php if (count($spes_docs_users) === 0): ?>
+                                <tr><td colspan="5" style="text-align:center; padding: 20px;">No approved SPES applicants found.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -2461,6 +2582,14 @@ Closing/Signature:" rows="5" required></textarea>
                 </div>
             </div>
 
+             <div id="viewDocumentsModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="modal-close" onclick="closeViewDocumentsModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
+                    <div class="modal-header" style="margin-top:30px;">Applicant's Documents</div>
+                    <div class="modal-body" id="viewDocumentsModalBody" style="max-height: 400px; overflow-y: auto; text-align: center; padding-top: 20px;"></div>
+                </div>
+            </div>
+
         </div> </div>
     <script>
     function toggleMenu() {
@@ -2513,6 +2642,8 @@ Closing/Signature:" rows="5" required></textarea>
                 highlightActiveNav('total-applicants-nav');
                 break;
             case 'reports-page':
+            case 'scholarship-document-page':
+            case 'spes-document-page':
                 highlightActiveNav('reports-nav');
                 break;
             case 'user-concerns-page':
@@ -2937,22 +3068,67 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // --- END: NEW JAVASCRIPT FOR VALID ID MODAL ---
 
+    // --- START: JAVASCRIPT FOR VIEW DOCUMENTS MODAL ---
+    function viewUserDocuments(documents) {
+        let docs;
+        try {
+            // For scholarship documents, it's a JSON string of an array
+            docs = JSON.parse(documents);
+        } catch (e) {
+            // For SPES, it's a single path string, or null/empty
+            docs = documents ? [documents] : [];
+        }
+
+        let html = '';
+        if (Array.isArray(docs) && docs.length > 0 && docs[0] !== null) {
+            docs.forEach(docPath => {
+                if (docPath) { // Check if the path is not null
+                    const fullPath = `<?php echo BASE_URL; ?>${docPath.replace('../../../../', '')}`;
+                    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(docPath);
+                    
+                    if (isImage) {
+                         html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
+                                     <img src="${fullPath}" alt="Document" style="max-width: 150px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
+                                  </a>`;
+                    } else {
+                        const fileName = docPath.split('/').pop();
+                        html += `<p><a href="${fullPath}" target="_blank" style="color:#090549;">View Document: ${fileName}</a></p>`;
+                    }
+                }
+            });
+        }
+        
+        if (html === '') {
+             html = '<p>No documents were uploaded by this applicant.</p>';
+        }
+
+        document.getElementById('viewDocumentsModalBody').innerHTML = html;
+        document.getElementById('viewDocumentsModal').style.display = 'flex';
+    }
+
+    function closeViewDocumentsModal() {
+        document.getElementById('viewDocumentsModal').style.display = 'none';
+        document.getElementById('viewDocumentsModalBody').innerHTML = '';
+    }
+
     window.onclick = function(event) {
         let appModal = document.getElementById('appFormModal');
         let editSlotsModal = document.getElementById('editSlotsModal');
         let rejectionModal = document.getElementById('rejectionModal');
         let userDetailsModal = document.getElementById('userDetailsModal');
         let spesAppModal = document.getElementById('spesAppModal');
-        let validIdModal = document.getElementById('validIdModal'); // Add this line
+        let validIdModal = document.getElementById('validIdModal');
+        let viewDocumentsModal = document.getElementById('viewDocumentsModal');
         
         if (event.target === appModal) closeAppFormModal();
         if (event.target === editSlotsModal) closeEditSlotsModal();
         if (event.target === rejectionModal) closeRejectionModal();
         if (event.target === userDetailsModal) closeUserDetailsModal();
         if (event.target === spesAppModal) closeSpesAppModal();
-        if (event.target === validIdModal) closeValidIdModal(); // Add this line
+        if (event.target === validIdModal) closeValidIdModal();
+        if (event.target === viewDocumentsModal) closeViewDocumentsModal();
     };
-    // --- END: JAVASCRIPT FOR SPES MODAL ---
+    // --- END: JAVASCRIPT FOR VIEW DOCUMENTS MODAL ---
 
     function scrollAdminChatToBottom() {
         var chatMessages = document.getElementById('concernChatMessages');

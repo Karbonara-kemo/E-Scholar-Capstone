@@ -706,6 +706,7 @@ include "../../connect.php";
                 <label for="signup-email">Email</label>
                 <input type="email" id="signup-email" name="email" placeholder="Enter your Valid Email Address">
                 <div id="email-error" class="error-message"></div>
+                <small style="font-size:11px;color:#8B8E98;">example@gmail.com</small>
             </div>
 
             <div class="form-row">

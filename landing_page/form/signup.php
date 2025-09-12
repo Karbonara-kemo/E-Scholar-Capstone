@@ -121,6 +121,8 @@ include "../../connect.php";
     <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for the eye icon -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style> 
     body {
         font-family: "Roboto", sans-serif;
@@ -559,6 +561,27 @@ include "../../connect.php";
             display: none;
         }
 
+    /* --- START: STYLES FOR PASSWORD TOGGLE --- */
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    
+    .password-wrapper input {
+        padding-right: 40px; /* Make space for icon */
+    }
+
+    .password-wrapper .fa-eye,
+    .password-wrapper .fa-eye-slash {
+        position: absolute;
+        top: 60%;
+        right: 15px;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #888;
+    }
+    /* --- END: STYLES FOR PASSWORD TOGGLE --- */
+
         @media (max-width: 768px) {
     .navbar {
         flex-direction: row !important;
@@ -676,35 +699,30 @@ include "../../connect.php";
                 <label for="contact-number">Contact Number</label>
                 <input type="text" id="contact-number" name="contact" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" placeholder="Enter your contact number">
                 <div id="contact-error" class="error-message"></div>
+                <small style="font-size:11px;color:#8B8E98;">(e.g., 09123456789)</small>
             </div>
 
             <div class="form-group">
                 <label for="signup-email">Email</label>
-                <input type="email" id="signup-email" name="email" placeholder="Enter your Email Address">
+                <input type="email" id="signup-email" name="email" placeholder="Enter your Valid Email Address">
                 <div id="email-error" class="error-message"></div>
             </div>
 
             <div class="form-row">
-                <div class="form-group" style="position:relative;">
+                <div class="form-group">
                     <label for="signup-password">Password</label>
-                    <input type="password" id="signup-password" name="password" placeholder="Create a password">
-                    <span class="toggle-password" onclick="togglePassword('signup-password', this)" style="position:absolute; right:10px; top:26px; cursor:pointer;">
-                        <svg id="eye-signup-password" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
-                            <circle cx="12" cy="12" r="3" stroke-width="1"/>
-                        </svg>
-                    </span>
+                    <div class="password-wrapper">
+                        <input type="password" id="signup-password" name="password" placeholder="Create a password">
+                        <i class="fas fa-eye" id="togglePassword"></i>
+                    </div>
                     <div id="password-error" class="error-message"></div>
                 </div>
-                <div class="form-group" style="position:relative;">
+                <div class="form-group">
                     <label for="confirm-password">Confirm Password</label>
-                    <input type="password" id="confirm-password" name="confirm-password" placeholder="Re-enter your password">
-                    <span class="toggle-password" onclick="togglePassword('confirm-password', this)" style="position:absolute; right:10px; top:26px; cursor:pointer;">
-                        <svg id="eye-confirm-password" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
-                            <circle cx="12" cy="12" r="3" stroke-width="1"/>
-                        </svg>
-                    </span>
+                     <div class="password-wrapper">
+                        <input type="password" id="confirm-password" name="confirm-password" placeholder="Re-enter your password">
+                        <i class="fas fa-eye" id="toggleConfirmPassword"></i>
+                    </div>
                     <div id="confirm-password-error" class="error-message"></div>
                 </div>
             </div>
@@ -713,7 +731,7 @@ include "../../connect.php";
                 <label for="valid-id">Upload Valid ID (Front and Back)</label>
                 <input type="file" id="valid-id" name="valid_id[]" accept="image/*,.pdf" multiple>
                 <div id="valid-id-error" class="error-message"></div>
-                <small style="font-size:11px;color:#8B8E98;">Upload both front and back. Accepted formats: JPG, PNG, PDF</small>
+                <small style="font-size:11px;color:#8B8E98;">Upload both front and back. Accepted formats: JPG, PNG</small>
             </div>
             
             <button type="submit" class="btn">Submit Request</button>
@@ -726,17 +744,25 @@ include "../../connect.php";
 </div>
 </body>
 <script>
-function togglePassword(fieldId, iconSpan) {
-    const input = document.getElementById(fieldId);
-    const svg = iconSpan.querySelector('svg');
-    if (input.type === "password") {
-        input.type = "text";
-        svg.innerHTML = `<path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" stroke-width="2"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2"/>`; // eye with slash
-    } else {
-        input.type = "password";
-        svg.innerHTML = `<path stroke-width="1" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" stroke-width="2"/>`; // normal eye
-    }
-}
+    document.addEventListener('DOMContentLoaded', function () {
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#signup-password');
+
+        togglePassword.addEventListener('click', function (e) {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        const toggleConfirmPassword = document.querySelector('#toggleConfirmPassword');
+        const confirmPassword = document.querySelector('#confirm-password');
+
+        toggleConfirmPassword.addEventListener('click', function (e) {
+            const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            confirmPassword.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+        });
+    });
 
 function validateSignupForm() {
     const requiredFields = [

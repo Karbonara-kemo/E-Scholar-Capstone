@@ -163,7 +163,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['slots_updated'] = true;
         header("Location: admin_dashboard.php#scholarship-page");
         exit();
+    // --- START: SPES APPROVE/REJECT LOGIC ---
+    } elseif (isset($_POST['approve_spes_application']) || isset($_POST['reject_spes_application'])) {
+        $spesApplicationId = $_POST['spes_application_id'];
+        $newStatus = isset($_POST['approve_spes_application']) ? 'approved' : 'rejected';
+
+        $updateSql = "UPDATE spes_applications SET status = ? WHERE spes_application_id = ?";
+        $stmt = $conn->prepare($updateSql);
+        $stmt->bind_param("si", $newStatus, $spesApplicationId);
+        $stmt->execute();
+
+        // Optionally, you can add an email notification here as well.
+        
+        $_SESSION['spes_status_updated'] = true; // For a toast message
+        header("Location: admin_dashboard.php#total-applicants-spes");
+        exit();
     }
+    // --- END: SPES APPROVE/REJECT LOGIC ---
 }
 
 if (isset($_POST['delete_message'])) {
@@ -199,6 +215,21 @@ $totalListedScholarshipsSql = "SELECT COUNT(scholarship_id) as total FROM schola
 $totalListedScholarshipsResult = $conn->query($totalListedScholarshipsSql);
 $totalListedScholarshipsCount = $totalListedScholarshipsResult->fetch_assoc()['total'] ?? 0;
 // --- END: FIX FOR HOME PAGE SCHOLARSHIP COUNT ---
+
+// --- START: FETCH SPES APPLICANT DATA ---
+// Count total SPES applicants
+$totalSpesApplicantsSql = "SELECT COUNT(spes_application_id) as total FROM spes_applications";
+$totalSpesApplicantsResult = $conn->query($totalSpesApplicantsSql);
+$totalSpesApplicantsCount = $totalSpesApplicantsResult->fetch_assoc()['total'] ?? 0;
+// --- END: FETCH SPES APPLICANT DATA ---
+
+
+// --- START: FETCH APPROVED APPLICANT DATA (SCHOLARSHIP & SPES) ---
+// Count approved SPES applicants for the dashboard box
+$approvedSpesSql = "SELECT COUNT(spes_application_id) as total FROM spes_applications WHERE status = 'approved'";
+$approvedSpesResult = $conn->query($approvedSpesSql);
+$approvedSpesCount = $approvedSpesResult->fetch_assoc()['total'] ?? 0;
+// --- END: FETCH APPROVED APPLICANT DATA ---
 
 
 $messagesSql = "SELECT * FROM notifications ORDER BY created_at DESC";
@@ -1638,21 +1669,36 @@ body {
         <?php unset($_SESSION['message_deleted']); endif; ?>
         
         <?php
-            // Count Total Applicants (All Statuses)
-            $totalApplicantsSql = "SELECT COUNT(application_id) as total FROM applications";
+            // --- START: MODIFIED APPLICANT COUNT QUERIES (SCHOLARSHIP + SPES) ---
+            // Count Total Applicants (All Statuses from both tables)
+            $totalApplicantsSql = "
+                SELECT SUM(total) as grand_total FROM (
+                    (SELECT COUNT(application_id) as total FROM applications)
+                    UNION ALL
+                    (SELECT COUNT(spes_application_id) as total FROM spes_applications)
+                ) as combined_counts
+            ";
             $totalApplicantsResult = $conn->query($totalApplicantsSql);
-            $totalApplicantsCount = $totalApplicantsResult->fetch_assoc()['total'] ?? 0;
+            $totalApplicantsCount = $totalApplicantsResult->fetch_assoc()['grand_total'] ?? 0;
 
-            // Count Rejected Applicants
-            $rejectedApplicantsSql = "SELECT COUNT(application_id) as total FROM applications WHERE status = 'rejected'";
+            // Count Rejected Applicants (from both tables)
+            $rejectedApplicantsSql = "
+                SELECT SUM(total) as grand_total FROM (
+                    (SELECT COUNT(application_id) as total FROM applications WHERE status = 'rejected')
+                    UNION ALL
+                    (SELECT COUNT(spes_application_id) as total FROM spes_applications WHERE status = 'rejected')
+                ) as combined_counts
+            ";
             $rejectedApplicantsResult = $conn->query($rejectedApplicantsSql);
-            $rejectedApplicantsCount = $rejectedApplicantsResult->fetch_assoc()['total'] ?? 0;
+            $rejectedApplicantsCount = $rejectedApplicantsResult->fetch_assoc()['grand_total'] ?? 0;
 
-            // Count Approved Applicants
+            // Count Approved Applicants (from both tables - already done for SPES, just need scholarship)
             $approvedApplicantsSql = "SELECT COUNT(application_id) as total FROM applications WHERE status = 'approved'";
             $approvedApplicantsResult = $conn->query($approvedApplicantsSql);
             $approvedApplicantsCount = $approvedApplicantsResult->fetch_assoc()['total'] ?? 0;
-            ?>
+            // Note: $approvedSpesCount is already calculated further up.
+            // --- END: MODIFIED APPLICANT COUNT QUERIES ---
+        ?>
 
         <?php if (isset($_SESSION['message_sent'])): ?>
 
@@ -1691,7 +1737,7 @@ body {
                 </div>
                 <div class="box">
                     <div class="box-title">Approved Applicants</div>
-                    <div class="box-value"><?php echo $approvedApplicantsCount; ?></div>
+                    <div class="box-value"><?php echo $approvedApplicantsCount + $approvedSpesCount; ?></div>
                     <div class="box-description">Applicants who got approved</div>
                     <button class="view-details" onclick="showPage('application-page')">View Details</button>
                 </div>
@@ -1723,7 +1769,7 @@ body {
         </div>
         <div class="box">
             <div class="box-title">SPES Applicants</div>
-            <div class="box-value">0</div>
+            <div class="box-value"><?php echo $totalSpesApplicantsCount; ?></div>
             <div class="box-description">Special Program for Employment of Students (SPES)</div>
             <button class="view-details" onclick="showPage('total-applicants-spes')">View Details</button>
         </div>
@@ -1821,24 +1867,13 @@ body {
             <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
         </form>
         <button class="back-btn" onclick="window.location.href='admin_dashboard.php#total-applicants-scholarship'" style="margin-top: 0; margin-bottom: 20px;">Back to program</button>
-        <script>
-            // This script ensures the page remains on the correct tab after a search
-            document.getElementById('searchForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const form = e.target;
-                const search = form.querySelector('input[name="search"]').value;
-                const scholarshipId = form.querySelector('input[name="view_scholarship"]').value;
-                window.location.href = `admin_dashboard.php?view_scholarship=${scholarshipId}&search=${search}#scholarship-applicants-page`;
-            });
-        </script>
 
         <table class="applicants-table">
             <thead>
                 <tr>
                     <th>Application ID</th>
                     <th>Name</th>
-                    <th>Application Form</th>
-                    <th>Documents</th>
+                    <th>Application Details</th>
                     <th>Remarks</th>
                 </tr>
             </thead>
@@ -1849,10 +1884,7 @@ body {
                         <td><?php echo htmlspecialchars($app['application_id']); ?></td>
                         <td><?php echo htmlspecialchars($app['Fname'] . ' ' . $app['Lname']); ?></td>
                         <td>
-                            <button class="btn-outline" onclick='showAppFormModal(<?php echo json_encode($app); ?>)'>View Form</button>
-                        </td>
-                        <td>
-                            <button class="btn-outline" onclick='showDocsModal(<?php echo json_encode($app["documents"]); ?>)'>View Documents</button>
+                            <button class="btn-outline" onclick='showAppFormModal(<?php echo json_encode($app); ?>)'>View Details</button>
                         </td>
                         <td>
                             <?php if ($app['status'] == 'pending'): ?>
@@ -1872,27 +1904,19 @@ body {
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
-                <tr><td colspan="5" style="text-align:center; padding: 20px;">No applicants found for this scholarship or search query.</td></tr>
+                <tr><td colspan="4" style="text-align:center; padding: 20px;">No applicants found for this scholarship or search query.</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
-    </div>
+        </div>
 </div>
 <?php endif; ?>
 
             <div id="appFormModal" class="modal" style="display:none;">
                 <div class="modal-content">
                     <span class="modal-close" onclick="closeAppFormModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
-                    <div class="modal-header" style="margin-top:30px;">Application Form Details</div>
-                    <div class="modal-body" id="appFormModalBody"></div>
-                </div>
-            </div>
-
-            <div id="docsModal" class="modal" style="display:none;">
-                <div class="modal-content">
-                    <span class="modal-close" onclick="closeDocsModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
-                    <div class="modal-header" style="margin-top:30px;">Applicant Documents</div>
-                    <div class="modal-body" id="docsModalBody"></div>
+                    <div class="modal-header" style="margin-top:30px;">Scholarship Application Details</div>
+                    <div class="modal-body" id="appFormModalBody" style="max-height: 400px; overflow-y: auto;"></div>
                 </div>
             </div>
 
@@ -1911,20 +1935,110 @@ body {
                     </form>
                 </div>
             </div>
-
-            <script>
-
-            </script>
-
+            
             <div id="total-applicants-spes" class="page" style="display:none;">
-                <h2>SPES Applicants</h2>
-                <p>No SPES applicants yet.</p>
-                <button class="back-btn" onclick="showPage('total-applicants-page')" style="margin-top:20px;">Back</button>
-            </div>
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">SPES Applicants</h2>
+                    <p class="applicants-p">Review, approve, or reject applications for the SPES program. Search by Application ID.</p>
+                    
+                    <?php
+                    // --- PHP Logic to handle SPES search by ID ---
+                    $searchSpesIdTerm = isset($_GET['search_spes_id']) ? trim($_GET['search_spes_id']) : '';
+                    
+                    $spesListSql = "
+                        SELECT sa.*, u.Fname, u.Lname 
+                        FROM spes_applications sa
+                        JOIN user u ON sa.user_id = u.user_id
+                    ";
 
+                    if (!empty($searchSpesIdTerm)) {
+                        $spesListSql .= " WHERE sa.spes_application_id LIKE ?";
+                        $searchSpesIdSql = '%' . $searchSpesIdTerm . '%';
+                    }
+                    $spesListSql .= " ORDER BY sa.created_at DESC";
+                    
+                    $spesStmt = $conn->prepare($spesListSql);
+
+                    if (!empty($searchSpesIdTerm)) {
+                        $spesStmt->bind_param("s", $searchSpesIdSql);
+                    }
+                    $spesStmt->execute();
+                    $spesResult = $spesStmt->get_result();
+                    $spesApplicantsList = $spesResult->fetch_all(MYSQLI_ASSOC);
+                    ?>
+
+                    <form id="searchSpesTotalForm" method="GET" style="margin-bottom: 20px;">
+                        <input type="text" name="search_spes_id" placeholder="Search by Application ID..." value="<?php echo htmlspecialchars($searchSpesIdTerm); ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
+                        <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
+                    </form>
+                    <button class="back-btn" onclick="showPage('total-applicants-page')" style="margin-top: 0; margin-bottom: 20px;">Back</button>
+
+                    <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>Application ID</th>
+                                <th>Name</th>
+                                <th>Date Applied</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (count($spesApplicantsList) > 0): ?>
+                            <?php foreach ($spesApplicantsList as $app): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($app['spes_application_id']); ?></td>
+                                    <td><?php echo htmlspecialchars($app['Fname'] . ' ' . $app['Lname']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
+                                    <td>
+                                        <?php 
+                                            $statusClass = 'status-' . htmlspecialchars($app['status']);
+                                        ?>
+                                        <span style="font-weight:bold; padding: 5px 10px; border-radius: 10px; display: inline-block;" class="<?php echo $statusClass; ?>">
+                                            <?php echo ucfirst($app['status']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn-outline" onclick='showSpesAppModal(<?php echo json_encode($app); ?>)'>View Details</button>
+                                        <?php if ($app['status'] == 'pending'): ?>
+                                            <form method="POST" style="display:inline-block;">
+                                                <input type="hidden" name="spes_application_id" value="<?php echo $app['spes_application_id']; ?>">
+                                                <button type="submit" name="approve_spes_application" class="btn-approve">Approve</button>
+                                                <button type="submit" name="reject_spes_application" class="btn-reject">Reject</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="5" style="text-align:center; padding: 20px;">No SPES applicants found for this search.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             <div id="application-page" class="page">
                 <h1 class="h1-title-appManagement">Approved Applicants</h1>
-                <p class="p-description-appM">This section displays the details of approved scholarships and their applicants.</p>
+                <p class="p-description-appM">This section displays the total number of approved applicants, categorized by program type.</p>
+                <div class="dashboard-boxes">
+                    <div class="box">
+                        <div class="box-title">Scholarship Awardees</div>
+                        <div class="box-value"><?php echo htmlspecialchars($approvedApplicantsCount); ?></div>
+                        <div class="box-description">View all approved applicants for various scholarship programs.</div>
+                        <button class="view-details" onclick="showPage('approved-scholarship-programs-page')">View Details</button>
+                    </div>
+                    <div class="box">
+                        <div class="box-title">SPES Awardees</div>
+                        <div class="box-value"><?php echo $approvedSpesCount; ?></div>
+                        <div class="box-description">View all approved applicants for the SPES program.</div>
+                        <button class="view-details" onclick="showPage('approved-spes-list-page')">View Details</button>
+                    </div>
+                </div>
+            </div>
+            <div id="approved-scholarship-programs-page" class="page" style="display:none;">
+                <h1 class="h1-title-appManagement">Approved Scholarship Programs</h1>
+                <p class="p-description-appM">Select a scholarship program to view its list of approved applicants.</p>
+                <button class="back-btn" onclick="showPage('application-page')" style="margin-bottom: 20px;">Back</button>
                 <div class="dashboard-boxes">
                     <?php foreach ($scholarships as $scholarship): ?>
                         <div class="box">
@@ -1934,12 +2048,79 @@ body {
                     <?php endforeach; ?>
 
                     <?php if (count($scholarships) === 0): ?>
-                        <p>No scholarships found. Add scholarships to display them here.</p>
+                        <p>No scholarships with approved applicants found.</p>
                     <?php endif; ?>
                 </div>
             </div>
+            <div id="approved-spes-list-page" class="page" style="display:none;">
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">Approved SPES Applicants</h2>
+                    <p class="applicants-p">Below is the list of users approved for the SPES program.</p>
+                    
+                    <?php
+                    // --- PHP Logic to handle SPES search ---
+                    $searchSpesTerm = isset($_GET['search_spes_name']) ? trim($_GET['search_spes_name']) : '';
+                    $searchSpesSql = '%' . $searchSpesTerm . '%';
 
-        <?php if ($viewApprovedScholarshipId): ?>
+                    $approvedSpesListSql = "
+                        SELECT sa.*, u.Fname, u.Lname 
+                        FROM spes_applications sa
+                        JOIN user u ON sa.user_id = u.user_id
+                        WHERE sa.status = 'approved'";
+
+                    if (!empty($searchSpesTerm)) {
+                        $approvedSpesListSql .= " AND CONCAT(u.Fname, ' ', u.Lname) LIKE ?";
+                    }
+                    $approvedSpesListSql .= " ORDER BY sa.created_at DESC";
+                    
+                    $apprSpesStmt = $conn->prepare($approvedSpesListSql);
+
+                    if (!empty($searchSpesTerm)) {
+                        $apprSpesStmt->bind_param("s", $searchSpesSql);
+                    }
+                    $apprSpesStmt->execute();
+                    $approvedSpesListResult = $apprSpesStmt->get_result();
+                    $approvedSpesList = $approvedSpesListResult->fetch_all(MYSQLI_ASSOC);
+                    ?>
+
+                    <form id="searchSpesForm" method="GET" style="margin-bottom: 20px;">
+                        <input type="text" name="search_spes_name" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($searchSpesTerm); ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
+                        <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
+                    </form>
+                    <button class="back-btn" onclick="showPage('application-page')" style="margin-top: 0; margin-bottom: 20px;">Back</button>
+
+                    <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Date Approved</th>
+                                <th>Application Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (count($approvedSpesList) > 0): ?>
+                            <?php foreach ($approvedSpesList as $app): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($app['Fname'] . ' ' . $app['Lname']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
+                                    <td><span style="font-weight:bold;">SPES</span></td>
+                                    <td>
+                                        <button class="btn-outline" onclick='showSpesAppModal(<?php echo json_encode($app); ?>)'>View Details</button>
+                                         <button class="btn-primary" onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $app['user_id']; ?>#user-concerns-page'">
+                                            <i class="fas fa-envelope"></i> Message
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="4" style="text-align:center; padding: 20px;">No approved SPES applicants found for this search.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php if ($viewApprovedScholarshipId): ?>
         <div id="approved-applicants-list-page" class="page active">
             <div class="applicants-container">
                 <h2 class="applicants-h2">Approved Applicants for: <?php echo htmlspecialchars($approved_scholarship_title); ?></h2>
@@ -1950,11 +2131,12 @@ body {
                     <input type="text" name="search_approved_name" placeholder="Search by applicant name..." value="<?php echo isset($_GET['search_approved_name']) ? htmlspecialchars($_GET['search_approved_name']) : ''; ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
                     <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
                 </form>
-                <button class="back-btn" onclick="window.location.href='admin_dashboard.php#application-page'" style="margin-top: 0; margin-bottom: 20px;">Back to Programs</button>
+                <button class="back-btn" onclick="showPage('approved-scholarship-programs-page')" style="margin-top: 0; margin-bottom: 20px;">Back to Programs</button>
                 <table class="applicants-table">
                     <thead>
                         <tr>
                             <th>Name</th>
+                            <th>Application Type</th>
                             <th>Other Details</th>
                             <th>Message</th>
                         </tr>
@@ -1964,6 +2146,7 @@ body {
                         <?php foreach ($approved_applicants as $applicant): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($applicant['Fname'] . ' ' . $applicant['Lname']); ?></td>
+                                <td><span style="font-weight:bold;">Scholarship</span></td>
                                 <td>
                                     <button class="btn-outline" onclick='showUserDetailsModal(<?php echo htmlspecialchars(json_encode($applicant)); ?>)'>View Info</button>
                                 </td>
@@ -1976,7 +2159,7 @@ body {
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="3" style="text-align:center; padding: 20px;">No approved applicants found for this scholarship or search query.</td>
+                            <td colspan="4" style="text-align:center; padding: 20px;">No approved applicants found for this scholarship or search query.</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
@@ -2022,25 +2205,16 @@ body {
                     <td><?php echo htmlspecialchars($user['Email']); ?></td>
                     <td>
                         <?php
+                        // Decode the JSON and check if it's valid and not empty
                         $validIdFiles = json_decode($user['valid_id'], true);
-                        if (is_array($validIdFiles) && !empty($validIdFiles[0])) {
-                            foreach ($validIdFiles as $idx => $file) {
-                                // --- START: FINAL PATCH FOR INCORRECT PATHS ---
-                                $filePath = ltrim($file, './'); // Clean any leading "./"
-
-                                // Check for and remove the duplicated "form_prac/" if it exists
-                                if (strpos($filePath, 'form_prac/') === 0) {
-                                    $filePath = substr($filePath, strlen('form_prac/'));
-                                }
-
-                                echo '<a href="' . BASE_URL . htmlspecialchars($filePath) . '" target="_blank" style="color:#090549;text-decoration:underline;display:inline-block;margin-bottom:4px;">View ' . ($idx == 0 ? 'Front' : 'Back') . ' of ID</a><br>';
-                                // --- END: FINAL PATCH FOR INCORRECT PATHS ---
-                            }
-                        } else {
-                            echo '<span style="color:#B22222;">No ID uploaded.</span>';
-                        }
+                        if (is_array($validIdFiles) && !empty($validIdFiles[0])):
                         ?>
+                            <button class="btn-outline" onclick='showValidIdModal(<?php echo json_encode($user['valid_id']); ?>)'>View ID</button>
+                        <?php else: ?>
+                            <span style="color:#B22222;">No ID uploaded.</span>
+                        <?php endif; ?>
                     </td>
+
                     <td>
                         <form method="POST" style="display:inline-block; margin-right: 5px;">
                             <input type="hidden" name="user_id" value="<?php echo $user['user_id']; ?>">
@@ -2067,7 +2241,6 @@ body {
         </table>
     </div>
 </div>
-
 <div id="user-concerns-page" class="page" style="display:none;">
     <h2>User Concerns Chat</h2>
     <div class="concerns-chat-container" style="display: flex;">
@@ -2171,11 +2344,11 @@ body {
 
                 <h3>Scholarship List</h3>
                 <?php 
-                $scholarshipsSql = "SELECT s.*, COUNT(a.application_id) as total_applicants FROM scholarships s LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id GROUP BY s.scholarship_id";
-                $scholarshipResult = $conn->query($scholarshipsSql);
-                $scholarships = $scholarshipResult->fetch_all(MYSQLI_ASSOC);
+                $scholarshipsSql_list = "SELECT s.*, COUNT(a.application_id) as total_applicants FROM scholarships s LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id GROUP BY s.scholarship_id";
+                $scholarshipResult_list = $conn->query($scholarshipsSql_list);
+                $scholarships_list = $scholarshipResult_list->fetch_all(MYSQLI_ASSOC);
                 
-                foreach ($scholarships as $scholarship): 
+                foreach ($scholarships_list as $scholarship): 
                     $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
                 ?>
                     <div class="scholarship-card">
@@ -2212,7 +2385,7 @@ body {
                     </div>
                 <?php endforeach; ?>
                 
-                <?php if (count($scholarships) === 0): ?>
+                <?php if (count($scholarships_list) === 0): ?>
                 <p>No scholarships found. Add a new scholarship using the form above.</p>
                 <?php endif; ?>
             </div>
@@ -2229,8 +2402,21 @@ body {
                     </form>
                 </div>
             </div>
-
             
+            <div id="validIdModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="modal-close" onclick="closeValidIdModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
+                    <div class="modal-header" style="margin-top:30px;">User Submitted ID</div>
+                    <div class="modal-body" id="validIdModalBody" style="max-height: 450px; overflow-y: auto; text-align: center;"></div>
+                </div>
+            </div>
+            <div id="spesAppModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="modal-close" onclick="closeSpesAppModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
+                    <div class="modal-header" style="margin-top:30px;">SPES Application Details</div>
+                    <div class="modal-body" id="spesAppModalBody" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
             <div id="send-updates-page" class="page">
                 <h1 class="main-title-send-updates">Send Updates</h1>
                 <form class="send-updates-form" method="POST">
@@ -2288,25 +2474,20 @@ Closing/Signature:" rows="5" required></textarea>
         }
     }
 
-    window.onclick = function(event) {
-        if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down')) {
-            var dropdowns = document.getElementsByClassName("dropdown-menu");
-            var chevron = document.getElementById("chevronIcon");
-            for (var i = 0; i < dropdowns.length; i++) {
-                dropdowns[i].classList.remove("show");
-            }
-            if (chevron) {
-                chevron.classList.remove("open");
-            }
-        }
-    }
-
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.style.display = 'none';
             page.classList.remove('active');
         });
-        window.location.hash = pageId;
+        
+        const url = new URL(window.location);
+        url.hash = pageId;
+        // Clean up search params when navigating to a new main page
+        if (['home-page', 'application-page', 'scholarship-page', 'send-updates-page', 'total-applicants-page', 'reports-page', 'user-concerns-page', 'user-request-page'].includes(pageId)) {
+            url.search = '';
+        }
+        history.pushState({}, '', url);
+
         document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
         switch (pageId) {
@@ -2314,7 +2495,9 @@ Closing/Signature:" rows="5" required></textarea>
                 highlightActiveNav('home-nav');
                 break;
             case 'application-page':
-            case 'approved-applicants-list-page': 
+            case 'approved-scholarship-programs-page':
+            case 'approved-applicants-list-page':
+            case 'approved-spes-list-page':
                 highlightActiveNav('history-nav');
                 break;
             case 'scholarship-page':
@@ -2352,12 +2535,19 @@ Closing/Signature:" rows="5" required></textarea>
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     let hash = window.location.hash.substr(1);
+    
+    // Prioritize search params to determine the active page
+    if (urlParams.has('view_scholarship')) {
+        hash = 'scholarship-applicants-page';
+    } else if (urlParams.has('view_approved')) {
+        hash = 'approved-applicants-list-page';
+    } else if (urlParams.has('search_spes_name')) {
+        hash = 'approved-spes-list-page';
+    } else if (urlParams.has('search_spes_id')) {
+        hash = 'total-applicants-spes';
+    }
 
-    if (urlParams.has('view_scholarship') && hash === 'scholarship-applicants-page') {
-        showPage('scholarship-applicants-page');
-    } else if (urlParams.has('view_approved') && hash === 'approved-applicants-list-page') {
-        showPage('approved-applicants-list-page');
-    } else if (hash && document.getElementById(hash)) {
+    if (hash && document.getElementById(hash)) {
         showPage(hash);
     } else {
         showPage('home-page');
@@ -2381,19 +2571,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add this event listener to handle clicks on back buttons or hash changes
-    window.addEventListener('hashchange', function() {
-        let newHash = window.location.hash.substr(1);
-        if (newHash && document.getElementById(newHash)) {
-            // Prevent re-showing the same page if it's already active due to URL params
-            if (!document.getElementById(newHash).classList.contains('active')) {
-                 showPage(newHash);
-            }
-        } else {
-            showPage('home-page');
-        }
-    });
-
     // --- START: JAVASCRIPT FOR APPROVED APPLICANT SEARCH ---
     const searchApprovedForm = document.getElementById('searchApprovedForm');
     if(searchApprovedForm) {
@@ -2406,60 +2583,126 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     // --- END: JAVASCRIPT FOR APPROVED APPLICANT SEARCH ---
+    
+    // --- START: JAVASCRIPT FOR APPROVED SPES SEARCH ---
+    const searchSpesForm = document.getElementById('searchSpesForm');
+    if(searchSpesForm) {
+        searchSpesForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const searchTerm = form.querySelector('input[name="search_spes_name"]').value;
+            window.location.href = `admin_dashboard.php?search_spes_name=${encodeURIComponent(searchTerm)}#approved-spes-list-page`;
+        });
+    }
+    // --- END: JAVASCRIPT FOR APPROVED SPES SEARCH ---
+    
+    // --- START: JAVASCRIPT FOR TOTAL SPES APPLICANTS SEARCH ---
+    const searchSpesTotalForm = document.getElementById('searchSpesTotalForm');
+    if(searchSpesTotalForm) {
+        searchSpesTotalForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const searchTerm = form.querySelector('input[name="search_spes_id"]').value;
+            window.location.href = `admin_dashboard.php?search_spes_id=${encodeURIComponent(searchTerm)}#total-applicants-spes`;
+        });
+    }
+    // --- END: JAVASCRIPT FOR TOTAL SPES APPLICANTS SEARCH ---
 });
 
     function showAppFormModal(applicantJson) {
         let app = typeof applicantJson === 'string' ? JSON.parse(applicantJson) : applicantJson;
-        let html = '';
+        let html = '<div style="font-size: 12px;">';
 
         if (!app) {
             document.getElementById('appFormModalBody').innerHTML = "<p>No application data found.</p>";
             document.getElementById('appFormModal').style.display = 'flex';
             return;
         }
-
-        html += '<h3 style="text-align:center; margin-bottom:20px;">Application Details</h3>';
-
-        html += '<hr>';
-        html += '<h4 style="margin-bottom: 10px;">1. Personal Information</h4>';
-        html += '<p><strong>Full Name:</strong> ' + (app.fullname || 'N/A') + '</p>';
-        html += '<p><strong>Date of Birth:</strong> ' + (app.birthdate || 'N/A') + '</p>';
-        html += '<p><strong>Place of Birth:</strong> ' + (app.place_of_birth || 'N/A') + '</p>';
-        html += '<p><strong>Address:</strong> ' + (app.address || 'N/A') + '</p>';
-        html += '<p><strong>Contact Number:</strong> ' + (app.contact || 'N/A') + '</p>';
-        html += '<p><strong>Facebook Account:</strong> ' + (app.facebook || 'N/A') + '</p>';
-        html += '<p><strong>Civil Status:</strong> ' + (app.civil_status || 'N/A') + '</p>';
-        html += '<p><strong>Gender:</strong> ' + (app.gender || 'N/A') + '</p>';
-
-        html += '<hr>';
-        html += '<h4 style="margin-top:20px; margin-bottom: 10px;">2. Family Background</h4>';
-        html += '<p><strong>Mother\'s Name:</strong> ' + (app.mother_name || 'N/A') + '</p>';
-        html += '<p><strong>Mother\'s Occupation:</strong> ' + (app.mother_occupation || 'N/A') + '</p>';
-        html += '<p><strong>Father\'s Name:</strong> ' + (app.father_name || 'N/A') + '</p>';
-        html += '<p><strong>Father\'s Occupation:</strong> ' + (app.father_occupation || 'N/A') + '</p>';
-        html += '<p><strong>Monthly Family Income:</strong> ' + (app.family_income || 'N/A') + '</p>';
-        html += '<p><strong>Number of Dependents:</strong> ' + (app.dependents || 'N/A') + '</p>';
         
-        html += '<hr>';
-        html += '<h4 style="margin-top:20px; margin-bottom: 10px;">3. Educational Background</h4>';
-        html += '<p><strong>Elementary School:</strong> ' + (app.elem_school || 'N/A') + '</p>';
-        html += '<p><strong>Honors Received:</strong> ' + (app.elem_honors || 'N/A') + '</p>';
-        html += '<p><strong>Date Graduated/Current Level:</strong> ' + (app.elem_grad || 'N/A') + '</p>';
-        
-        html += '<p><strong>High School:</strong> ' + (app.hs_school || 'N/A') + '</p>';
-        html += '<p><strong>Honors Received:</strong> ' + (app.hs_honors || 'N/A') + '</p>';
-        html += '<p><strong>Date Graduated/Current Level:</strong> ' + (app.hs_grad || 'N/A') + '</p>';
-        html += '<p><strong>Vocational School:</strong> ' + (app.voc_school || 'N/A') + '</p>';
-        html += '<p><strong>Honors Received:</strong> ' + (app.voc_honors || 'N/A') + '</p>';
-        html += '<p><strong>Date Graduated/Current Level:</strong> ' + (app.voc_grad || 'N/A') + '</p>';
-        
-        html += '<hr>';
-        html += '<h4 style="margin-top:20px; margin-bottom: 10px;">3-A. College Background</h4>';
-        html += '<p><strong>College School:</strong> ' + (app.college_school || 'N/A') + '</p>';
-        html += '<p><strong>Course & Year:</strong> ' + (app.college_course || 'N/A') + '</p>';
-        html += '<p><strong>Average from Previous Semester:</strong> ' + (app.college_average || 'N/A') + '</p>';
-        html += '<p><strong>Awards and Recognitions:</strong> ' + (app.college_awards || 'N/A') + '</p>';
+        // Personal Info
+        html += '<h4>Personal Information</h4>';
+        html += `<p><strong>Full Name:</strong> ${app.fullname || 'N/A'}</p>`;
+        html += `<p><strong>Date of Birth:</strong> ${app.birthdate || 'N/A'}</p>`;
+        html += `<p><strong>Place of Birth:</strong> ${app.place_of_birth || 'N/A'}</p>`;
+        html += `<p><strong>Gender:</strong> ${app.gender || 'N/A'}</p>`;
+        html += `<p><strong>Civil Status:</strong> ${app.civil_status || 'N/A'}</p>`;
+        html += `<p><strong>Address:</strong> ${app.address || 'N/A'}</p>`;
+        html += `<p><strong>Contact Number:</strong> ${app.contact || 'N/A'}</p>`;
+        html += `<p><strong>Facebook Account:</strong> ${app.facebook || 'N/A'}</p>`;
 
+        // Family Background
+        html += '<hr style="margin: 15px 0;"><h4>Family Background</h4>';
+        html += `<p><strong>Father\'s Name:</strong> ${app.father_name || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i></p>`;
+        html += `<p><strong>Mother\'s Name:</strong> ${app.mother_name || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i></p>`;
+        html += `<p><strong>Monthly Family Income:</strong> ${app.family_income || 'N/A'}</p>`;
+        html += `<p><strong>Number of Dependents:</strong> ${app.dependents || 'N/A'}</p>`;
+
+        // Educational Background
+        html += '<hr style="margin: 15px 0;"><h4>Educational Background</h4>';
+        html += `<table class="applicants-table" style="font-size: 11px;">
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>School</th>
+                            <th>Honors</th>
+                            <th>Graduation/Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Elementary</td>
+                            <td>${app.elem_school || 'N/A'}</td>
+                            <td>${app.elem_honors || 'N/A'}</td>
+                            <td>${app.elem_grad || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>High School</td>
+                            <td>${app.hs_school || 'N/A'}</td>
+                            <td>${app.hs_honors || 'N/A'}</td>
+                            <td>${app.hs_grad || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Vocational</td>
+                            <td>${app.voc_school || 'N/A'}</td>
+                            <td>${app.voc_honors || 'N/A'}</td>
+                            <td>${app.voc_grad || 'N/A'}</td>
+                        </tr>
+                    </tbody>
+                </table>`;
+        
+        // College Background
+        html += '<hr style="margin: 15px 0;"><h4>College Background</h4>';
+        html += `<p><strong>School:</strong> ${app.college_school || 'N/A'}</p>`;
+        html += `<p><strong>Course & Year:</strong> ${app.college_course || 'N/A'}</p>`;
+        html += `<p><strong>Previous Semester Average:</strong> ${app.college_average || 'N/A'}</p>`;
+        html += `<p><strong>Awards / Recognitions:</strong> ${app.college_awards || 'N/A'}</p>`;
+
+        // Documents
+        html += '<hr style="margin: 15px 0;"><h4>Uploaded Documents</h4>';
+        try {
+            const docs = JSON.parse(app.documents);
+            if (Array.isArray(docs) && docs.length > 0) {
+                docs.forEach(docPath => {
+                    const fullPath = `<?php echo BASE_URL; ?>${docPath.replace('../../../../', '')}`;
+                    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(docPath);
+                    
+                    if (isImage) {
+                         html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
+                                     <img src="${fullPath}" alt="Document" style="max-width: 150px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
+                                  </a>`;
+                    } else {
+                        const fileName = docPath.split('/').pop();
+                        html += `<p><a href="${fullPath}" target="_blank" style="color:#090549;">View Document: ${fileName}</a></p>`;
+                    }
+                });
+            } else {
+                html += '<p>No documents were uploaded.</p>';
+            }
+        } catch (e) {
+            html += '<p>No documents were uploaded or there was an error reading them.</p>';
+        }
+
+        html += '</div>';
         document.getElementById('appFormModalBody').innerHTML = html;
         document.getElementById('appFormModal').style.display = 'flex';
     }
@@ -2467,29 +2710,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeAppFormModal() {
         document.getElementById('appFormModal').style.display = 'none';
         document.getElementById('appFormModalBody').innerHTML = '';
-    }
-
-function showDocsModal(documentsJson) {
-                    let html = '';
-                    try {
-                        const docs = JSON.parse(documentsJson);
-                        if (Array.isArray(docs) && docs.length > 0) {
-                            docs.forEach(doc => {
-                                html += `<a href="${doc}" target="_blank">View Document</a><br>`;
-                            });
-                        } else {
-                            html = 'No documents uploaded.';
-                        }
-                    } catch {
-                        html = 'No documents uploaded.';
-                    }
-                    document.getElementById('docsModalBody').innerHTML = html;
-                    document.getElementById('docsModal').style.display = 'flex'; 
-                }
-
-
-    function closeDocsModal() {
-        document.getElementById('docsModal').style.display = 'none';
     }
 
     function showEditSlotsModal(scholarshipId, totalSlots, totalApplicants) {
@@ -2565,18 +2785,174 @@ function showDocsModal(documentsJson) {
         document.getElementById('userDetailsModal').style.display = 'none';
     }
     
+    function showSpesAppModal(spesAppJson) {
+        let app = typeof spesAppJson === 'string' ? JSON.parse(spesAppJson) : spesAppJson;
+        let html = '<div style="font-size: 12px;">';
+
+        if (!app) {
+            document.getElementById('spesAppModalBody').innerHTML = "<p>No application data found.</p>";
+            document.getElementById('spesAppModal').style.display = 'flex';
+            return;
+        }
+
+        const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
+        const idPath = `<?php echo BASE_URL; ?>${app.id_image_path ? app.id_image_path.replace('../../../../', '') : ''}`;
+
+        // --- Personal Information Section ---
+        html += '<h4>Personal Information</h4>';
+        html += `<p><strong>Full Name:</strong> ${fullName}</p>`;
+        html += `<p><strong>Date of Birth:</strong> ${app.dob || 'N/A'}</p>`;
+        html += `<p><strong>Place of Birth:</strong> ${app.place_of_birth || 'N/A'}</p>`;
+        html += `<p><strong>Citizenship:</strong> ${app.citizenship || 'N/A'}</p>`;
+        html += `<p><strong>Sex:</strong> ${app.sex || 'N/A'}</p>`;
+        html += `<p><strong>Civil Status:</strong> ${app.civil_status || 'N/A'}</p>`;
+        html += `<p><strong>Contact:</strong> ${app.contact || 'N/A'}</p>`;
+        html += `<p><strong>Email:</strong> ${app.email || 'N/A'}</p>`;
+        html += `<p><strong>Social Media:</strong> ${app.social_media || 'N/A'}</p>`;
+        html += `<p><strong>Present Address:</strong> ${app.present_address || 'N/A'}</p>`;
+        html += `<p><strong>Permanent Address:</strong> ${app.permanent_address || 'N/A'}</p>`;
+        
+        // --- MODIFIED UPLOADED ID DISPLAY ---
+        html += `<p><strong>Uploaded ID:</strong></p>`;
+        if (app.id_image_path) {
+            html += `<a href="${idPath}" target="_blank">
+                         <img src="${idPath}" alt="Applicant ID" style="max-width: 200px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
+                     </a>`;
+        } else {
+            html += `<p>Not provided</p>`;
+        }
+
+        // --- Parental & Status Section ---
+        html += '<hr style="margin: 15px 0;"><h4>Parental & Status Information</h4>';
+        html += `<p><strong>GSIS Beneficiary:</strong> ${app.gsis_beneficiary || 'N/A'}</p>`;
+        html += `<p><strong>Student Type:</strong> ${app.student_type || 'N/A'}</p>`;
+        html += `<p><strong>Parent Status:</strong> ${app.parent_status || 'N/A'}</p>`;
+        html += `<p><strong>Father:</strong> ${app.father_name_contact || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i></p>`;
+        html += `<p><strong>Mother:</strong> ${app.mother_name_contact || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i></p>`;
+
+        // --- Educational Background Section ---
+        html += '<hr style="margin: 15px 0;"><h4>Educational Background</h4>';
+        html += `<table class="applicants-table" style="font-size: 11px;">
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>School</th>
+                            <th>Degree/Course</th>
+                            <th>Year/Level</th>
+                            <th>Attendance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Elementary</td>
+                            <td>${app.elem_school || 'N/A'}</td>
+                            <td>${app.elem_degree || 'N/A'}</td>
+                            <td>${app.elem_year || 'N/A'}</td>
+                            <td>${app.elem_attendance || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Secondary</td>
+                            <td>${app.sec_school || 'N/A'}</td>
+                            <td>${app.sec_degree || 'N/A'}</td>
+                            <td>${app.sec_year || 'N/A'}</td>
+                            <td>${app.sec_attendance || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Tertiary</td>
+                            <td>${app.ter_school || 'N/A'}</td>
+                            <td>${app.ter_degree || 'N/A'}</td>
+                            <td>${app.ter_year || 'N/A'}</td>
+                            <td>${app.ter_attendance || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Tech-Voc</td>
+                            <td>${app.tech_school || 'N/A'}</td>
+                            <td>${app.tech_degree || 'N/A'}</td>
+                            <td>${app.tech_year || 'N/A'}</td>
+                            <td>${app.tech_attendance || 'N/A'}</td>
+                        </tr>
+                    </tbody>
+                </table>`;
+        
+        // --- Skills & SPES History Section ---
+        html += '<hr style="margin: 15px 0;"><h4>Skills & SPES History</h4>';
+        html += `<p><strong>Special Skills:</strong> ${app.special_skills || 'None'}</p>`;
+        html += `<p><strong>Availment History:</strong> ${app.availment_history || 'None'}</p>`;
+        html += `<p><strong>Year History:</strong> ${app.year_history || 'N/A'}</p>`;
+        html += `<p><strong>SPES ID History:</strong> ${app.spes_id_history || 'N/A'}</p>`;
+
+        html += '</div>';
+
+        document.getElementById('spesAppModalBody').innerHTML = html;
+        document.getElementById('spesAppModal').style.display = 'flex';
+    }
+
+    function closeSpesAppModal() {
+        document.getElementById('spesAppModal').style.display = 'none';
+        document.getElementById('spesAppModalBody').innerHTML = '';
+    }
+
+    // --- START: NEW JAVASCRIPT FOR VALID ID MODAL ---
+    function showValidIdModal(validIdJson) {
+        let idFiles;
+        try {
+            idFiles = JSON.parse(validIdJson);
+        } catch(e) {
+            idFiles = [];
+        }
+
+        let html = '';
+        if (Array.isArray(idFiles) && idFiles.length > 0) {
+            // Display Front ID
+            if(idFiles[0]) {
+                const frontPath = `<?php echo BASE_URL; ?>${idFiles[0].replace('../../../../', '').replace('form_prac/', '')}`;
+                html += `<h4>Front of ID</h4>
+                         <a href="${frontPath}" target="_blank">
+                            <img src="${frontPath}" alt="Front of ID" style="max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 15px;">
+                         </a>`;
+            } else {
+                 html += `<h4>Front of ID</h4><p>Not provided.</p>`;
+            }
+
+            // Display Back ID
+            if(idFiles[1]) {
+                const backPath = `<?php echo BASE_URL; ?>${idFiles[1].replace('../../../../', '').replace('form_prac/', '')}`;
+                html += `<h4>Back of ID</h4>
+                         <a href="${backPath}" target="_blank">
+                            <img src="${backPath}" alt="Back of ID" style="max-width: 100%; height: auto; border-radius: 5px;">
+                         </a>`;
+            } else {
+                html += `<h4>Back of ID</h4><p>Not provided.</p>`;
+            }
+        } else {
+            html = '<p>No ID images were uploaded by the user.</p>';
+        }
+
+        document.getElementById('validIdModalBody').innerHTML = html;
+        document.getElementById('validIdModal').style.display = 'flex';
+    }
+
+    function closeValidIdModal() {
+        document.getElementById('validIdModal').style.display = 'none';
+    }
+    // --- END: NEW JAVASCRIPT FOR VALID ID MODAL ---
+
     window.onclick = function(event) {
         let appModal = document.getElementById('appFormModal');
-        let docsModal = document.getElementById('docsModal');
         let editSlotsModal = document.getElementById('editSlotsModal');
         let rejectionModal = document.getElementById('rejectionModal');
         let userDetailsModal = document.getElementById('userDetailsModal');
+        let spesAppModal = document.getElementById('spesAppModal');
+        let validIdModal = document.getElementById('validIdModal'); // Add this line
+        
         if (event.target === appModal) closeAppFormModal();
-        if (event.target === docsModal) closeDocsModal();
         if (event.target === editSlotsModal) closeEditSlotsModal();
         if (event.target === rejectionModal) closeRejectionModal();
         if (event.target === userDetailsModal) closeUserDetailsModal();
+        if (event.target === spesAppModal) closeSpesAppModal();
+        if (event.target === validIdModal) closeValidIdModal(); // Add this line
     };
+    // --- END: JAVASCRIPT FOR SPES MODAL ---
 
     function scrollAdminChatToBottom() {
         var chatMessages = document.getElementById('concernChatMessages');

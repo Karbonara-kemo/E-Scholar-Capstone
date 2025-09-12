@@ -27,7 +27,7 @@ if ($result->num_rows > 0) {
     exit();
 }
 
-// --- START: MODIFIED FORM SUBMISSION LOGIC ---
+// --- START: Scholarship FORM SUBMISSION LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
     $scholarshipId = $_POST['scholarship_id'];
     $fullname = trim($_POST['lname'] . ', ' . $_POST['fname'] . ' ' . $_POST['mname']);
@@ -86,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     )";
     $stmt = $conn->prepare($sql);
     // Bind parameters updated to remove the email variable and its type 's'
+    // FIXED: The type definition string now has 33 characters (ii + 31 s's) to match the 33 variables.
     $stmt->bind_param(
         "iisssssssssssssssssssssssssssssss",
         $userId, $scholarshipId, $fullname, $birthdate, $address, $contact, $school, $course, $year_level, $family_income, $documents_json,
@@ -99,7 +100,120 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
         exit();
     }
 }
-// --- END: MODIFIED FORM SUBMISSION LOGIC ---
+// --- END: Scholarship FORM SUBMISSION LOGIC ---
+
+// --- START: NEW SPES APPLICATION SUBMISSION LOGIC ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_application'])) {
+    // Personal Information
+    $surname = $_POST['surname'] ?? null;
+    $firstname = $_POST['firstname'] ?? null;
+    $middlename = $_POST['middlename'] ?? null;
+    $gsis_beneficiary = $_POST['gsis_beneficiary'] ?? null;
+    $dob = $_POST['dob'] ?? null;
+    $place_of_birth = $_POST['place_of_birth'] ?? null;
+    $citizenship = $_POST['citizenship'] ?? null;
+    $contact = $_POST['contact'] ?? null;
+    $email = $_POST['email'] ?? null;
+    $social_media = $_POST['social_media'] ?? null;
+    $civil_status = $_POST['civil_status'] ?? null; // Renamed from 'status' in form to avoid conflict
+    $sex = $_POST['sex'] ?? null;
+    $student_type = $_POST['student_type'] ?? null;
+    $present_address = $_POST['present_address'] ?? null;
+    $permanent_address = $_POST['permanent_address'] ?? null;
+
+    // Handle Parent Status (combining radio and checkboxes)
+    $parent_status_parts = [];
+    if (!empty($_POST['parent_status'])) {
+        $parent_status_parts[] = $_POST['parent_status'];
+    }
+    if (isset($_POST['parent_status_indigenous'])) {
+        $parent_status_parts[] = 'Indigenous People';
+    }
+    if (isset($_POST['parent_status_displaced_local'])) {
+        $parent_status_parts[] = 'Displaced Worker (Local)';
+    }
+    if (isset($_POST['parent_status_displaced_ofw'])) {
+        $parent_status_parts[] = 'Displaced Worker (OFW)';
+    }
+    $parent_status = implode(', ', $parent_status_parts);
+
+    // Parental Information
+    $father_name_contact = $_POST['father_name_contact'] ?? null;
+    $mother_name_contact = $_POST['mother_name_contact'] ?? null;
+    $father_occupation = $_POST['father_occupation'] ?? null;
+    $mother_occupation = $_POST['mother_occupation'] ?? null;
+
+    // Educational Background
+    $elem_school = $_POST['elem_school'] ?? null; $elem_degree = $_POST['elem_degree'] ?? null; $elem_year = $_POST['elem_year'] ?? null; $elem_attendance = $_POST['elem_attendance'] ?? null;
+    $sec_school = $_POST['sec_school'] ?? null; $sec_degree = $_POST['sec_degree'] ?? null; $sec_year = $_POST['sec_year'] ?? null; $sec_attendance = $_POST['sec_attendance'] ?? null;
+    $ter_school = $_POST['ter_school'] ?? null; $ter_degree = $_POST['ter_degree'] ?? null; $ter_year = $_POST['ter_year'] ?? null; $ter_attendance = $_POST['ter_attendance'] ?? null;
+    $tech_school = $_POST['tech_school'] ?? null; $tech_degree = $_POST['tech_degree'] ?? null; $tech_year = $_POST['tech_year'] ?? null; $tech_attendance = $_POST['tech_attendance'] ?? null;
+
+    // Skills & History
+    $special_skills = $_POST['special_skills'] ?? null;
+    
+    // Process Availment History
+    $availment_history = [];
+    $year_history = [];
+    $spes_id_history = [];
+    for ($i = 1; $i <= 4; $i++) {
+        if (isset($_POST["availment_$i"])) $availment_history[] = "{$i}";
+        if (!empty($_POST["year_$i"])) $year_history[] = $_POST["year_$i"];
+        if (!empty($_POST["spesid_$i"])) $spes_id_history[] = $_POST["spesid_$i"];
+    }
+    $availment_history_str = implode(', ', $availment_history);
+    $year_history_str = implode(', ', $year_history);
+    $spes_id_history_str = implode(', ', $spes_id_history);
+
+    // Handle File Upload for ID
+    $id_image_path = null;
+    if (isset($_FILES['id_image']) && $_FILES['id_image']['error'] == 0) {
+        $target_dir = "../../../../uploads/spes_ids/";
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0755, true);
+        }
+        $file_name = basename($_FILES['id_image']['name']);
+        $target_file = $target_dir . uniqid() . "_" . $file_name;
+        if (move_uploaded_file($_FILES['id_image']['tmp_name'], $target_file)) {
+            $id_image_path = $target_file;
+        }
+    }
+
+    // Prepare SQL Statement
+    $sql = "INSERT INTO spes_applications (
+        user_id, surname, firstname, middlename, gsis_beneficiary, id_image_path, dob, place_of_birth, citizenship, 
+        contact, email, social_media, civil_status, sex, student_type, parent_status, present_address, permanent_address, 
+        father_name_contact, mother_name_contact, father_occupation, mother_occupation, 
+        elem_school, elem_degree, elem_year, elem_attendance, 
+        sec_school, sec_degree, sec_year, sec_attendance, 
+        ter_school, ter_degree, ter_year, ter_attendance, 
+        tech_school, tech_degree, tech_year, tech_attendance, 
+        special_skills, availment_history, year_history, spes_id_history
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+    $stmt = $conn->prepare($sql);
+    // The type definition string must have 42 characters (i for user_id, plus 41 s's for the rest) to match the 42 variables.
+    $stmt->bind_param(
+        "isssssssssssssssssssssssssssssssssssssssss",
+        $userId, $surname, $firstname, $middlename, $gsis_beneficiary, $id_image_path, $dob, $place_of_birth, $citizenship,
+        $contact, $email, $social_media, $civil_status, $sex, $student_type, $parent_status, $present_address, $permanent_address,
+        $father_name_contact, $mother_name_contact, $father_occupation, $mother_occupation,
+        $elem_school, $elem_degree, $elem_year, $elem_attendance,
+        $sec_school, $sec_degree, $sec_year, $sec_attendance,
+        $ter_school, $ter_degree, $ter_year, $ter_attendance,
+        $tech_school, $tech_degree, $tech_year, $tech_attendance,
+        $special_skills, $availment_history_str, $year_history_str, $spes_id_history_str
+    );
+
+    if ($stmt->execute()) {
+        header("Location: user_dashboard.php#spes-page");
+        exit();
+    } else {
+        die("Error submitting SPES application: " . $stmt->error);
+    }
+}
+// --- END: NEW SPES APPLICATION SUBMISSION LOGIC ---
+
 
 $notificationSql = "SELECT * FROM notifications WHERE user_id IS NULL OR user_id = ? ORDER BY created_at DESC";
 $notificationStmt = $conn->prepare($notificationSql);
@@ -1104,7 +1218,6 @@ form .label-application + div label {
 
 
 @media (max-width: 768px) {
-    @media (max-width: 768px) {
     .navbar {
         height: auto;
         padding: 15px 10px;
@@ -1147,7 +1260,6 @@ form .label-application + div label {
         top: 40px;
         right: 5px;
     }
-}
 
     .sidebar {
         width: 100%;
@@ -1200,9 +1312,9 @@ form .label-application + div label {
 
     .container {
         padding-top: 10px;
+        padding-bottom: 70px; /* Added padding to avoid content being hidden by bottom nav */
     }
     
-    @media (max-width: 768px) {
     .main-content {
         margin: 0 !important;
         padding: 10px;
@@ -1229,7 +1341,6 @@ form .label-application + div label {
         width: 90%;
         margin: 10px 0;
     }
-}
 
     .dashboard-boxes {
         flex-direction: column;
@@ -1248,13 +1359,67 @@ form .label-application + div label {
         padding: 8px;
     }
 
+    #communication-page {
+        width: 100%;
+    }
+
+    .concerns-layout {
+        flex-direction: column;
+        height: calc(100vh - 140px); /* Adjust for navbars */
+        width: 100%;
+    }
+
+    .concerns-list {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #eee;
+        flex-shrink: 0;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .concerns-list li a {
+        font-size: 11px;
+        padding: 10px 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .concerns-chat-area {
+        flex-grow: 1;
+        overflow: hidden;
+        width: 100%;
+        min-width: 0;
+    }
+
     .chat-container {
-        height: calc(100vh - 180px);
-        margin: 10px auto;
+        height: 100%;
+        margin: 0;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .chat-messages {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .message {
+        max-width: 80%;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .chat-input {
+        width: 100%;
+        min-width: 0;
     }
     
-    .chat-input textarea {
+        .chat-input textarea {
         height: 35px;
+        min-width: 0;
+        flex: 1;
     }
 
     .history-table {
@@ -1561,7 +1726,8 @@ form .label-application + div label {
                 <p class="title-description-p">REPUBLIC OF THE PHILIPPINES<br>DEPARTMENT OF LABOR AND EMPLOYMENT<br>Regional Office No. VIII<br>PUBLIC EMPLOYMENT SERVICE OFFICE<br>SAN JULIAN, EASTERN SAMAR<br>City/Municipality/Province<br>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)<br>(RA 7323, as amended by RAs 9547 and 10917)
 </p>
                 <h2 id="spes-application-form-title">Application Form</h2>
-                <form enctype="multipart/form-data">
+                
+                <form method="POST" enctype="multipart/form-data">
                     <h4>Personal Information</h4>
                     <div style="display: flex; gap: 10px;">
                         <div style="flex:1;">
@@ -1608,12 +1774,12 @@ form .label-application + div label {
                     <label class="label-application">Social Media Account (Facebook, Twitter, Instagram, etc.)</label>
                     <input type="text" name="social_media" class="input-field">
 
-                    <label class="label-application">Status</label>
+                    <label class="label-application">Civil Status</label>
                     <div>
-                        <label><input type="radio" name="status" value="Single" required> Single</label>
-                        <label><input type="radio" name="status" value="Married"> Married</label>
-                        <label><input type="radio" name="status" value="Widow/er"> Widow/er</label>
-                        <label><input type="radio" name="status" value="Separated"> Separated</label>
+                        <label><input type="radio" name="civil_status" value="Single" required> Single</label>
+                        <label><input type="radio" name="civil_status" value="Married"> Married</label>
+                        <label><input type="radio" name="civil_status" value="Widow/er"> Widow/er</label>
+                        <label><input type="radio" name="civil_status" value="Separated"> Separated</label>
                     </div>
 
                     <label class="label-application">Sex</label>
@@ -1670,6 +1836,7 @@ form .label-application + div label {
                     </div>
 
                         <h4>Educational Background</h4>
+                        <div style="overflow-x:auto;">
                         <table class="history-table">
                             <thead>
                                 <tr>
@@ -1711,40 +1878,42 @@ form .label-application + div label {
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
 
                         <h4>Documentary Requirements</h4>
                             <div class="doc-req-section">
-                                <label><input type="checkbox" name="doc_birth_cert"> Photocopy of Birth Certificate or any document indicating date of birth or age (age must be 15-30)</label><br>
-                                <label><input type="checkbox" name="doc_itr"> Photocopy of the latest Income Tax Return (ITR) of parents/legal guardian OR certification issued by BIR that the Parents/guardians are exempted from payment of tax OR original Certificate of Indigence OR original Certificate of Low Income issued by the Barangay/DSWD or CSWD where the applicant resides</label><br>
-                                <label><input type="checkbox" name="doc_student"> For students, any of the following, in addition to requirements no. 1 and 2:</label>
+                                <label>• Photocopy of Birth Certificate or any document indicating date of birth or age (age must be 15-30)</label><br>
+                                <label>• Photocopy of the latest Income Tax Return (ITR) of parents/legal guardian OR certification issued by BIR that the Parents/guardians are exempted from payment of tax OR original Certificate of Indigence OR original Certificate of Low Income issued by the Barangay/DSWD or CSWD where the applicant resides</label><br>
+                                <label>• For students, any of the following, in addition to requirements no. 1 and 2:</label>
                                 <div style="margin-left:20px;">
-                                    <label><input type="checkbox" name="doc_class_card"> a) Photocopy of proof of average passing grade such as (1) class card or (2) Form 138 of the previous semester or year immediately preceding the application</label><br>
-                                    <label><input type="checkbox" name="doc_registrar_cert"> b) Original copy of Certification by the School Registrar as to passing grade immediately preceding semester/year if grades are not yet available</label>
+                                    <label>• a) Photocopy of proof of average passing grade such as (1) class card or (2) Form 138 of the previous semester or year immediately preceding the application</label><br>
+                                    <label>• b) Original copy of Certification by the School Registrar as to passing grade immediately preceding semester/year if grades are not yet available</label>
                                 </div>
-                                <label><input type="checkbox" name="doc_osy"> For Out of School Youth (OSY), original copy of Certification as OSY issued by DSWD/CSWD or the authorized Barangay Official where the OSY resides, in addition to requirements no. 1 and 2.</label>
+                                <label>• For Out of School Youth (OSY), original copy of Certification as OSY issued by DSWD/CSWD or the authorized Barangay Official where the OSY resides, in addition to requirements no. 1 and 2.</label>
                             </div>
 
                         <h4>Special Skills</h4>
                         <input type="text" name="special_skills" class="input-field">
 
                         <h4>History of SPES Availment/Name of Establishment</h4>
-                        <label><input type="checkbox" name="availment_1"> 1st Availment</label>
-                        <label><input type="checkbox" name="availment_2"> 2nd Availment</label>
-                        <label><input type="checkbox" name="availment_3"> 3rd Availment</label>
-                        <label><input type="checkbox" name="availment_4"> 4th Availment</label>
+                        <label><input type="checkbox" name="availment_1" value="1"> 1st Availment</label>
+                        <label><input type="checkbox" name="availment_2" value="2"> 2nd Availment</label>
+                        <label><input type="checkbox" name="availment_3" value="3"> 3rd Availment</label>
+                        <label><input type="checkbox" name="availment_4" value="4"> 4th Availment</label>
 
                         <h4>Year</h4>
-                        <label><input type="checkbox" name="year_1"> 1st Availment</label>
-                        <label><input type="checkbox" name="year_2"> 2nd Availment</label>
-                        <label><input type="checkbox" name="year_3"> 3rd Availment</label>
-                        <label><input type="checkbox" name="year_4"> 4th Availment</label>
+                        <input type="text" name="year_1" placeholder="Year 1" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="year_2" placeholder="Year 2" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="year_3" placeholder="Year 3" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="year_4" placeholder="Year 4" class="input-field" style="display:inline-block; width: 22%;">
 
                         <h4>SPES ID No. (if applicable)</h4>
-                        <label><input type="checkbox" name="spesid_1"> 1st Availment</label>
-                        <label><input type="checkbox" name="spesid_2"> 2nd Availment</label>
-                        <label><input type="checkbox" name="spesid_3"> 3rd Availment</label>
-                        <label><input type="checkbox" name="spesid_4"> 4th Availment</label>
-                        <button type="submit" class="submit-btn">Submit Application</button>
+                        <input type="text" name="spesid_1" placeholder="ID 1" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="spesid_2" placeholder="ID 2" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="spesid_3" placeholder="ID 3" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="spesid_4" placeholder="ID 4" class="input-field" style="display:inline-block; width: 22%;">
+                        
+                        <button type="submit" name="submit_spes_application" class="submit-btn">Submit Application</button>
                     </form>
                 </div>
             </div>
@@ -1763,73 +1932,99 @@ form .label-application + div label {
             </div>
 
            <div id="history-page" class="page">
-    <div class="application-history">
-        <h2 class="history-h2">Application History</h2>
-        <p class="history-p">Review your previous scholarship applications</p>
+                <div class="application-history">
+                    <h2 class="history-h2">Application History</h2>
+                    <p class="history-p">Review your previous scholarship applications</p>
 
-        <table class="history-table">
-            <thead>
-                <tr>
-                    <th>Application ID</th>
-                    <th>Scholarship</th>
-                    <th>Date Applied</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            $applicationsSql = "
-                SELECT a.application_id, s.title, a.created_at, a.status, a.rejection_message
-                FROM applications a
-                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
-                WHERE a.user_id = ?
-                ORDER BY a.created_at DESC
-            ";
-            $applicationsStmt = $conn->prepare($applicationsSql);
-            $applicationsStmt->bind_param("i", $userId);
-            $applicationsStmt->execute();
-            $applicationsResult = $applicationsStmt->get_result();
+                    <div style="overflow-x:auto;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Program Name</th>
+                                <th>Type</th>
+                                <th>Date Applied</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        // --- START: MODIFIED QUERY TO FETCH BOTH SCHOLARSHIP AND SPES HISTORY ---
+                        $combinedHistorySql = "
+                            (SELECT
+                                a.application_id AS id,
+                                s.title AS program_name,
+                                'Scholarship' AS application_type,
+                                a.created_at AS date_applied,
+                                a.status AS status,
+                                a.rejection_message AS rejection_message
+                            FROM applications a
+                            JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                            WHERE a.user_id = ?)
+                            
+                            UNION ALL
+                            
+                            (SELECT
+                                sa.spes_application_id AS id,
+                                'SPES Application' AS program_name,
+                                'SPES' AS application_type,
+                                sa.created_at AS date_applied,
+                                sa.status AS status,
+                                NULL AS rejection_message -- Add a NULL column to match the structure
+                            FROM spes_applications sa
+                            WHERE sa.user_id = ?)
+                            
+                            ORDER BY date_applied DESC
+                        ";
 
-            if ($applicationsResult->num_rows > 0):
-                while ($application = $applicationsResult->fetch_assoc()):
-                    // Determine status class for styling
-                    $statusClass = 'status-pending';
-                    if ($application['status'] === 'approved') {
-                        $statusClass = 'status-approved';
-                    } elseif ($application['status'] === 'rejected') {
-                        $statusClass = 'status-rejected';
-                    }
-            ?>
-                <tr>
-                    <td style="padding:10px;"><?php echo htmlspecialchars($application['application_id']); ?></td>
-                    <td style="padding:10px;"><?php echo htmlspecialchars($application['title']); ?></td>
-                    <td style="padding:10px;"><?php echo date('M d, Y', strtotime($application['created_at'])); ?></td>
-                    <td style="padding:10px;">
-                        <span class="<?php echo $statusClass; ?>">
-                            <?php echo ucfirst($application['status']); ?>
-                        </span>
-                    </td>
-                    <td style="padding:10px;">
-                        <?php if ($application['status'] === 'rejected'): ?>
-                            <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>, <?php echo json_encode($application); ?>)'>See Why...</button>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php
-                endwhile;
-            else:
-            ?>
-                <tr>
-                    <td colspan="5" style="text-align:center; padding:20px;">No application history found.</td>
-                </tr>
-            <?php
-            endif;
-            ?>
-            </tbody>
-        </table>
-    </div>
-</div>
+                        $applicationsStmt = $conn->prepare($combinedHistorySql);
+                        // Bind the user ID twice, once for each part of the UNION query
+                        $applicationsStmt->bind_param("ii", $userId, $userId);
+                        $applicationsStmt->execute();
+                        $applicationsResult = $applicationsStmt->get_result();
+                        // --- END: MODIFIED QUERY ---
+                        
+                        if ($applicationsResult->num_rows > 0):
+                            while ($application = $applicationsResult->fetch_assoc()):
+                                // Determine status class for styling
+                                $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
+                        ?>
+                            <tr>
+                                <td style="padding:10px;"><?php echo htmlspecialchars($application['id']); ?></td>
+                                <td style="padding:10px;"><?php echo htmlspecialchars($application['program_name']); ?></td>
+                                <td style="padding:10px;">
+                                    <span style="font-weight:bold;"><?php echo htmlspecialchars($application['application_type']); ?></span>
+                                </td>
+                                <td style="padding:10px;"><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
+                                <td style="padding:10px;">
+                                    <span class="<?php echo $statusClass; ?>">
+                                        <?php echo ucfirst($application['status']); ?>
+                                    </span>
+                                </td>
+                                <td style="padding:10px;">
+                                    <?php if ($application['application_type'] === 'Scholarship' && $application['status'] === 'rejected' && !empty($application['rejection_message'])): ?>
+                                        <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>)'>See Why...</button>
+                                    <?php else: ?>
+                                        N/A
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php
+                            endwhile;
+                        else:
+                        ?>
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:20px;">No application history found.</td>
+                            </tr>
+                        <?php
+                        endif;
+                        ?>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
 
             <div id="rejectionMessageModal" class="modal" style="display:none;">
                 <div class="modal-content">
@@ -2089,6 +2284,7 @@ form .label-application + div label {
                         </div>
 
                         <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">3. Educational Background</p>
+                        <div style="overflow-x:auto;">
                         <table class="history-table">
                             <thead>
                                 <tr>
@@ -2119,6 +2315,7 @@ form .label-application + div label {
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
 
                         <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">3-A. College Background</p>
                         <div style="display:flex; gap:10px;">
@@ -2414,8 +2611,7 @@ form .label-application + div label {
     
     let currentApplicationData = null;
 
-    function showRejectionMessageModal(rejectionMessage, appData) {
-        currentApplicationData = appData;
+    function showRejectionMessageModal(rejectionMessage) {
         document.getElementById('rejectionMessageText').innerHTML = rejectionMessage;
         document.getElementById('rejectionMessageModal').style.display = "block";
     }
@@ -2438,7 +2634,7 @@ form .label-application + div label {
             document.getElementById("chevronIcon").classList.remove("open");
         }
         const uploadPopup = document.getElementById('uploadPopup');
-        if (uploadPopup && !uploadPopup.contains(event.target) && !event.target.closest('.upload-btn')) {
+        if (uploadPopup && !uploadPopup.contains(event.target) && !uploadPopup.closest('.upload-btn')) {
             uploadPopup.style.display = 'none';
         }
     });

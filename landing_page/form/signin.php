@@ -90,6 +90,8 @@ window.onload = function() {
     <link rel="stylesheet" href="../form/User_Landing_Page/style.css">
     <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for the eye icon -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <title>Sign In</title>
 </head>
@@ -525,6 +527,27 @@ window.onload = function() {
             margin-left: 20px;
         }
 
+    /* --- START: STYLES FOR PASSWORD TOGGLE --- */
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    
+    .password-wrapper input {
+        padding-right: 40px; /* Make space for icon */
+    }
+
+    .password-wrapper .fa-eye,
+    .password-wrapper .fa-eye-slash {
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #888;
+    }
+    /* --- END: STYLES FOR PASSWORD TOGGLE --- */
+
         @media (max-width: 768px) {
             .main-content {
                 justify-content: center;
@@ -557,7 +580,7 @@ window.onload = function() {
     .navbar a,
     .right-nav a,
     .home {
-        font-size: 8px !important;
+        font-size: 10px !important;
         margin: 0 6px !important;
     }
     .right-nav {
@@ -600,7 +623,10 @@ window.onload = function() {
                 
                 <div class="form-group">
                     <label for="signin-password">Password</label>
-                    <input type="password" id="signin-password" name="password" placeholder="Enter Password">
+                    <div class="password-wrapper">
+                        <input type="password" id="signin-password" name="password" placeholder="Enter Password">
+                        <i class="fas fa-eye" id="togglePassword"></i>
+                    </div>
                     <div id="password-error" class="error-message hidden"></div>
                 </div>
                 
@@ -665,6 +691,20 @@ window.onload = function() {
         }
     }
 }
+// --- START: JAVASCRIPT FOR PASSWORD TOGGLE ---
+document.addEventListener('DOMContentLoaded', function () {
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#signin-password');
+
+    togglePassword.addEventListener('click', function (e) {
+        // toggle the type attribute
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        // toggle the eye slash icon
+        this.classList.toggle('fa-eye-slash');
+    });
+});
+// --- END: JAVASCRIPT FOR PASSWORD TOGGLE ---
 </script>
 </body>
 </html>

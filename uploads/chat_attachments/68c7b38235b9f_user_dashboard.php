@@ -2149,7 +2149,7 @@ form .label-application + div label {
 
                                     <?php if (!empty($message['attachment_path'])): ?>
                                         <div class="message-attachment">
-                                            <a href="<?php echo htmlspecialchars($message['attachment_path']); ?>" target="_blank" download>
+                                            <a href="../../../../<?php echo htmlspecialchars($message['attachment_path']); ?>" target="_blank" download>
                                                 <i class="fas fa-file-download"></i>
                                                 <span><?php echo htmlspecialchars(preg_replace('/^[a-f0-9]+_/', '', basename($message['attachment_path']))); ?></span>
                                             </a>

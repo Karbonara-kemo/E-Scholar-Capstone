@@ -65,7 +65,7 @@ if (isset($_POST['approve_application']) || isset($_POST['reject_application']))
     $infoSql = "SELECT u.Email, u.Fname, u.Lname, s.title 
                 FROM applications a
                 JOIN user u ON a.user_id = u.user_id
-                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                JOIN scholarships s ON a.scholarship_id = a.scholarship_id
                 WHERE a.application_id = ?";
     $infoStmt = $conn->prepare($infoSql);
     $infoStmt->bind_param("i", $applicationId);
@@ -285,15 +285,31 @@ if ($selectedGroupId) {
 
 if (isset($_POST['send_admin_reply'])) {
     $reply = trim($_POST['admin_reply']);
-    // Use the `$admin_id` variable that was already validated at the top of the script.
+    $attachmentPath = null;
 
-    if (!empty($reply)) {
+    // ADDED: Handle file upload logic
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == 0) {
+        $target_dir = "../../../../uploads/chat_attachments/";
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0755, true);
+        }
+        $file_name = basename($_FILES['attachment']['name']);
+        $target_file = $target_dir . uniqid() . "_" . $file_name;
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_file)) {
+            $attachmentPath = $target_file;
+        }
+    }
+    // END ADDED
+
+    // MODIFIED: Check for a message OR an attachment
+    if (!empty($reply) || $attachmentPath) {
         if (isset($_POST['chat_group_id']) && !empty($_POST['chat_group_id'])) {
             // It's a group message for a scholarship
             $chat_group_id = intval($_POST['chat_group_id']);
-            // The `user_id` should be NULL because this message is from an admin to a group.
-            $stmt = $conn->prepare("INSERT INTO concerns (admin_id, scholarship_id, sender, message, user_id) VALUES (?, ?, 'admin', ?, NULL)");
-            $stmt->bind_param("iis", $admin_id, $chat_group_id, $reply);
+            
+            // MODIFIED: SQL query and bind_param
+            $stmt = $conn->prepare("INSERT INTO concerns (admin_id, scholarship_id, sender, message, user_id, attachment_path) VALUES (?, ?, 'admin', ?, NULL, ?)");
+            $stmt->bind_param("iiss", $admin_id, $chat_group_id, $reply, $attachmentPath);
             $stmt->execute();
             header("Location: admin_dashboard.php?chat_group=$chat_group_id#user-concerns-page");
             exit();
@@ -301,8 +317,10 @@ if (isset($_POST['send_admin_reply'])) {
         } elseif (isset($_POST['chat_user_id']) && !empty($_POST['chat_user_id'])) {
             // It's a 1-on-1 message to a specific user
             $chat_user_id = intval($_POST['chat_user_id']);
-            $stmt = $conn->prepare("INSERT INTO concerns (user_id, admin_id, sender, message) VALUES (?, ?, 'admin', ?)");
-            $stmt->bind_param("iis", $chat_user_id, $admin_id, $reply);
+            
+            // MODIFIED: SQL query and bind_param
+            $stmt = $conn->prepare("INSERT INTO concerns (user_id, admin_id, sender, message, attachment_path) VALUES (?, ?, 'admin', ?, ?)");
+            $stmt->bind_param("iiss", $chat_user_id, $admin_id, $reply, $attachmentPath);
             $stmt->execute();
             header("Location: admin_dashboard.php?chat_user=$chat_user_id#user-concerns-page");
             exit();
@@ -430,7 +448,7 @@ if (isset($_POST['reject_application_with_message'])) {
     $infoSql = "SELECT u.Email, u.Fname, u.Lname, s.title 
                 FROM applications a
                 JOIN user u ON a.user_id = u.user_id
-                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                JOIN scholarships s ON a.scholarship_id = a.scholarship_id
                 WHERE a.application_id = ?";
     $infoStmt = $conn->prepare($infoSql);
     $infoStmt->bind_param("i", $applicationId);
@@ -545,7 +563,7 @@ $scholarshipDocsResult = $conn->query($scholarshipDocsSql);
 $scholarship_docs_users = $scholarshipDocsResult->fetch_all(MYSQLI_ASSOC);
 
 // Fetch approved SPES applicants with their documents
-$spesDocsSql = "SELECT u.Fname, u.Lname, sa.id_image_path
+$spesDocsSql = "SELECT u.Fname, u.Lname, sa.id_image_paths, sa.spes_documents_path
                FROM user u
                JOIN spes_applications sa ON u.user_id = sa.user_id
                WHERE sa.status = 'approved'";
@@ -1530,6 +1548,30 @@ body {
     background-color: #dc3545;
     color: white;
 }
+
+.message-attachment {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+}
+.message-attachment a {
+    text-decoration: none;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.message-attachment a:hover {
+    text-decoration: underline;
+}
+.concern-message.user .message-attachment {
+    background-color: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.concern-message.user .message-attachment a {
+    color: #333;
+}
+
 </style>
 
 <body>
@@ -2270,17 +2312,19 @@ body {
                         <tbody>
                             <?php foreach ($spes_docs_users as $user): ?>
                                 <?php
-                                    $has_docs = !empty($user['id_image_path']);
-                                    $status = $has_docs ? 'Complete' : 'INC';
+                                    $id_paths_array = json_decode($user['id_image_paths'], true);
+                                    $has_id = is_array($id_paths_array) && !empty($id_paths_array);
+                                    $has_reqs = !empty($user['spes_documents_path']);
+                                    $status = $has_id && $has_reqs ? 'Complete' : 'INC';
                                 ?>
                                 <tr>
                                     <td>
-                                        <button class="btn-outline" <?php if(!$has_docs) echo 'disabled'; ?> onclick='viewUserDocuments(<?php echo json_encode($user['id_image_path']); ?>)'>View Document</button>
+                                        <button class="btn-outline" <?php if(!$has_id && !$has_reqs) echo 'disabled'; ?> onclick='viewSpesUserDocuments(<?php echo json_encode(["ids" => $user["id_image_paths"], "reqs" => $user["spes_documents_path"]]); ?>)'>View Documents</button>
                                     </td>
                                     <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
                                     <td style="text-align: center;"><i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i></td>
                                     <td style="text-align: center;">
-                                        <?php if ($has_docs): ?>
+                                        <?php if ($has_id && $has_reqs): ?>
                                             <i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i>
                                         <?php else: ?>
                                             <i class="fas fa-times-circle" style="color: red; font-size: 16px;"></i>
@@ -2422,7 +2466,16 @@ body {
                             <?php endif; ?>
                             
                             <div class="concern-message-content" style="<?php echo $msg['sender'] === 'admin' ? 'margin-right:15px;' : ''; ?>">
-                                <?php echo nl2br(htmlspecialchars($msg['message'])); ?>
+                                <?php if (!empty($msg['message'])) echo nl2br(htmlspecialchars($msg['message'])); ?>
+                                
+                                <?php if (!empty($msg['attachment_path'])): ?>
+                                    <div class="message-attachment">
+                                        <a href="<?php echo htmlspecialchars($msg['attachment_path']); ?>" target="_blank" download>
+                                            <i class="fas fa-file-download"></i>
+                                            <span><?php echo htmlspecialchars(preg_replace('/^[a-f0-9]+_/', '', basename($msg['attachment_path']))); ?></span>
+                                        </a>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                             <div class="message-timestamp" style="font-size:0.7em;opacity:0.7;text-align:right;margin-top:5px;">
                                 <?php echo date('M d, Y h:i A', strtotime($msg['created_at'])); ?>
@@ -2434,17 +2487,24 @@ body {
                 <?php endif; ?>
             </div>
             <?php if ($selectedGroupId || $selectedUserId): ?>
-            <form class="concerns-chat-input" method="POST" enctype="multipart/form-data" autocomplete="off" style="display:flex;gap:10px;padding:15px;border-top:1px solid #eee;background:#fff;">
-                <textarea name="admin_reply" id="concernMessageInput" placeholder="Type your reply..." required style="flex:1;padding:10px;border:1px solid #ddd;border-radius:20px;resize:none;height:40px;font-family:inherit;font-size:13px;"></textarea>
-                <?php if ($selectedGroupId): ?>
-                    <input type="hidden" name="chat_group_id" value="<?php echo $selectedGroupId; ?>">
-                <?php elseif ($selectedUserId): ?>
-                    <input type="hidden" name="chat_user_id" value="<?php echo $selectedUserId; ?>">
-                <?php endif; ?>
-                <button type="submit" name="send_admin_reply" style="background:#090549;color:white;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;transition:background 0.3s;font-size:16px;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </form>
+                <form class="concerns-chat-input" method="POST" enctype="multipart/form-data" autocomplete="off" style="display:flex;gap:10px;padding:15px;border-top:1px solid #eee;background:#fff;">
+                    
+                    <input type="file" name="attachment" id="adminChatAttachment" style="display: none;">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('adminChatAttachment').click();" title="Attach file" style="background:none; border:none; color:#555; font-size:20px; cursor:pointer; padding:0 10px;">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <textarea name="admin_reply" id="concernMessageInput" placeholder="Type your reply..." style="flex:1;padding:10px;border:1px solid #ddd;border-radius:20px;resize:none;height:40px;font-family:inherit;font-size:13px;"></textarea>
+                    
+                    <?php if ($selectedGroupId): ?>
+                        <input type="hidden" name="chat_group_id" value="<?php echo $selectedGroupId; ?>">
+                    <?php elseif ($selectedUserId): ?>
+                        <input type="hidden" name="chat_user_id" value="<?php echo $selectedUserId; ?>">
+                    <?php endif; ?>
+
+                    <button type="submit" name="send_admin_reply" style="background:#090549;color:white;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;transition:background 0.3s;font-size:16px;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
             <?php endif; ?>
         </div>
     </div>
@@ -2815,16 +2875,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (Array.isArray(docs) && docs.length > 0) {
                 docs.forEach(docPath => {
                     const fullPath = `<?php echo BASE_URL; ?>${docPath.replace('../../../../', '')}`;
-                    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(docPath);
-                    
-                    if (isImage) {
-                         html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
-                                     <img src="${fullPath}" alt="Document" style="max-width: 150px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
-                                  </a>`;
-                    } else {
-                        const fileName = docPath.split('/').pop();
-                        html += `<p><a href="${fullPath}" target="_blank" style="color:#090549;">View Document: ${fileName}</a></p>`;
-                    }
+                    // Extract the original filename after the unique ID and underscore
+                    const fileNameWithId = docPath.split('/').pop();
+                    const fileName = fileNameWithId.substring(fileNameWithId.indexOf('_') + 1);
+
+                    // Create a download link for each document. The 'download' attribute prompts the browser to download.
+                    html += `<p style="margin-bottom: 8px;">
+                                <i class="fas fa-file-download" style="margin-right: 8px; color: #090549;"></i>
+                                <a href="${fullPath}" download="${fileName}" style="color:#090549; text-decoration: none; font-weight: bold;">
+                                    ${fileName}
+                                </a>
+                             </p>`;
                 });
             } else {
                 html += '<p>No documents were uploaded.</p>';
@@ -2927,7 +2988,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
-        const idPath = `<?php echo BASE_URL; ?>${app.id_image_path ? app.id_image_path.replace('../../../../', '') : ''}`;
+        
+        // --- START: NEW CODE - Define path for SPES documents ---
+        const docPath = `<?php echo BASE_URL; ?>${app.spes_documents_path ? app.spes_documents_path.replace('../../../../', '') : ''}`;
+        // --- END: NEW CODE ---
+
 
         // --- Personal Information Section ---
         html += '<h4>Personal Information</h4>';
@@ -2945,12 +3010,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // --- MODIFIED UPLOADED ID DISPLAY ---
         html += `<p><strong>Uploaded ID:</strong></p>`;
-        if (app.id_image_path) {
-            html += `<a href="${idPath}" target="_blank">
-                         <img src="${idPath}" alt="Applicant ID" style="max-width: 200px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
-                     </a>`;
-        } else {
-            html += `<p>Not provided</p>`;
+        try {
+            const idImagePaths = JSON.parse(app.id_image_paths);
+            if (Array.isArray(idImagePaths) && idImagePaths.length > 0) {
+                idImagePaths.forEach(path => {
+                    if(path) {
+                        const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
+                        html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
+                                     <img src="${fullPath}" alt="Applicant ID" style="max-width: 200px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
+                                 </a>`;
+                    }
+                });
+            } else {
+                html += `<p>No ID images were uploaded.</p>`;
+            }
+        } catch (e) {
+            html += `<p>No ID images were uploaded or there was an error reading them.</p>`;
         }
 
         // --- Parental & Status Section ---
@@ -3011,6 +3086,23 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `<p><strong>Availment History:</strong> ${app.availment_history || 'None'}</p>`;
         html += `<p><strong>Year History:</strong> ${app.year_history || 'N/A'}</p>`;
         html += `<p><strong>SPES ID History:</strong> ${app.spes_id_history || 'N/A'}</p>`;
+        
+        // --- START: NEW SECTION FOR SPES DOCUMENTS ---
+        html += '<hr style="margin: 15px 0;"><h4>Uploaded Requirement Documents</h4>';
+        if (app.spes_documents_path) {
+            const fileNameWithId = app.spes_documents_path.split('/').pop();
+            const fileName = fileNameWithId.substring(fileNameWithId.indexOf('_') + 1);
+            html += `<p style="margin-bottom: 8px;">
+                        <i class="fas fa-file-download" style="margin-right: 8px; color: #090549;"></i>
+                        <a href="${docPath}" download="${fileName}" style="color:#090549; text-decoration: none; font-weight: bold;">
+                            ${fileName}
+                        </a>
+                     </p>`;
+        } else {
+            html += '<p>No requirement documents were uploaded.</p>';
+        }
+        // --- END: NEW SECTION FOR SPES DOCUMENTS ---
+
 
         html += '</div>';
 
@@ -3109,6 +3201,43 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeViewDocumentsModal() {
         document.getElementById('viewDocumentsModal').style.display = 'none';
         document.getElementById('viewDocumentsModalBody').innerHTML = '';
+    }
+
+    function viewSpesUserDocuments(spesDocs) {
+        let html = '';
+        
+        // Handle ID images
+        html += '<h4>Uploaded IDs:</h4>';
+        try {
+            const idPaths = JSON.parse(spesDocs.ids);
+            if (Array.isArray(idPaths) && idPaths.length > 0) {
+                 idPaths.forEach(path => {
+                    if (path) {
+                        const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
+                        html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
+                                     <img src="${fullPath}" alt="SPES ID Document" style="max-width: 150px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
+                                  </a>`;
+                    }
+                });
+            } else {
+                 html += '<p>No ID documents were uploaded.</p>';
+            }
+        } catch(e) {
+            html += '<p>No ID documents were uploaded.</p>';
+        }
+
+        // Handle requirement documents
+        html += '<hr style="margin: 20px 0;"><h4>Requirement Documents:</h4>';
+        if (spesDocs.reqs) {
+            const fullPath = `<?php echo BASE_URL; ?>${spesDocs.reqs.replace('../../../../', '')}`;
+            const fileName = spesDocs.reqs.split('/').pop();
+            html += `<p><a href="${fullPath}" target="_blank" style="color:#090549;">View Document: ${fileName}</a></p>`;
+        } else {
+             html += '<p>No requirement documents were uploaded.</p>';
+        }
+
+        document.getElementById('viewDocumentsModalBody').innerHTML = html;
+        document.getElementById('viewDocumentsModal').style.display = 'flex';
     }
 
     window.onclick = function(event) {

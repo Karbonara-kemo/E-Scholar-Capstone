@@ -56,16 +56,16 @@ if (isset($_POST['send_message'])) {
     exit();
 }
 
-// --- START: MODIFIED APPROVE/REJECT LOGIC WITH EMAIL NOTIFICATION ---
+// --- START: MODIFIED APPROVE/REJECT LOGIC ---
 if (isset($_POST['approve_application']) || isset($_POST['reject_application'])) {
     $applicationId = $_POST['application_id'];
     $newStatus = isset($_POST['approve_application']) ? 'approved' : 'rejected';
 
-    // 1. Fetch user and scholarship info for the email
-    $infoSql = "SELECT u.Email, u.Fname, u.Lname, s.title 
+    // 1. Fetch user ID, email, and scholarship info
+    $infoSql = "SELECT u.user_id, u.Email, u.Fname, u.Lname, s.title 
                 FROM applications a
                 JOIN user u ON a.user_id = u.user_id
-                JOIN scholarships s ON a.scholarship_id = a.scholarship_id
+                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
                 WHERE a.application_id = ?";
     $infoStmt = $conn->prepare($infoSql);
     $infoStmt->bind_param("i", $applicationId);
@@ -79,19 +79,28 @@ if (isset($_POST['approve_application']) || isset($_POST['reject_application']))
         $stmt->bind_param("si", $newStatus, $applicationId);
         $stmt->execute();
 
-        // 3. Prepare and send the email
+        // 3. Prepare email content
+        $userId = $infoResult['user_id'];
         $to = $infoResult['Email'];
         $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
         $scholarshipTitle = $infoResult['title'];
 
         if ($newStatus == 'approved') {
+            // **NEW**: Once approved, delete all other PENDING applications for this user.
+            $deletePendingSql = "DELETE FROM applications WHERE user_id = ? AND status = 'pending'";
+            $deleteStmt = $conn->prepare($deletePendingSql);
+            $deleteStmt->bind_param("i", $userId);
+            $deleteStmt->execute();
+
             $subject = "Your Scholarship Application has been Approved";
-            $body = "Hello {$name},\n\nCongratulations! Your application for the '{$scholarshipTitle}' scholarship has been approved.\n\nPlease log in to your account for more details.\n\nThank you,\nPESO San Julian MIS";
+            // **MODIFIED**: Email body updated to inform the user.
+            $body = "Hello {$name},\n\nCongratulations! Your application for the '{$scholarshipTitle}' scholarship has been approved.\n\nAs a result, any other pending scholarship applications you had have been withdrawn. Please log in to your account for more details.\n\nThank you,\nPESO San Julian MIS";
         } else { // rejected
             $subject = "Update on your Scholarship Application";
             $body = "Hello {$name},\n\nWe regret to inform you that your application for the '{$scholarshipTitle}' scholarship has been rejected at this time.\n\nThank you for your interest.\n\nSincerely,\nPESO San Julian MIS";
         }
         
+        // 4. Send the email
         require '../../../../vendor/autoload.php';
         $mail = new PHPMailer\PHPMailer\PHPMailer();
         try {
@@ -251,7 +260,7 @@ $chatTitle = 'Select a conversation';
 
 if ($selectedGroupId) {
     // Fetch group messages from 'concerns' table
-    $stmt = $conn->prepare("SELECT * FROM concerns WHERE scholarship_id = ? ORDER BY created_at ASC");
+    $stmt = $conn->prepare("SELECT c.*, u.Fname, u.Lname FROM concerns c LEFT JOIN user u ON c.user_id = u.user_id WHERE c.scholarship_id = ? ORDER BY c.created_at ASC");
     $stmt->bind_param("i", $selectedGroupId);
     $stmt->execute();
     $chatMessages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -347,6 +356,89 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id'])) {
     exit();
 }
 
+// --- START: NEW LOGIC FOR SAVING CHAT ATTACHMENTS TO SCHOLARSHIP OR SPES ---
+function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
+    $attachmentPath = '';
+
+    // 1. Get the attachment path from the message
+    $pathStmt = $conn->prepare("SELECT attachment_path FROM concerns WHERE id = ? AND user_id = ?");
+    $pathStmt->bind_param("ii", $messageId, $userId);
+    $pathStmt->execute();
+    $pathResult = $pathStmt->get_result();
+    if ($pathRow = $pathResult->fetch_assoc()) {
+        $attachmentPath = $pathRow['attachment_path'];
+    }
+
+    if (empty($attachmentPath)) {
+        $_SESSION['document_saved_error'] = "Could not find the attachment.";
+        return;
+    }
+
+    if ($type === 'scholarship') {
+        // 2. Find the user's latest APPROVED scholarship application
+        $appStmt = $conn->prepare("SELECT application_id, documents FROM applications WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1");
+        $appStmt->bind_param("i", $userId);
+        $appStmt->execute();
+        $appResult = $appStmt->get_result();
+
+        if ($appRow = $appResult->fetch_assoc()) {
+            $applicationId = $appRow['application_id'];
+            $currentDocs = json_decode($appRow['documents'], true) ?: [];
+            if (!in_array($attachmentPath, $currentDocs)) {
+                $currentDocs[] = $attachmentPath;
+            }
+            $newDocsJson = json_encode($currentDocs);
+            $updateStmt = $conn->prepare("UPDATE applications SET documents = ? WHERE application_id = ?");
+            $updateStmt->bind_param("si", $newDocsJson, $applicationId);
+            $updateStmt->execute();
+            $_SESSION['document_saved_success'] = "File saved to user's Scholarship documents.";
+        } else {
+            $_SESSION['document_saved_error'] = "Failed: User is not an approved Scholarship applicant.";
+        }
+    } elseif ($type === 'spes') {
+        // 2. Find the user's latest APPROVED SPES application
+        $appStmt = $conn->prepare("SELECT spes_application_id, spes_documents_path FROM spes_applications WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1");
+        $appStmt->bind_param("i", $userId);
+        $appStmt->execute();
+        $appResult = $appStmt->get_result();
+
+        if ($appRow = $appResult->fetch_assoc()) {
+            $applicationId = $appRow['spes_application_id'];
+            $currentDocsPath = $appRow['spes_documents_path'];
+            $currentDocs = json_decode($currentDocsPath, true);
+
+            // If it's not a JSON array, it might be the initial single file path
+            if (!is_array($currentDocs)) {
+                $currentDocs = !empty($currentDocsPath) ? [$currentDocsPath] : [];
+            }
+            
+            if (!in_array($attachmentPath, $currentDocs)) {
+                $currentDocs[] = $attachmentPath;
+            }
+            $newDocsJson = json_encode($currentDocs);
+            $updateStmt = $conn->prepare("UPDATE spes_applications SET spes_documents_path = ? WHERE spes_application_id = ?");
+            $updateStmt->bind_param("si", $newDocsJson, $applicationId);
+            $updateStmt->execute();
+            $_SESSION['document_saved_success'] = "File saved to user's SPES documents.";
+        } else {
+            $_SESSION['document_saved_error'] = "Failed: User is not an approved SPES applicant.";
+        }
+    }
+}
+
+
+if (isset($_POST['save_to_documents_scholarship'])) {
+    saveAttachmentToDocuments($conn, intval($_POST['message_id']), intval($_POST['user_id']), 'scholarship');
+    header("Location: admin_dashboard.php?chat_user=" . intval($_POST['user_id']) . "#user-concerns-page");
+    exit();
+}
+
+if (isset($_POST['save_to_documents_spes'])) {
+    saveAttachmentToDocuments($conn, intval($_POST['message_id']), intval($_POST['user_id']), 'spes');
+    header("Location: admin_dashboard.php?chat_user=" . intval($_POST['user_id']) . "#user-concerns-page");
+    exit();
+}
+// --- END: NEW LOGIC FOR SAVING CHAT ATTACHMENTS ---
 
 if (isset($_POST['approve_user'])) {
     $uid = intval($_POST['user_id']);
@@ -448,7 +540,7 @@ if (isset($_POST['reject_application_with_message'])) {
     $infoSql = "SELECT u.Email, u.Fname, u.Lname, s.title 
                 FROM applications a
                 JOIN user u ON a.user_id = u.user_id
-                JOIN scholarships s ON a.scholarship_id = a.scholarship_id
+                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
                 WHERE a.application_id = ?";
     $infoStmt = $conn->prepare($infoSql);
     $infoStmt->bind_param("i", $applicationId);
@@ -554,24 +646,48 @@ if ($viewScholarshipId) {
 }
 
 // --- START: PHP FOR REPORTS PAGE ---
-// Fetch approved scholarship applicants with their documents
-$scholarshipDocsSql = "SELECT u.Fname, u.Lname, a.documents
-                      FROM user u
-                      JOIN applications a ON u.user_id = a.user_id
-                      WHERE a.status = 'approved'";
-$scholarshipDocsResult = $conn->query($scholarshipDocsSql);
-$scholarship_docs_users = $scholarshipDocsResult->fetch_all(MYSQLI_ASSOC);
+// Scholarship Documents Search
+$scholarshipDocsSearch = isset($_GET['search_scholarship_docs']) ? trim($_GET['search_scholarship_docs']) : '';
+$scholarshipDocsSql = "SELECT u.user_id, u.Fname, u.Lname, a.documents FROM user u JOIN applications a ON u.user_id = a.user_id WHERE a.status = 'approved'";
+if (!empty($scholarshipDocsSearch)) {
+    $scholarshipDocsSql .= " AND CONCAT(u.Fname, ' ', u.Lname) LIKE ?";
+}
+$scholarshipDocsSql .= " ORDER BY a.created_at ASC"; // Oldest first, newest last
 
-// Fetch approved SPES applicants with their documents
-$spesDocsSql = "SELECT u.Fname, u.Lname, sa.id_image_paths, sa.spes_documents_path
-               FROM user u
-               JOIN spes_applications sa ON u.user_id = sa.user_id
-               WHERE sa.status = 'approved'";
-$spesDocsResult = $conn->query($spesDocsSql);
-$spes_docs_users = $spesDocsResult->fetch_all(MYSQLI_ASSOC);
+$scholarship_docs_users = [];
+if (!empty($scholarshipDocsSearch)) {
+    $stmt = $conn->prepare($scholarshipDocsSql);
+    $search = "%$scholarshipDocsSearch%";
+    $stmt->bind_param("s", $search); // Correctly binds the variable by reference
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $scholarship_docs_users = $result->fetch_all(MYSQLI_ASSOC);
+} else {
+    $scholarshipDocsResult = $conn->query($scholarshipDocsSql);
+    $scholarship_docs_users = $scholarshipDocsResult->fetch_all(MYSQLI_ASSOC);
+}
+
+// SPES Documents Search
+$spesDocsSearch = isset($_GET['search_spes_docs']) ? trim($_GET['search_spes_docs']) : '';
+$spesDocsSql = "SELECT u.user_id, u.Fname, u.Lname, sa.id_image_paths, sa.spes_documents_path FROM user u JOIN spes_applications sa ON u.user_id = sa.user_id WHERE sa.status = 'approved'";
+if (!empty($spesDocsSearch)) {
+    $spesDocsSql .= " AND CONCAT(u.Fname, ' ', u.Lname) LIKE ?";
+}
+$spesDocsSql .= " ORDER BY sa.created_at ASC"; // Oldest first, newest last
+
+$spes_docs_users = [];
+if (!empty($spesDocsSearch)) {
+    $stmt = $conn->prepare($spesDocsSql);
+    $search = "%$spesDocsSearch%";
+    $stmt->bind_param("s", $search); // Correctly binds the variable by reference
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $spes_docs_users = $result->fetch_all(MYSQLI_ASSOC);
+} else {
+    $spesDocsResult = $conn->query($spesDocsSql);
+    $spes_docs_users = $spesDocsResult->fetch_all(MYSQLI_ASSOC);
+}
 // --- END: PHP FOR REPORTS PAGE ---
-
-
 ?>
 
 <!DOCTYPE html>
@@ -811,6 +927,13 @@ body {
     flex: 1;
 }
 
+/* --- NEW: Icon styling for dashboard boxes --- */
+.box-icon {
+    font-size: 28px;
+    color: #090549;
+    margin-bottom: 10px;
+}
+
 .box-title {
     font-size: 16px;
     font-weight: bold;
@@ -828,6 +951,21 @@ body {
     color: #555;
     margin-top: 10px;
 }
+
+/* --- NEW: General button transition styles --- */
+.view-details, .btn-publish, .btn-delete-scholarship, .btn-edit-slots, 
+.btn-approve, .btn-reject, .btn-primary, .back-btn, .btn-outline,
+.scholarship-form button, .send-updates-form button {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.view-details:hover, .btn-publish:hover, .btn-delete-scholarship:hover, 
+.btn-edit-slots:hover, .btn-approve:hover, .btn-reject:hover, .btn-primary:hover, 
+.back-btn:hover, .btn-outline:hover, .scholarship-form button:hover, .send-updates-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 
 .view-details {
     background-color: #090549;
@@ -969,12 +1107,10 @@ body {
     border: none;
     border-radius: 14px !important;
     cursor: pointer;
-    transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn-delete-message:hover {
     background-color:#d32f2f;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .scholarship-card {
@@ -1040,7 +1176,6 @@ body {
     border: none;
     cursor: pointer;
     border-radius: 5px;
-    transition: background 0.3s ease;
 }
 
 .btn-publish {
@@ -1049,33 +1184,17 @@ body {
     font-size: 10px !important;
 }
 
-.btn-publish:hover {
-    background-color: #218838;
-}
-
 .btn-primary {
     background-color: #090549;
     color: white;
-}
-
-.btn-primary:hover {
-    background-color: #10087c;
 }
 
 .btn-danger {
     background-color: #f44336;
 }
 
-.btn-danger:hover {
-    background-color: #d32f2f;
-}
-
 .btn-success {
     background-color: #4CAF50;
-}
-
-.btn-success:hover {
-    background-color: #388E3C;
 }
 
 .page {
@@ -1129,12 +1248,6 @@ body {
     border: none;
     border-radius: 14px !important;
     cursor: pointer;
-    transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-
-.btn-delete-scholarship:hover {
-    background-color: #d32f2f;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .main-title-scholar {
@@ -1272,6 +1385,7 @@ body {
     border-radius: 15px;
     margin: 5px 0;
     word-break: break-word;
+    position: relative;
 }
 .concern-message.user {
     align-self: flex-start;
@@ -1434,14 +1548,7 @@ body {
     border: none;
     border-radius: 14px !important;
     cursor: pointer;
-    transition: background 0.3s ease, box-shadow 0.3s ease;
 }
-
-.btn-edit-slots:hover {
-    background-color: #100a66ff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
 
 .applicants-container {
     padding: 20px;
@@ -1489,11 +1596,6 @@ body {
     font-size: 10px;
     cursor: pointer;
     border-radius: 14px;
-    transition: all 0.3s ease;
-}
-.btn-outline:hover {
-    background-color: #090549;
-    color: white;
 }
 .back-btn {
     background:#6c757d;
@@ -1504,8 +1606,8 @@ body {
     font-size: 10px;
     cursor: pointer;
     margin-top: 20px;
+    margin-bottom: 20px;
     display: inline-block;
-    transition: background 0.3s ease;
 }
 .back-btn:hover {
     background: #5a6268;
@@ -1526,7 +1628,6 @@ body {
     cursor: pointer;
     border-radius: 14px;
     border: 1px solid transparent;
-    transition: all 0.3s ease;
     font-weight: bold;
     background-color: transparent;
 }
@@ -1571,7 +1672,212 @@ body {
 .concern-message.user .message-attachment a {
     color: #333;
 }
-
+/* --- STYLES CONVERTED FROM INLINE --- */
+#chevronIcon {
+    color: white;
+    cursor: pointer;
+}
+#toast-icon {
+    margin-left: 10px;
+    font-size: 16px;
+    vertical-align: middle;
+}
+#searchForm, #searchSpesForm, #searchApprovedForm, #searchSpesTotalForm {
+    margin-bottom: 20px;
+}
+.search-input {
+    padding: 8px;
+    width: 300px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+.search-button {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: none;
+    background-color: #090549;
+    color: white;
+    cursor: pointer;
+}
+#scholarship-applicants-page .back-btn,
+#approved-spes-list-page .back-btn,
+#approved-applicants-list-page .back-btn {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+#approved-scholarship-programs-page .back-btn {
+    margin-bottom: 20px;
+}
+.inline-form {
+    display: inline-block;
+    margin-right: 5px;
+}
+.status-badge {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 10px;
+    display: inline-block;
+}
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 22px;
+    cursor: pointer;
+}
+.modal-header {
+    margin-top: 30px;
+}
+#appFormModal .modal-body, #spesAppModal .modal-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.scholarship-list ul {
+    list-style: none;
+    padding: 0;
+}
+.scholarship-list li {
+    margin-bottom: 18px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 18px;
+}
+.scholarship-list-description {
+    font-size: 12px;
+    color: #555;
+    margin-top: 5px;
+}
+.scholarship-list-footer {
+    margin-top: 10px;
+}
+.scholarship-list-footer p {
+    font-size: 12px;
+    margin: 5px 0;
+}
+.text-center {
+    text-align: center;
+}
+.icon-check {
+    color: green;
+    font-size: 16px;
+}
+.icon-times {
+    color: red;
+    font-size: 16px;
+}
+#userList {
+    list-style: none;
+    padding: 0;
+}
+#userList li {
+    cursor: pointer;
+    padding: 12px 20px;
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+}
+#userList li.active {
+    background: #e0e7ff;
+    font-weight: bold;
+}
+.chat-list-icon {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.chat-list-icon.icon-bg {
+    text-align: center;
+    line-height: 25px;
+    background-color: #ddd;
+    color: #555;
+}
+#userDetailsModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.4);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+#userDetailsModal > div {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 90%;
+    margin: auto;
+    position: relative;
+}
+#validIdModal .modal-body, #viewDocumentsModal .modal-body {
+    max-height: 450px;
+    overflow-y: auto;
+    text-align: center;
+}
+#validIdModal .modal-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+.concern-message .message-options {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+.concern-message.admin .message-options {
+    color: rgba(255,255,255,0.7);
+}
+.concern-message.user .message-options {
+    color: #333;
+}
+.message-options .three-dots {
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 5px;
+}
+.message-menu {
+    display: none;
+    position: absolute;
+    top: 20px;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 100px;
+}
+.message-menu button {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 12px;
+}
+.message-menu form {
+    margin: 0;
+}
+.message-menu button[name="save_to_documents_scholarship"] {
+    color: #090549;
+    border-bottom: 1px solid #f0f0f0;
+}
+.message-menu button[name="save_to_documents_spes"] {
+    color: #090549;
+}
+.message-menu button[name="delete_admin_message"] {
+    color: #dc3545;
+}
+.message-menu i {
+    margin-right: 5px;
+}
 </style>
 
 <body>
@@ -1586,7 +1892,7 @@ body {
             <div class="menu-container">
             <img src="../../../../<?php echo htmlspecialchars($profile_pic); ?>" alt="Admin Icon" class="user-icon">
             <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
-                <i class="fas fa-chevron-down chevron-icon" id="chevronIcon" style="color: white; cursor: pointer;" onclick="toggleMenu()"></i>
+                <i class="fas fa-chevron-down chevron-icon" id="chevronIcon" onclick="toggleMenu()"></i>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <a href="../../signin.php"><i class="fas fa-sign-out-alt"></i>  Logout</a>  
                 </div>
@@ -1604,7 +1910,7 @@ body {
                 <div class="nav-text">Home</div>
             </div>
             <div class="nav-item" id="history-nav" onclick="showPage('application-page')">
-                <div class="nav-icon"><i class="fas fa-file-alt"></i></div>
+                <div class="nav-icon"><i class="fas fa-user-check"></i></div>
                 <div class="nav-text">Approved Applicants</div>
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
@@ -1612,7 +1918,7 @@ body {
                 <div class="nav-text">Scholarship</div>
             </div>
             <div class="nav-item" id="communication-nav" onclick="showPage('send-updates-page')">
-                <div class="nav-icon"><i class="fas fa-envelope"></i></div>
+                <div class="nav-icon"><i class="fas fa-bullhorn"></i></div>
                 <div class="nav-text">Send Updates</div>
             </div>
             <div class="nav-item" id="total-applicants-nav" onclick="showPage('total-applicants-page')">
@@ -1628,7 +1934,7 @@ body {
                 <div class="nav-text">User Concerns</div>
             </div>
             <div class="nav-item" id="user-request-nav" onclick="showPage('user-request-page')">
-                <div class="nav-icon"><i class="fas fa-id-card"></i></div>
+                <div class="nav-icon"><i class="fas fa-user-plus"></i></div>
                 <div class="nav-text">User Request</div>
             </div>
         </div>
@@ -1706,7 +2012,7 @@ body {
 
         <div id="toast-message">
             <span id="toast-text"></span>
-            <i class="fas fa-check-circle" id="toast-icon" style="margin-left:10px; font-size:16px; vertical-align:middle;"></i>
+            <i class="fas fa-check-circle" id="toast-icon"></i>
         </div>
 
 
@@ -1726,6 +2032,40 @@ body {
         });
         </script>
         <?php unset($_SESSION['message_deleted']); endif; ?>
+
+        <?php if (isset($_SESSION['document_saved_success'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toast = document.getElementById('toast-message');
+            var toastText = document.getElementById('toast-text');
+            var toastIcon = document.getElementById('toast-icon');
+            toastText.textContent = '<?php echo $_SESSION['document_saved_success']; ?>';
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#28a745';
+            toast.classList.add('show');
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3000);
+        });
+        </script>
+        <?php unset($_SESSION['document_saved_success']); endif; ?>
+
+        <?php if (isset($_SESSION['document_saved_error'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toast = document.getElementById('toast-message');
+            var toastText = document.getElementById('toast-text');
+            var toastIcon = document.getElementById('toast-icon');
+            toastText.textContent = '<?php echo $_SESSION['document_saved_error']; ?>';
+            toastIcon.className = 'fas fa-exclamation-triangle';
+            toast.style.background = '#dc3545'; // Red color for error
+            toast.classList.add('show');
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3500);
+        });
+        </script>
+        <?php unset($_SESSION['document_saved_error']); endif; ?>
         
         <?php
             // --- START: MODIFIED APPLICANT COUNT QUERIES (SCHOLARSHIP + SPES) ---
@@ -1783,27 +2123,31 @@ body {
             <h1 class="h1-home-welcome">Welcome, <?php echo htmlspecialchars($admin_name); ?>!</h1>
             <div class="dashboard-boxes">
                 <div class="box">
+                    <div class="box-icon"><i class="fas fa-users"></i></div>
                     <div class="box-title">Total Applicants</div>
-                    <div class="box-value"><?php echo $totalApplicantsCount; ?></div>
+                    <div class="box-value" data-target="<?php echo $totalApplicantsCount; ?>">0</div>
                     <div class="box-description">All applicants in the system</div>
                     <button class="view-details" onclick="showPage('total-applicants-page')">View Details</button>
                 </div>
                 <div class="box">
+                    <div class="box-icon"><i class="fas fa-user-times"></i></div>
                     <div class="box-title">Rejected Applicants</div>
-                    <div class="box-value"><?php echo $rejectedApplicantsCount; ?></div>
+                    <div class="box-value" data-target="<?php echo $rejectedApplicantsCount; ?>">0</div>
                     <div class="box-description">Applicants not meeting criteria</div>
                     <button class="view-details" onclick="showPage('total-applicants-page')">View Details</button>
                 </div>
                 <div class="box">
+                    <div class="box-icon"><i class="fas fa-user-check"></i></div>
                     <div class="box-title">Approved Applicants</div>
-                    <div class="box-value"><?php echo $approvedApplicantsCount + $approvedSpesCount; ?></div>
+                    <div class="box-value" data-target="<?php echo $approvedApplicantsCount + $approvedSpesCount; ?>">0</div>
                     <div class="box-description">Applicants who got approved</div>
                     <button class="view-details" onclick="showPage('application-page')">View Details</button>
                 </div>
                 <div class="box">
+                    <div class="box-icon"><i class="fas fa-graduation-cap"></i></div>
                     <div class="box-title">Listed Scholarships</div>
-                    <div class="box-value"><?php echo $totalListedScholarshipsCount; ?></div>
-                    <div class="box-description"><?php echo $totalListedScholarshipsCount; ?> scholarships have been listed in the system</div>
+                    <div class="box-value" data-target="<?php echo $totalListedScholarshipsCount; ?>">0</div>
+                    <div class="box-description"><?php echo $totalListedScholarshipsCount; ?> scholarships listed</div>
                     <button class="view-details" onclick="showPage('scholarship-page')">View Details</button>
                 </div>
             </div>
@@ -1821,14 +2165,16 @@ body {
         $totalAllApplicants = $totalAllApplicantsResult->fetch_assoc()['total_all_applicants'];
         ?>
         <div class="box">
+            <div class="box-icon"><i class="fas fa-graduation-cap"></i></div>
             <div class="box-title">Scholarship Applicants</div>
-            <div class="box-value"><?php echo htmlspecialchars($totalAllApplicants); ?></div>
+            <div class="box-value" data-target="<?php echo htmlspecialchars($totalAllApplicants); ?>">0</div>
             <div class="box-description">View all scholarship programs and their applicants.</div>
             <button class="view-details" onclick="showPage('total-applicants-scholarship')">View Details</button>
         </div>
         <div class="box">
+            <div class="box-icon"><i class="fas fa-briefcase"></i></div>
             <div class="box-title">SPES Applicants</div>
-            <div class="box-value"><?php echo $totalSpesApplicantsCount; ?></div>
+            <div class="box-value" data-target="<?php echo $totalSpesApplicantsCount; ?>">0</div>
             <div class="box-description">Special Program for Employment of Students (SPES)</div>
             <button class="view-details" onclick="showPage('total-applicants-spes')">View Details</button>
         </div>
@@ -1866,9 +2212,10 @@ body {
                 }
             ?>
 
-            <div id="total-applicants-scholarship" class="page" style="display:none;">
+            <div id="total-applicants-scholarship" class="page">
                 <h2>Scholarship Programs</h2>
                 <p>List of all scholarship programs available in the system:</p>
+                <button class="back-btn" onclick="showPage('total-applicants-page')">Back to Total Applicants</button>
                 <?php
                 // Corrected SQL query to count all applicants for each scholarship
                 $totalApplicantsSql = "SELECT s.*, COUNT(a.application_id) as total_applicants FROM scholarships s LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id GROUP BY s.scholarship_id";
@@ -1876,18 +2223,18 @@ body {
                 $totalApplicantsScholarships = $totalApplicantsResult->fetch_all(MYSQLI_ASSOC);
                 ?>
                 <?php if (count($totalApplicantsScholarships) > 0): ?>
-                    <ul style="list-style: none; padding: 0;">
+                    <ul class="scholarship-list">
                         <?php foreach ($totalApplicantsScholarships as $scholarship): ?>
-                            <li style="margin-bottom: 18px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 18px;">
+                            <li>
                                 <strong><?php echo htmlspecialchars($scholarship['title']); ?></strong>
-                                <div style="font-size:12px; color:#555; margin-top:5px;">
+                                <div class="scholarship-list-description">
                                     <?php echo nl2br(htmlspecialchars($scholarship['description'])); ?>
                                 </div>
-                                <div style="margin-top:10px;">
+                                <div class="scholarship-list-footer">
                                     <span class="scholarship-status <?php echo $scholarship['status'] === 'active' ? 'status-active' : 'status-pending'; ?>">
                                         Status: <?php echo ucfirst($scholarship['status']); ?>
                                     </span>
-                                    <p style="font-size: 12px; margin: 5px 0;">
+                                    <p>
                                         <strong>Total Applicants:</strong> <?php echo htmlspecialchars($scholarship['total_applicants']); ?>
                                     </p>
                                 </div>
@@ -1898,7 +2245,6 @@ body {
                 <?php else: ?>
                     <p>No scholarship programs found.</p>
                 <?php endif; ?>
-                <button class="back-btn" onclick="showPage('total-applicants-page')" style="margin-top:20px;">Back</button>
             </div>
 
 <?php if ($viewScholarshipId): ?>
@@ -1920,12 +2266,12 @@ body {
         </h2>
         <p class="applicants-p">Review, approve, or reject applications for this program.</p>
         
-        <form id="searchForm" method="GET" style="margin-bottom: 20px;">
+        <form id="searchForm" method="GET">
             <input type="hidden" name="view_scholarship" value="<?php echo htmlspecialchars($viewScholarshipId); ?>">
-            <input type="text" name="search" placeholder="Search by Application ID..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
-            <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
+            <input type="text" name="search" placeholder="Search by Application ID..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" class="search-input">
+            <button type="submit" class="search-button">Search</button>
         </form>
-        <button class="back-btn" onclick="window.location.href='admin_dashboard.php#total-applicants-scholarship'" style="margin-top: 0; margin-bottom: 20px;">Back to program</button>
+        <button class="back-btn" onclick="window.location.href='admin_dashboard.php#total-applicants-scholarship'">Back to program</button>
 
         <table class="applicants-table">
             <thead>
@@ -1947,7 +2293,7 @@ body {
                         </td>
                         <td>
                             <?php if ($app['status'] == 'pending'): ?>
-                                <form method="POST" style="display:inline-block; margin-right: 5px;">
+                                <form method="POST" class="inline-form">
                                     <input type="hidden" name="application_id" value="<?php echo $app['application_id']; ?>">
                                     <button type="submit" name="approve_application" class="btn-approve">Approve</button>
                                 </form>
@@ -1955,7 +2301,7 @@ body {
                             <?php else: 
                                 $statusClass = 'status-' . htmlspecialchars($app['status']);
                             ?>
-                                <span style="font-weight:bold; padding: 5px 10px; border-radius: 10px; display: inline-block;" class="<?php echo $statusClass; ?>">
+                                <span class="status-badge <?php echo $statusClass; ?>">
                                     <?php echo ucfirst($app['status']); ?>
                                 </span>
                             <?php endif; ?>
@@ -1963,7 +2309,7 @@ body {
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
-                <tr><td colspan="4" style="text-align:center; padding: 20px;">No applicants found for this scholarship or search query.</td></tr>
+                <tr><td colspan="4" class="text-center" style="padding: 20px;">No applicants found for this scholarship or search query.</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -1971,31 +2317,31 @@ body {
 </div>
 <?php endif; ?>
 
-            <div id="appFormModal" class="modal" style="display:none;">
+            <div id="appFormModal" class="modal">
                 <div class="modal-content">
-                    <span class="modal-close" onclick="closeAppFormModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
-                    <div class="modal-header" style="margin-top:30px;">Scholarship Application Details</div>
-                    <div class="modal-body" id="appFormModalBody" style="max-height: 400px; overflow-y: auto;"></div>
+                    <span class="modal-close" onclick="closeAppFormModal()">&times;</span>
+                    <div class="modal-header">Scholarship Application Details</div>
+                    <div class="modal-body" id="appFormModalBody"></div>
                 </div>
             </div>
 
-            <div id="editSlotsModal" class="modal" style="display:none;">
+            <div id="editSlotsModal" class="modal">
                 <div class="modal-content">
-                    <span class="modal-close" onclick="closeEditSlotsModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
-                    <div class="modal-header" style="margin-top:30px;">Edit Scholarship Slots</div>
+                    <span class="modal-close" onclick="closeEditSlotsModal()">&times;</span>
+                    <div class="modal-header">Edit Scholarship Slots</div>
                     <form method="POST">
                         <input type="hidden" name="scholarship_id" id="editSlotsScholarshipId">
-                        <p style="font-size:14px;">Current Slots: <span id="currentSlotsText"></span></p>
-                        <p style="font-size:14px;">Remaining Slots: <span id="remainingSlotsText"></span></p>
-                        <p style="font-size:14px;">Total Applicants: <span id="totalApplicantsText"></span></p>
-                        <label for="new_slots" style="font-size:14px;">Set New Total Slots:</label>
-                        <input type="number" id="new_slots" name="new_slots" required style="width:100%;padding:8px;margin-top:10px;box-sizing:border-box;">
-                        <button type="submit" name="update_slots" style="margin-top:15px;width:100%;padding:10px;background:#090549;color:white;border:none;border-radius:10px;cursor:pointer;">Update Slots</button>
+                        <p>Current Slots: <span id="currentSlotsText"></span></p>
+                        <p>Remaining Slots: <span id="remainingSlotsText"></span></p>
+                        <p>Total Applicants: <span id="totalApplicantsText"></span></p>
+                        <label for="new_slots">Set New Total Slots:</label>
+                        <input type="number" id="new_slots" name="new_slots" required class="search-input" style="width:100%; box-sizing: border-box; margin-top:10px;">
+                        <button type="submit" name="update_slots" class="search-button" style="margin-top:15px; width:100%;">Update Slots</button>
                     </form>
                 </div>
             </div>
             
-            <div id="total-applicants-spes" class="page" style="display:none;">
+            <div id="total-applicants-spes" class="page">
                 <div class="applicants-container">
                     <h2 class="applicants-h2">SPES Applicants</h2>
                     <p class="applicants-p">Review, approve, or reject applications for the SPES program. Search by Application ID.</p>
@@ -2026,11 +2372,11 @@ body {
                     $spesApplicantsList = $spesResult->fetch_all(MYSQLI_ASSOC);
                     ?>
 
-                    <form id="searchSpesTotalForm" method="GET" style="margin-bottom: 20px;">
-                        <input type="text" name="search_spes_id" placeholder="Search by Application ID..." value="<?php echo htmlspecialchars($searchSpesIdTerm); ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
-                        <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
+                    <form id="searchSpesTotalForm" method="GET">
+                        <input type="text" name="search_spes_id" placeholder="Search by Application ID..." value="<?php echo htmlspecialchars($searchSpesIdTerm); ?>" class="search-input">
+                        <button type="submit" class="search-button">Search</button>
                     </form>
-                    <button class="back-btn" onclick="showPage('total-applicants-page')" style="margin-top: 0; margin-bottom: 20px;">Back</button>
+                    <button class="back-btn" onclick="showPage('total-applicants-page')">Back</button>
 
                     <table class="applicants-table">
                         <thead>
@@ -2053,14 +2399,14 @@ body {
                                         <?php 
                                             $statusClass = 'status-' . htmlspecialchars($app['status']);
                                         ?>
-                                        <span style="font-weight:bold; padding: 5px 10px; border-radius: 10px; display: inline-block;" class="<?php echo $statusClass; ?>">
+                                        <span class="status-badge <?php echo $statusClass; ?>">
                                             <?php echo ucfirst($app['status']); ?>
                                         </span>
                                     </td>
                                     <td>
                                         <button class="btn-outline" onclick='showSpesAppModal(<?php echo json_encode($app); ?>)'>View Details</button>
                                         <?php if ($app['status'] == 'pending'): ?>
-                                            <form method="POST" style="display:inline-block;">
+                                            <form method="POST" class="inline-form" style="margin-left:5px;">
                                                 <input type="hidden" name="spes_application_id" value="<?php echo $app['spes_application_id']; ?>">
                                                 <button type="submit" name="approve_spes_application" class="btn-approve">Approve</button>
                                                 <button type="submit" name="reject_spes_application" class="btn-reject">Reject</button>
@@ -2070,7 +2416,7 @@ body {
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="5" style="text-align:center; padding: 20px;">No SPES applicants found for this search.</td></tr>
+                            <tr><td colspan="5" class="text-center" style="padding: 20px;">No SPES applicants found for this search.</td></tr>
                         <?php endif; ?>
                         </tbody>
                     </table>
@@ -2081,23 +2427,25 @@ body {
                 <p class="p-description-appM">This section displays the total number of approved applicants, categorized by program type.</p>
                 <div class="dashboard-boxes">
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-user-graduate"></i></div>
                         <div class="box-title">Scholarship Awardees</div>
-                        <div class="box-value"><?php echo htmlspecialchars($approvedApplicantsCount); ?></div>
+                        <div class="box-value" data-target="<?php echo htmlspecialchars($approvedApplicantsCount); ?>">0</div>
                         <div class="box-description">View all approved applicants for various scholarship programs.</div>
                         <button class="view-details" onclick="showPage('approved-scholarship-programs-page')">View Details</button>
                     </div>
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-id-badge"></i></div>
                         <div class="box-title">SPES Awardees</div>
-                        <div class="box-value"><?php echo $approvedSpesCount; ?></div>
+                        <div class="box-value" data-target="<?php echo $approvedSpesCount; ?>">0</div>
                         <div class="box-description">View all approved applicants for the SPES program.</div>
                         <button class="view-details" onclick="showPage('approved-spes-list-page')">View Details</button>
                     </div>
                 </div>
             </div>
-            <div id="approved-scholarship-programs-page" class="page" style="display:none;">
+            <div id="approved-scholarship-programs-page" class="page">
                 <h1 class="h1-title-appManagement">Approved Scholarship Programs</h1>
                 <p class="p-description-appM">Select a scholarship program to view its list of approved applicants.</p>
-                <button class="back-btn" onclick="showPage('application-page')" style="margin-bottom: 20px;">Back</button>
+                <button class="back-btn" onclick="showPage('application-page')">Back</button>
                 <div class="dashboard-boxes">
                     <?php foreach ($scholarships as $scholarship): ?>
                         <div class="box">
@@ -2111,7 +2459,7 @@ body {
                     <?php endif; ?>
                 </div>
             </div>
-            <div id="approved-spes-list-page" class="page" style="display:none;">
+            <div id="approved-spes-list-page" class="page">
                 <div class="applicants-container">
                     <h2 class="applicants-h2">Approved SPES Applicants</h2>
                     <p class="applicants-p">Below is the list of users approved for the SPES program.</p>
@@ -2142,11 +2490,11 @@ body {
                     $approvedSpesList = $approvedSpesListResult->fetch_all(MYSQLI_ASSOC);
                     ?>
 
-                    <form id="searchSpesForm" method="GET" style="margin-bottom: 20px;">
-                        <input type="text" name="search_spes_name" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($searchSpesTerm); ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
-                        <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
+                    <form id="searchSpesForm" method="GET">
+                        <input type="text" name="search_spes_name" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($searchSpesTerm); ?>" class="search-input">
+                        <button type="submit" class="search-button">Search</button>
                     </form>
-                    <button class="back-btn" onclick="showPage('application-page')" style="margin-top: 0; margin-bottom: 20px;">Back</button>
+                    <button class="back-btn" onclick="showPage('application-page')">Back</button>
 
                     <table class="applicants-table">
                         <thead>
@@ -2163,7 +2511,7 @@ body {
                                 <tr>
                                     <td><?php echo htmlspecialchars($app['Fname'] . ' ' . $app['Lname']); ?></td>
                                     <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
-                                    <td><span style="font-weight:bold;">SPES</span></td>
+                                    <td><strong>SPES</strong></td>
                                     <td>
                                         <button class="btn-outline" onclick='showSpesAppModal(<?php echo json_encode($app); ?>)'>View Details</button>
                                          <button class="btn-primary" onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $app['user_id']; ?>#user-concerns-page'">
@@ -2173,7 +2521,7 @@ body {
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="4" style="text-align:center; padding: 20px;">No approved SPES applicants found for this search.</td></tr>
+                            <tr><td colspan="4" class="text-center" style="padding: 20px;">No approved SPES applicants found for this search.</td></tr>
                         <?php endif; ?>
                         </tbody>
                     </table>
@@ -2185,12 +2533,12 @@ body {
                 <h2 class="applicants-h2">Approved Applicants for: <?php echo htmlspecialchars($approved_scholarship_title); ?></h2>
                 <p class="applicants-p">Below is the list of users approved for this scholarship.</p>
 
-                <form id="searchApprovedForm" method="GET" style="margin-bottom: 20px;">
+                <form id="searchApprovedForm" method="GET">
                     <input type="hidden" name="view_approved" value="<?php echo htmlspecialchars($viewApprovedScholarshipId); ?>">
-                    <input type="text" name="search_approved_name" placeholder="Search by applicant name..." value="<?php echo isset($_GET['search_approved_name']) ? htmlspecialchars($_GET['search_approved_name']) : ''; ?>" style="padding: 8px; width: 300px; border-radius: 5px; border: 1px solid #ccc;">
-                    <button type="submit" style="padding: 8px 12px; border-radius: 5px; border: none; background-color: #090549; color: white; cursor: pointer;">Search</button>
+                    <input type="text" name="search_approved_name" placeholder="Search by applicant name..." value="<?php echo isset($_GET['search_approved_name']) ? htmlspecialchars($_GET['search_approved_name']) : ''; ?>" class="search-input">
+                    <button type="submit" class="search-button">Search</button>
                 </form>
-                <button class="back-btn" onclick="showPage('approved-scholarship-programs-page')" style="margin-top: 0; margin-bottom: 20px;">Back to Programs</button>
+                <button class="back-btn" onclick="showPage('approved-scholarship-programs-page')">Back to Programs</button>
                 <table class="applicants-table">
                     <thead>
                         <tr>
@@ -2205,7 +2553,7 @@ body {
                         <?php foreach ($approved_applicants as $applicant): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($applicant['Fname'] . ' ' . $applicant['Lname']); ?></td>
-                                <td><span style="font-weight:bold;">Scholarship</span></td>
+                                <td><strong>Scholarship</strong></td>
                                 <td>
                                     <button class="btn-outline" onclick='showUserDetailsModal(<?php echo htmlspecialchars(json_encode($applicant)); ?>)'>View Info</button>
                                 </td>
@@ -2218,7 +2566,7 @@ body {
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="4" style="text-align:center; padding: 20px;">No approved applicants found for this scholarship or search query.</td>
+                            <td colspan="4" class="text-center" style="padding: 20px;">No approved applicants found for this scholarship or search query.</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
@@ -2232,11 +2580,13 @@ body {
                 <p>Access and view document reports here.</p>
                 <div class="dashboard-boxes">
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-file-invoice"></i></div>
                         <div class="box-title">Scholarship Document</div>
                         <div class="box-description">View documents of approved scholarship awardees.</div>
                         <button class="view-details" onclick="showPage('scholarship-document-page')">View Details</button>
                     </div>
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-file-contract"></i></div>
                         <div class="box-title">SPES Documents</div>
                         <div class="box-description">View documents of approved SPES awardees.</div>
                         <button class="view-details" onclick="showPage('spes-document-page')">View Details</button>
@@ -2244,11 +2594,16 @@ body {
                 </div>
             </div>
 
-            <div id="scholarship-document-page" class="page" style="display:none;">
+            <div id="scholarship-document-page" class="page">
                 <div class="applicants-container">
                     <h2 class="applicants-h2">Scholarship Applicant Documents</h2>
                     <p class="applicants-p">Review the submitted documents for all approved scholarship awardees.</p>
-                    <button class="back-btn" onclick="showPage('reports-page')" style="margin-bottom: 20px;">Back to Reports</button>
+                    <form method="GET">
+                        <input type="text" name="search_scholarship_docs" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($scholarshipDocsSearch ?? ''); ?>" class="search-input">
+                        <button type="submit" class="search-button">Search</button>
+                        <input type="hidden" name="search_spes_docs" value="<?php echo htmlspecialchars($spesDocsSearch ?? ''); ?>">
+                    </form>
+                    <button class="back-btn" onclick="showPage('reports-page')">Back to Reports</button>
                     <table class="applicants-table">
                         <thead>
                             <tr>
@@ -2268,37 +2623,42 @@ body {
                                 ?>
                                 <tr>
                                     <td>
-                                        <button class="btn-outline" <?php if(!$has_docs) echo 'disabled'; ?> onclick='viewUserDocuments(<?php echo json_encode($user['documents']); ?>)'>View Documents</button>
+                                        <button class="btn-outline" <?php if(!$has_docs) echo 'disabled'; ?> onclick='viewUserDocuments(<?php echo json_encode($user['documents']); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>View Documents</button>
                                     </td>
                                     <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
-                                    <td style="text-align: center;"><i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i></td>
-                                    <td style="text-align: center;">
+                                    <td class="text-center"><i class="fas fa-check-circle icon-check"></i></td>
+                                    <td class="text-center">
                                         <?php if ($has_docs): ?>
-                                            <i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i>
+                                            <i class="fas fa-check-circle icon-check"></i>
                                         <?php else: ?>
-                                            <i class="fas fa-times-circle" style="color: red; font-size: 16px;"></i>
+                                            <i class="fas fa-times-circle icon-times"></i>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span style="font-weight:bold; padding: 5px 10px; border-radius: 10px; display: inline-block;" class="<?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
+                                        <span class="status-badge <?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
                                             <?php echo $status; ?>
                                         </span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php if (count($scholarship_docs_users) === 0): ?>
-                                <tr><td colspan="5" style="text-align:center; padding: 20px;">No approved scholarship applicants found.</td></tr>
+                                <tr><td colspan="5" class="text-center" style="padding: 20px;">No approved scholarship applicants found.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div id="spes-document-page" class="page" style="display:none;">
+            <div id="spes-document-page" class="page">
                 <div class="applicants-container">
                     <h2 class="applicants-h2">SPES Applicant Documents</h2>
                     <p class="applicants-p">Review the submitted documents for all approved SPES awardees.</p>
-                    <button class="back-btn" onclick="showPage('reports-page')" style="margin-bottom: 20px;">Back to Reports</button>
+                    <form method="GET">
+                        <input type="text" name="search_spes_docs" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($spesDocsSearch ?? ''); ?>" class="search-input">
+                        <button type="submit" class="search-button">Search</button>
+                        <input type="hidden" name="search_scholarship_docs" value="<?php echo htmlspecialchars($scholarshipDocsSearch ?? ''); ?>">
+                    </form>
+                    <button class="back-btn" onclick="showPage('reports-page')">Back to Reports</button>
                     <table class="applicants-table">
                         <thead>
                             <tr>
@@ -2313,39 +2673,49 @@ body {
                             <?php foreach ($spes_docs_users as $user): ?>
                                 <?php
                                     $id_paths_array = json_decode($user['id_image_paths'], true);
+                                    $reqs_paths_array = json_decode($user['spes_documents_path'], true);
+
                                     $has_id = is_array($id_paths_array) && !empty($id_paths_array);
+                                    
                                     $has_reqs = !empty($user['spes_documents_path']);
+                                    // A more robust check if we are saving multiple reqs as JSON
+                                    if (is_string($user['spes_documents_path'])) {
+                                        $reqs_temp = json_decode($user['spes_documents_path'], true);
+                                        $has_reqs = is_array($reqs_temp) && !empty($reqs_temp);
+                                    }
+
+
                                     $status = $has_id && $has_reqs ? 'Complete' : 'INC';
                                 ?>
                                 <tr>
                                     <td>
-                                        <button class="btn-outline" <?php if(!$has_id && !$has_reqs) echo 'disabled'; ?> onclick='viewSpesUserDocuments(<?php echo json_encode(["ids" => $user["id_image_paths"], "reqs" => $user["spes_documents_path"]]); ?>)'>View Documents</button>
+                                        <button class="btn-outline" <?php if(!$has_id && !$has_reqs) echo 'disabled'; ?> onclick='viewSpesUserDocuments(<?php echo json_encode(["ids" => $user["id_image_paths"], "reqs" => $user["spes_documents_path"]]); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>View Documents</button>
                                     </td>
                                     <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
-                                    <td style="text-align: center;"><i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i></td>
-                                    <td style="text-align: center;">
-                                        <?php if ($has_id && $has_reqs): ?>
-                                            <i class="fas fa-check-circle" style="color: green; font-size: 16px;"></i>
+                                    <td class="text-center"><i class="fas fa-check-circle icon-check"></i></td>
+                                    <td class="text-center">
+                                        <?php if ($has_reqs): ?>
+                                            <i class="fas fa-check-circle icon-check"></i>
                                         <?php else: ?>
-                                            <i class="fas fa-times-circle" style="color: red; font-size: 16px;"></i>
+                                            <i class="fas fa-times-circle icon-times"></i>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span style="font-weight:bold; padding: 5px 10px; border-radius: 10px; display: inline-block;" class="<?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
+                                        <span class="status-badge <?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
                                             <?php echo $status; ?>
                                         </span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                              <?php if (count($spes_docs_users) === 0): ?>
-                                <tr><td colspan="5" style="text-align:center; padding: 20px;">No approved SPES applicants found.</td></tr>
+                                <tr><td colspan="5" class="text-center" style="padding: 20px;">No approved SPES applicants found.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-<div id="user-request-page" class="page" style="display:none;">
+<div id="user-request-page" class="page">
     <div class="applicants-container">
         <h2 class="applicants-h2">User Account Requests</h2>
         <p class="applicants-p">Review and manage user registration requests, including uploaded IDs for verification.</p>
@@ -2381,11 +2751,11 @@ body {
                     </td>
 
                     <td>
-                        <form method="POST" style="display:inline-block; margin-right: 5px;">
+                        <form method="POST" class="inline-form">
                             <input type="hidden" name="user_id" value="<?php echo $user['user_id']; ?>">
                             <button type="submit" name="approve_user" class="btn-approve">Approve</button>
                         </form>
-                        <form method="POST" style="display:inline-block; margin-right: 5px;">
+                        <form method="POST" class="inline-form">
                             <input type="hidden" name="user_id" value="<?php echo $user['user_id']; ?>">
                             <button type="submit" name="reject_user" class="btn-reject" onclick="return confirm('Are you sure you want to reject this user?');">Reject</button>
                         </form>
@@ -2397,7 +2767,7 @@ body {
             else:
             ?>
                 <tr>
-                    <td colspan="4" style="text-align:center; padding: 20px;">No pending user requests found.</td>
+                    <td colspan="4" class="text-center" style="padding: 20px;">No pending user requests found.</td>
                 </tr>
             <?php
             endif; 
@@ -2406,20 +2776,19 @@ body {
         </table>
     </div>
 </div>
-<div id="user-concerns-page" class="page" style="display:none;">
+<div id="user-concerns-page" class="page">
     <h2>User Concerns Chat</h2>
-    <div class="concerns-chat-container" style="display: flex;">
-        <div class="concerns-chat-list" style="width: 220px; border-right: 1px solid #eee; padding-right: 10px;">
+    <div class="concerns-chat-container">
+        <div class="concerns-chat-list">
             <h3>Conversations</h3>
-            <ul id="userList" style="list-style: none; padding: 0;">
+            <ul id="userList">
                 
                 <?php foreach ($scholarships as $group): 
-                    $isGroupActive = ($selectedGroupId == $group['scholarship_id']) ? 'background:#e0e7ff; font-weight:bold;' : '';
+                    $isGroupActive = ($selectedGroupId == $group['scholarship_id']) ? 'active' : '';
                 ?>
-                    <li onclick="window.location.href='admin_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#user-concerns-page'"
-                        style="cursor:pointer; padding: 12px 20px; border-bottom: 1px solid #eee; transition: background 0.2s; <?php echo $isGroupActive; ?>">
-                        <i class="fas fa-users" style="width:25px; height:25px; border-radius:50%; vertical-align:middle; margin-right:8px; text-align:center; line-height:25px; background-color: #ddd; color: #555;"></i>
-                        <span style="font-weight: bold;"><?php echo htmlspecialchars($group['title']); ?></span>
+                    <li class="<?php echo $isGroupActive; ?>" onclick="window.location.href='admin_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#user-concerns-page'">
+                        <i class="fas fa-users chat-list-icon icon-bg"></i>
+                        <strong><?php echo htmlspecialchars($group['title']); ?></strong>
                     </li>
                 <?php endforeach; ?>
 
@@ -2428,44 +2797,107 @@ body {
                 <?php endif; ?>
 
                 <?php foreach ($usersWithConcerns as $user): 
-                    $isUserActive = ($selectedUserId == $user['user_id']) ? 'background:#e0e7ff; font-weight:bold;' : '';
+                    $isUserActive = ($selectedUserId == $user['user_id']) ? 'active' : '';
                 ?>
-                    <li onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $user['user_id']; ?>#user-concerns-page'"
-                        style="cursor:pointer; padding: 12px 20px; border-bottom: 1px solid #eee; transition: background 0.2s; <?php echo $isUserActive; ?>">
-                        <img src="../../../../<?php echo htmlspecialchars(!empty($user['profile_pic']) ? $user['profile_pic'] : 'images/user.png'); ?>" style="width:25px;height:25px;border-radius:50%;vertical-align:middle;margin-right:8px;">
+                    <li class="<?php echo $isUserActive; ?>" onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $user['user_id']; ?>#user-concerns-page'">
+                        <img src="../../../../<?php echo htmlspecialchars(!empty($user['profile_pic']) ? $user['profile_pic'] : 'images/user.png'); ?>" class="chat-list-icon">
                         <?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>
                     </li>
                 <?php endforeach; ?>
             </ul>
         </div>
-        <div class="concerns-chat-main" style="flex:1; display:flex; flex-direction:column;">
-            <div class="concerns-chat-header" id="concernChatHeader" style="padding:15px 20px; background:#f7f7fa; border-bottom:1px solid #eee; font-weight:bold; font-size:16px;">
+        <div class="concerns-chat-main">
+            <div class="concerns-chat-header" id="concernChatHeader">
                 <?php echo $chatTitle; ?>
             </div>
-            <div class="concerns-chat-messages" id="concernChatMessages" style="flex:1; overflow-y:auto; padding:20px; background:#f7f7fa;">
+            <div class="concerns-chat-messages" id="concernChatMessages">
                 <?php if ($selectedGroupId || $selectedUserId): ?>
+                    <?php
+                        // --- START: MODIFIED - PRE-FETCH APPROVAL STATUSES ---
+                        $userIdsInChat = array_unique(array_column($chatMessages, 'user_id'));
+                        $approvedScholarUsers = [];
+                        $approvedSpesUsers = [];
+
+                        if (!empty($userIdsInChat)) {
+                            // Sanitize to prevent issues, although we control the user_id values
+                            $userIdsInChat = array_filter($userIdsInChat, 'is_numeric');
+                            if(!empty($userIdsInChat)){
+                                $userIdsPlaceholder = implode(',', array_fill(0, count($userIdsInChat), '?'));
+                                $types = str_repeat('i', count($userIdsInChat));
+                                
+                                $stmt = $conn->prepare("SELECT DISTINCT user_id FROM applications WHERE user_id IN ($userIdsPlaceholder) AND status = 'approved'");
+                                $stmt->bind_param($types, ...$userIdsInChat);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                while ($row = $result->fetch_assoc()) { $approvedScholarUsers[] = $row['user_id']; }
+
+                                $stmt = $conn->prepare("SELECT DISTINCT user_id FROM spes_applications WHERE user_id IN ($userIdsPlaceholder) AND status = 'approved'");
+                                $stmt->bind_param($types, ...$userIdsInChat);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                while ($row = $result->fetch_assoc()) { $approvedSpesUsers[] = $row['user_id']; }
+                            }
+                        }
+                        // --- END: MODIFIED - PRE-FETCH APPROVAL STATUSES ---
+                    ?>
+
                     <?php foreach ($chatMessages as $msg): ?>
-                        <div class="concern-message <?php echo $msg['sender'] === 'admin' ? 'admin' : 'user'; ?>"
-                             style="max-width:70%;padding:10px 15px;border-radius:15px;margin:5px 0;word-break:break-word;position:relative;
-                             <?php echo $msg['sender'] === 'admin' ? 'align-self:flex-end;background:#090549;color:white;margin-left:auto;' : 'align-self:flex-start;background:#e9ecef;color:#333;'; ?>">
+                        <div class="concern-message <?php echo $msg['sender'] === 'admin' ? 'admin' : 'user'; ?>">
                             
-                            <?php if ($msg['sender'] === 'admin'): ?>
-                                <div class="message-options" style="position:absolute;top:5px;right:5px;">
-                                    <span class="three-dots" onclick="toggleMessageMenu(<?php echo $msg['id']; ?>)" style="cursor:pointer;color:rgba(255,255,255,0.7);font-size:16px;padding:2px 5px;">⋮</span>
-                                    <div class="message-menu" id="menu-<?php echo $msg['id']; ?>" style="display:none;position:absolute;top:20px;right:0;background:white;border:1px solid #ddd;border-radius:5px;box-shadow:0 2px 10px rgba(0,0,0,0.1);z-index:1000;min-width:100px;">
-                                        <form method="POST" style="margin:0;">
+                            <?php 
+                            // --- START: MODIFIED - CONDITIONAL THREE-DOTS MENU ---
+                            if ($msg['sender'] === 'user' && !empty($msg['attachment_path'])) {
+                                $isApprovedScholar = in_array($msg['user_id'], $approvedScholarUsers);
+                                $isApprovedSpes = in_array($msg['user_id'], $approvedSpesUsers);
+                                if ($isApprovedScholar || $isApprovedSpes) {
+                            ?>
+                                <div class="message-options">
+                                    <span class="three-dots" onclick="toggleMessageMenu(<?php echo $msg['id']; ?>)">⋮</span>
+                                    <div class="message-menu" id="menu-<?php echo $msg['id']; ?>">
+                                        <?php if ($isApprovedScholar): ?>
+                                        <form method="POST">
+                                            <input type="hidden" name="message_id" value="<?php echo $msg['id']; ?>">
+                                            <input type="hidden" name="user_id" value="<?php echo $msg['user_id']; ?>">
+                                            <button type="submit" name="save_to_documents_scholarship">
+                                                <i class="fas fa-graduation-cap"></i>Save to Scholarship
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
+                                        <?php if ($isApprovedSpes): ?>
+                                        <form method="POST">
+                                             <input type="hidden" name="message_id" value="<?php echo $msg['id']; ?>">
+                                            <input type="hidden" name="user_id" value="<?php echo $msg['user_id']; ?>">
+                                            <button type="submit" name="save_to_documents_spes">
+                                                <i class="fas fa-briefcase"></i>Save to SPES
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php 
+                                } // end if is approved
+                            } elseif ($msg['sender'] === 'admin') { 
+                            ?>
+                                <div class="message-options">
+                                    <span class="three-dots" onclick="toggleMessageMenu(<?php echo $msg['id']; ?>)">⋮</span>
+                                    <div class="message-menu" id="menu-<?php echo $msg['id']; ?>">
+                                        <form method="POST">
                                             <input type="hidden" name="message_id" value="<?php echo $msg['id']; ?>">
                                              <?php if ($selectedUserId): ?><input type="hidden" name="chat_user_id" value="<?php echo $selectedUserId; ?>"><?php endif; ?>
                                              <?php if ($selectedGroupId): ?><input type="hidden" name="chat_group_id" value="<?php echo $selectedGroupId; ?>"><?php endif; ?>
-                                            <button type="submit" name="delete_admin_message" onclick="return confirm('Are you sure you want to delete this message?')" style="width:100%;padding:8px 12px;border:none;background:none;color:#dc3545;cursor:pointer;text-align:left;font-size:12px;">
-                                                <i class="fas fa-trash-alt" style="margin-right:5px;"></i>Delete
+                                            <button type="submit" name="delete_admin_message" onclick="return confirm('Are you sure you want to delete this message?')">
+                                                <i class="fas fa-trash-alt"></i>Delete
                                             </button>
                                         </form>
                                     </div>
                                 </div>
-                            <?php endif; ?>
+                            <?php 
+                            } // end if sender
+                            // --- END: MODIFIED - CONDITIONAL THREE-DOTS MENU ---
+                            ?>
                             
                             <div class="concern-message-content" style="<?php echo $msg['sender'] === 'admin' ? 'margin-right:15px;' : ''; ?>">
+                                <?php if($msg['sender'] === 'user' && $selectedGroupId) echo "<strong>" . htmlspecialchars($msg['Fname'] . ' ' . $msg['Lname']) . ":</strong><br>"; ?>
                                 <?php if (!empty($msg['message'])) echo nl2br(htmlspecialchars($msg['message'])); ?>
                                 
                                 <?php if (!empty($msg['attachment_path'])): ?>
@@ -2477,23 +2909,23 @@ body {
                                     </div>
                                 <?php endif; ?>
                             </div>
-                            <div class="message-timestamp" style="font-size:0.7em;opacity:0.7;text-align:right;margin-top:5px;">
+                            <div class="concern-message-timestamp">
                                 <?php echo date('M d, Y h:i A', strtotime($msg['created_at'])); ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div style="color:#888; text-align: center; margin-top: 20px;">Please select a conversation to start chatting.</div>
+                    <div class="text-center" style="color:#888; margin-top: 20px;">Please select a conversation to start chatting.</div>
                 <?php endif; ?>
             </div>
             <?php if ($selectedGroupId || $selectedUserId): ?>
-                <form class="concerns-chat-input" method="POST" enctype="multipart/form-data" autocomplete="off" style="display:flex;gap:10px;padding:15px;border-top:1px solid #eee;background:#fff;">
+                <form class="concerns-chat-input" method="POST" enctype="multipart/form-data" autocomplete="off">
                     
                     <input type="file" name="attachment" id="adminChatAttachment" style="display: none;">
-                    <button type="button" class="upload-btn" onclick="document.getElementById('adminChatAttachment').click();" title="Attach file" style="background:none; border:none; color:#555; font-size:20px; cursor:pointer; padding:0 10px;">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('adminChatAttachment').click();" title="Attach file">
                         <i class="fas fa-paperclip"></i>
                     </button>
-                    <textarea name="admin_reply" id="concernMessageInput" placeholder="Type your reply..." style="flex:1;padding:10px;border:1px solid #ddd;border-radius:20px;resize:none;height:40px;font-family:inherit;font-size:13px;"></textarea>
+                    <textarea name="admin_reply" id="concernMessageInput" placeholder="Type your reply..."></textarea>
                     
                     <?php if ($selectedGroupId): ?>
                         <input type="hidden" name="chat_group_id" value="<?php echo $selectedGroupId; ?>">
@@ -2501,7 +2933,7 @@ body {
                         <input type="hidden" name="chat_user_id" value="<?php echo $selectedUserId; ?>">
                     <?php endif; ?>
 
-                    <button type="submit" name="send_admin_reply" style="background:#090549;color:white;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;transition:background 0.3s;font-size:16px;display:flex;align-items:center;justify-content:center;">
+                    <button type="submit" name="send_admin_reply">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </form>
@@ -2533,14 +2965,14 @@ body {
                     $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
                 ?>
                     <div class="scholarship-card">
-                        <h3 style="font-size: 15px;"><?php echo htmlspecialchars($scholarship['title']); ?></h3>
+                        <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
                         <div class="scholarship-details">
                             <p><strong>Description:</strong> <?php echo nl2br(htmlspecialchars($scholarship['description'])); ?></p>
                             <p><strong>Requirements:</strong> <?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
                             <p><strong>Benefits:</strong> <?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
                             <p><strong>Eligibility:</strong> <?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
                         </div>
-                        <div style="margin-top:10px;">
+                        <div>
                             <span class="scholarship-status <?php echo $scholarship['status'] === 'active' ? 'status-active' : 'status-pending'; ?>">
                                 Status: <?php echo ucfirst($scholarship['status']); ?>
                             </span>
@@ -2550,7 +2982,7 @@ body {
                             </p>
                         </div>
                         <div class="scholarship-footer">
-                            <form method="POST" style="display:inline;">
+                            <form method="POST" class="inline-form">
                                 <input type="hidden" name="id" value="<?php echo $scholarship['scholarship_id']; ?>">
                                 <?php if ($scholarship['status'] === 'pending'): ?>
                                     <button type="submit" name="publish_scholarship" class="btn-publish">Publish</button>
@@ -2571,31 +3003,31 @@ body {
                 <?php endif; ?>
             </div>
 
-            <div id="rejectionModal" class="modal" style="display:none;">
+            <div id="rejectionModal" class="modal">
                 <div class="modal-content">
                     <span class="modal-close" onclick="closeRejectionModal()">&times;</span>
                     <div class="modal-header">Reject Application</div>
                     <form method="POST">
                         <input type="hidden" name="application_id" id="rejectionAppId">
-                        <label for="rejectionMessage" style="font-size:14px;">Reason for rejection:</label>
+                        <label for="rejectionMessage">Reason for rejection:</label>
                         <textarea id="rejectionMessage" name="rejection_message" rows="5" required style="width:100%;padding:10px;box-sizing:border-box;margin-top:5px;"></textarea>
                         <button type="submit" name="reject_application_with_message" class="btn-danger" style="margin-top:10px;">Submit Rejection</button>
                     </form>
                 </div>
             </div>
             
-            <div id="validIdModal" class="modal" style="display:none;">
+            <div id="validIdModal" class="modal">
                 <div class="modal-content">
-                    <span class="modal-close" onclick="closeValidIdModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
-                    <div class="modal-header" style="margin-top:30px;">User Submitted ID</div>
-                    <div class="modal-body" id="validIdModalBody" style="max-height: 450px; overflow-y: auto; text-align: center;"></div>
+                    <span class="modal-close" onclick="closeValidIdModal()">&times;</span>
+                    <div class="modal-header">User Submitted ID</div>
+                    <div class="modal-body" id="validIdModalBody"></div>
                 </div>
             </div>
-            <div id="spesAppModal" class="modal" style="display:none;">
+            <div id="spesAppModal" class="modal">
                 <div class="modal-content">
-                    <span class="modal-close" onclick="closeSpesAppModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
-                    <div class="modal-header" style="margin-top:30px;">SPES Application Details</div>
-                    <div class="modal-body" id="spesAppModalBody" style="max-height: 400px; overflow-y: auto;"></div>
+                    <span class="modal-close" onclick="closeSpesAppModal()">&times;</span>
+                    <div class="modal-header">SPES Application Details</div>
+                    <div class="modal-body" id="spesAppModalBody"></div>
                 </div>
             </div>
             <div id="send-updates-page" class="page">
@@ -2618,7 +3050,7 @@ Closing/Signature:" rows="5" required></textarea>
                         <p><?php echo nl2br(htmlspecialchars($message['message'])); ?></p>
                         <p><strong>Deadline:</strong> <?php echo $message['deadline'] ?: 'No deadline'; ?></p>
                         <div class="message-footer">
-                            <form method="POST" style="display:inline;">
+                            <form method="POST" class="inline-form">
                                 <input type="hidden" name="message_id" value="<?php echo $message['notification_id']; ?>">
                                 <button type="submit" name="delete_message" class="btn-delete-message" title="Delete" onclick="return confirm('Are you sure you want to delete this message?')">
                                     <i class="fas fa-trash-alt"></i>
@@ -2634,19 +3066,19 @@ Closing/Signature:" rows="5" required></textarea>
                 </div>
             </div>
 
-            <div id="userDetailsModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
-                <div style="background:#fff; padding:30px; border-radius:10px; max-width:500px; width:90%; margin:auto; position:relative;">
-                    <span style="position:absolute; top:10px; right:15px; font-size:22px; cursor:pointer;" onclick="closeUserDetailsModal()">&times;</span>
-                    <h2 style="border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 20px;">User Details</h2>
+            <div id="userDetailsModal">
+                <div>
+                    <span onclick="closeUserDetailsModal()">&times;</span>
+                    <h2>User Details</h2>
                     <div id="userDetailsContent"></div>
                 </div>
             </div>
 
-             <div id="viewDocumentsModal" class="modal" style="display:none;">
+             <div id="viewDocumentsModal" class="modal">
                 <div class="modal-content">
-                    <span class="modal-close" onclick="closeViewDocumentsModal()" style="position:absolute;top:10px;right:15px;font-size:22px;cursor:pointer;">&times;</span>
-                    <div class="modal-header" style="margin-top:30px;">Applicant's Documents</div>
-                    <div class="modal-body" id="viewDocumentsModalBody" style="max-height: 400px; overflow-y: auto; text-align: center; padding-top: 20px;"></div>
+                    <span class="modal-close" onclick="closeViewDocumentsModal()">&times;</span>
+                    <div class="modal-header" id="viewDocumentsModalHeader">Applicant's Documents</div>
+                    <div class="modal-body" id="viewDocumentsModalBody"></div>
                 </div>
             </div>
 
@@ -2665,7 +3097,6 @@ Closing/Signature:" rows="5" required></textarea>
 
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
-            page.style.display = 'none';
             page.classList.remove('active');
         });
         
@@ -2677,8 +3108,8 @@ Closing/Signature:" rows="5" required></textarea>
         }
         history.pushState({}, '', url);
 
-        document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
+
         switch (pageId) {
             case 'home-page':
                 highlightActiveNav('home-nav');
@@ -2761,6 +3192,36 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleIcon.classList.add('fa-chevron-left');
         }
     });
+
+    // --- NEW: Number Animation Logic ---
+    const animateValue = (obj, start, end, duration) => {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                const targetValue = parseInt(el.getAttribute('data-target'), 10);
+                animateValue(el, 0, targetValue, 1500); // Animate over 1.5 seconds
+                observer.unobserve(el); // Stop observing after animation
+            }
+        });
+    }, { threshold: 0.5 }); // Trigger when 50% of the element is visible
+
+    document.querySelectorAll('.box-value').forEach(el => {
+        observer.observe(el);
+    });
+    // --- END: Number Animation Logic ---
 
     // --- START: JAVASCRIPT FOR APPROVED APPLICANT SEARCH ---
     const searchApprovedForm = document.getElementById('searchApprovedForm');
@@ -3116,6 +3577,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- START: NEW JAVASCRIPT FOR VALID ID MODAL ---
+    // --- START: RESTORED WORKING JAVASCRIPT FOR VALID ID MODAL ---
     function showValidIdModal(validIdJson) {
         let idFiles;
         try {
@@ -3130,20 +3592,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if(idFiles[0]) {
                 const frontPath = `<?php echo BASE_URL; ?>${idFiles[0].replace('../../../../', '').replace('form_prac/', '')}`;
                 html += `<h4>Front of ID</h4>
-                         <a href="${frontPath}" target="_blank">
+                        <a href="${frontPath}" target="_blank">
                             <img src="${frontPath}" alt="Front of ID" style="max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 15px;">
-                         </a>`;
+                        </a>`;
             } else {
-                 html += `<h4>Front of ID</h4><p>Not provided.</p>`;
+                html += `<h4>Front of ID</h4><p>Not provided.</p>`;
             }
 
             // Display Back ID
             if(idFiles[1]) {
                 const backPath = `<?php echo BASE_URL; ?>${idFiles[1].replace('../../../../', '').replace('form_prac/', '')}`;
                 html += `<h4>Back of ID</h4>
-                         <a href="${backPath}" target="_blank">
+                        <a href="${backPath}" target="_blank">
                             <img src="${backPath}" alt="Back of ID" style="max-width: 100%; height: auto; border-radius: 5px;">
-                         </a>`;
+                        </a>`;
             } else {
                 html += `<h4>Back of ID</h4><p>Not provided.</p>`;
             }
@@ -3161,31 +3623,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- END: NEW JAVASCRIPT FOR VALID ID MODAL ---
 
     // --- START: JAVASCRIPT FOR VIEW DOCUMENTS MODAL ---
-    function viewUserDocuments(documents) {
+    function viewUserDocuments(documents, userName) {
+        document.getElementById('viewDocumentsModalHeader').textContent = `Documents for ${userName}`;
         let docs;
         try {
-            // For scholarship documents, it's a JSON string of an array
             docs = JSON.parse(documents);
         } catch (e) {
-            // For SPES, it's a single path string, or null/empty
             docs = documents ? [documents] : [];
         }
 
         let html = '';
         if (Array.isArray(docs) && docs.length > 0 && docs[0] !== null) {
             docs.forEach(docPath => {
-                if (docPath) { // Check if the path is not null
+                if (docPath) { 
                     const fullPath = `<?php echo BASE_URL; ?>${docPath.replace('../../../../', '')}`;
                     const isImage = /\.(jpg|jpeg|png|gif)$/i.test(docPath);
+                    const fileName = docPath.substring(docPath.indexOf('_') + 1);
                     
-                    if (isImage) {
-                         html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
-                                     <img src="${fullPath}" alt="Document" style="max-width: 150px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
-                                  </a>`;
-                    } else {
-                        const fileName = docPath.split('/').pop();
-                        html += `<p><a href="${fullPath}" target="_blank" style="color:#090549;">View Document: ${fileName}</a></p>`;
-                    }
+                    html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline">
+                    <i class="fas fa-download"></i> ${fileName}</a></p>`;
                 }
             });
         }
@@ -3203,7 +3659,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('viewDocumentsModalBody').innerHTML = '';
     }
 
-    function viewSpesUserDocuments(spesDocs) {
+    function viewSpesUserDocuments(spesDocs, userName) {
+        document.getElementById('viewDocumentsModalHeader').textContent = `SPES Documents for ${userName}`;
         let html = '';
         
         // Handle ID images
@@ -3214,9 +3671,9 @@ document.addEventListener('DOMContentLoaded', function() {
                  idPaths.forEach(path => {
                     if (path) {
                         const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
-                        html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
-                                     <img src="${fullPath}" alt="SPES ID Document" style="max-width: 150px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
-                                  </a>`;
+                        const fileName = path.substring(path.indexOf('_') + 1);
+                        html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline">
+                        <i class="fas fa-id-card"></i> ${fileName}</a></p>`;
                     }
                 });
             } else {
@@ -3228,11 +3685,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Handle requirement documents
         html += '<hr style="margin: 20px 0;"><h4>Requirement Documents:</h4>';
-        if (spesDocs.reqs) {
-            const fullPath = `<?php echo BASE_URL; ?>${spesDocs.reqs.replace('../../../../', '')}`;
-            const fileName = spesDocs.reqs.split('/').pop();
-            html += `<p><a href="${fullPath}" target="_blank" style="color:#090549;">View Document: ${fileName}</a></p>`;
-        } else {
+        try {
+             const reqsPaths = JSON.parse(spesDocs.reqs);
+             if(Array.isArray(reqsPaths) && reqsPaths.length > 0) {
+                 reqsPaths.forEach(path => {
+                    if (path) {
+                        const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
+                        const fileName = path.substring(path.indexOf('_') + 1);
+                        html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline">
+                        <i class="fas fa-file-alt"></i> ${fileName}</a></p>`;
+                    }
+                });
+             } else {
+                 html += '<p>No requirement documents were uploaded.</p>';
+             }
+        } catch(e) {
              html += '<p>No requirement documents were uploaded.</p>';
         }
 

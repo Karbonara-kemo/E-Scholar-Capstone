@@ -27,6 +27,18 @@ if ($result->num_rows > 0) {
     exit();
 }
 
+// --- START: NEW SCHOLARSHIP APPROVAL STATUS CHECK ---
+$isApprovedForAnyScholarship = false;
+$checkApprovalSql = "SELECT 1 FROM applications WHERE user_id = ? AND status = 'approved' LIMIT 1";
+$checkApprovalStmt = $conn->prepare($checkApprovalSql);
+$checkApprovalStmt->bind_param("i", $userId);
+$checkApprovalStmt->execute();
+$checkApprovalResult = $checkApprovalStmt->get_result();
+if ($checkApprovalResult->num_rows > 0) {
+    $isApprovedForAnyScholarship = true;
+}
+// --- END: NEW SCHOLARSHIP APPROVAL STATUS CHECK ---
+
 // --- START: Scholarship FORM SUBMISSION LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
     $scholarshipId = $_POST['scholarship_id'];
@@ -96,8 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     if (!$stmt->execute()) {
         die("Error: " . $stmt->error);
     } else {
-        header("Location: user_dashboard.php");
+        // --- START: MODIFIED - SET SESSION AND REDIRECT ---
+        $_SESSION['application_submitted'] = true;
+        header("Location: user_dashboard.php#scholarships-page");
         exit();
+        // --- END: MODIFIED - SET SESSION AND REDIRECT ---
     }
 }
 // --- END: Scholarship FORM SUBMISSION LOGIC ---
@@ -228,8 +243,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     );
 
     if ($stmt->execute()) {
+        // --- START: MODIFIED - SET SESSION AND REDIRECT ---
+        $_SESSION['spes_application_submitted'] = true;
         header("Location: user_dashboard.php#spes-page");
         exit();
+        // --- END: MODIFIED - SET SESSION AND REDIRECT ---
     } else {
         die("Error submitting SPES application: " . $stmt->error);
     }
@@ -263,12 +281,19 @@ $scholarships = $scholarshipResult->fetch_all(MYSQLI_ASSOC);
 
 $totalScholarships = count($scholarships);
 
-$countApplicationsSql = "SELECT COUNT(application_id) as total_applications FROM applications WHERE user_id = ?";
-$countStmt = $conn->prepare($countApplicationsSql);
-$countStmt->bind_param("i", $userId);
+// --- START: MODIFIED - Count total applications from both Scholarship and SPES tables ---
+$countCombinedSql = "
+    SELECT 
+        (SELECT COUNT(*) FROM applications WHERE user_id = ?) + 
+        (SELECT COUNT(*) FROM spes_applications WHERE user_id = ?) 
+    AS total_applications
+";
+$countStmt = $conn->prepare($countCombinedSql);
+$countStmt->bind_param("ii", $userId, $userId);
 $countStmt->execute();
 $countResult = $countStmt->get_result()->fetch_assoc();
 $totalApplications = $countResult['total_applications'];
+// --- END: MODIFIED ---
 
 // Fetch scholarship groups the user is APPROVED for
 $approvedGroups = [];
@@ -283,6 +308,22 @@ $approvedResult = $approvedStmt->get_result();
 while ($row = $approvedResult->fetch_assoc()) {
     $approvedGroups[] = $row;
 }
+
+// --- START: NEW SPES APPLICATION STATUS CHECK ---
+$spesApplicationStatus = null;
+$checkSpesSql = "SELECT status FROM spes_applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1";
+$checkSpesStmt = $conn->prepare($checkSpesSql);
+$checkSpesStmt->bind_param("i", $userId);
+$checkSpesStmt->execute();
+$checkSpesResult = $checkSpesStmt->get_result();
+if ($checkSpesResult->num_rows > 0) {
+    $spesApp = $checkSpesResult->fetch_assoc();
+    // Only consider 'pending' or 'approved' status as a blocker
+    if ($spesApp['status'] === 'pending' || $spesApp['status'] === 'approved') {
+        $spesApplicationStatus = $spesApp['status'];
+    }
+}
+// --- END: NEW SPES APPLICATION STATUS CHECK ---
 
 // Handle chat logic
 $selectedGroupId = isset($_GET['chat_group']) ? intval($_GET['chat_group']) : null;
@@ -333,7 +374,7 @@ if (isset($_POST['send_concern'])) {
         }
         $file_name = basename($_FILES['attachment']['name']);
         $target_file = $target_dir . uniqid() . "_" . $file_name;
-        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_file)) {
+        if (move_uploaded_file($tmp_name, $target_file)) {
             $attachmentPath = $target_file;
         }
     }
@@ -369,7 +410,6 @@ if (isset($_POST['delete_message'])) {
     <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png"/>
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-</head>
 <style>
 body {
     font-family: 'Roboto', sans-serif;
@@ -420,96 +460,95 @@ body {
     padding-top: 50px;
 }
 
-        .sidebar {
-            background-color: #090549;
-            color: white;
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 70px;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            z-index: 900;
-            transition: width 0.3s ease;
-        }
+.sidebar {
+    background-color: #090549;
+    color: white;
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 900;
+    transition: width 0.3s ease;
+}
 
-        .sidebar.collapsed {
-            width: 60px;
-        }
+.sidebar.collapsed {
+    width: 60px;
+}
 
-        .nav-item {
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-        }
+.nav-item {
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+}
 
-        .nav-item:hover {
-            background-color: #10087c;
-        }
+.nav-item:hover {
+    background-color: #10087c;
+}
 
+.nav-item.active {
+    background-color: #10087c;
+    border-left: 4px solid #ffffff;
+}
 
-        .nav-item.active {
-            background-color: #10087c;
-            border-left: 4px solid #ffffff;
-        }
+.nav-item.active .nav-icon {
+    margin-left: -4px; 
+}
 
-        .nav-item.active .nav-icon {
-            margin-left: -4px; 
-        }
+.sidebar.collapsed .nav-item.active {
+    background-color: #10087c;
+    border-left: 4px solid #ffffff;
+}
 
-        .sidebar.collapsed .nav-item.active {
-            background-color: #10087c;
-            border-left: 4px solid #ffffff;
-        }
+.sidebar.collapsed .nav-item.active .nav-icon {
+    margin-left: -2px;
+}
 
-        .sidebar.collapsed .nav-item.active .nav-icon {
-            margin-left: -2px;
-        }
+.nav-icon {
+    margin-right: 10px;
+    font-size: 14px;
+    min-width: 20px;
+    text-align: center;
+}
 
-        .nav-icon {
-            margin-right: 10px;
-            font-size: 14px;
-            min-width: 20px;
-            text-align: center;
-        }
+.nav-text {
+    color: white;
+    transition: opacity 0.2s ease;
+}
 
-        .nav-text {
-            color: white;
-            transition: opacity 0.2s ease;
-        }
+.sidebar.collapsed .nav-text {
+    opacity: 0;
+    display: none;
+}
 
-        .sidebar.collapsed .nav-text {
-            opacity: 0;
-            display: none;
-        }
+.toggle-sidebar {
+    background-color: transparent;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 15px;
+    text-align: left;
+    font-size: 14px;
+    display: flex;
+    margin-left: 10px;
+    justify-content: flex-start;
+    align-items: center;
+}
 
-        .toggle-sidebar {
-            background-color: transparent;
-            color: white;
-            border: none;
-            cursor: pointer;
-            padding: 15px;
-            text-align: left;
-            font-size: 14px;
-            display: flex;
-            margin-left: 10px;
-            justify-content: flex-start;
-            align-items: center;
-        }
+.toggle-sidebar:hover {
+    background-color: #10087c;
+}
 
-        .toggle-sidebar:hover {
-            background-color: #10087c;
-        }
-
-        .main-content.sidebar-collapsed {
-            margin-left: 60px;
-        }
+.main-content.sidebar-collapsed {
+    margin-left: 60px;
+}
 
 .image-container {
     flex: 1;
@@ -712,6 +751,18 @@ body {
     margin-top: 10px;
 }
 
+/* --- NEW: Added transition to all action buttons --- */
+.btn, .get-started, .submit-btn, .back-btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+/* --- NEW: Added hover effect for buttons --- */
+.btn:hover, .get-started:hover, .submit-btn:hover, .back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+
 .btn {
     padding: 6px 13px;
     font-size: 10px;
@@ -752,8 +803,8 @@ body {
 
 .notification-badge {
     position: absolute;
-    top: -5px;         /* Move higher above the bell */
-    right: -5px;       /* Move closer to the right edge */
+    top: -5px;
+    right: -5px;
     min-width: 11px;
     height: 11px;
     background-color: red;
@@ -785,6 +836,7 @@ body {
     display: none;
 }
 
+/* --- MODIFIED: Removed hover transition from .box --- */
 .box {
     background-color: #fff;
     border-radius: 15px;
@@ -793,6 +845,12 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-align: center;
     flex: 1;
+}
+
+.box-icon {
+    font-size: 28px;
+    color: #090549;
+    margin-bottom: 10px;
 }
 
 .box-title {
@@ -828,6 +886,12 @@ body {
     font-size: 10px;
     margin-top: 10px;
 }
+
+.get-started:hover {
+    background-color: #10087c; /* Darker shade on hover */
+}
+
+
 .history-table {
     width: 100%;
     border-collapse: collapse;
@@ -863,15 +927,18 @@ body {
 }
 
 #history-page {
-    /* padding: 20px; */
     background-color: #f4f4f4;
     border-radius: 12px;
 }
 
 .page {
-        max-width: 1200px;
-        margin: auto;
-    }
+    max-width: 1200px;
+    margin: auto;
+    display: none;
+}
+.page.active {
+    display: block;
+}
 
 .submit-btn {
     background-color: #090549;
@@ -882,6 +949,10 @@ body {
     cursor: pointer;
     font-size: 12px;
     margin-top: 20px;
+}
+
+.submit-btn:hover {
+    background-color: #10087c;
 }
 
 .form-container-application {
@@ -943,25 +1014,6 @@ body {
 .back-btn:hover {
     background:rgb(9, 7, 122);
     color: white;
-}
-
-.submit-btn {
-    background-color: #090549;
-    color: white;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 10px;
-    font-weight: bold;
-    display: block;
-    width: 100%;
-    text-align: center;
-    transition: background-color 0.3s ease;
-}
-
-.submit-btn:hover {
-    background-color:rgb(18, 10, 136);
 }
 
 .label-application {
@@ -1664,8 +1716,208 @@ form .label-application + div label {
     display: flex;
     flex-direction: column;
 }
+
+/* --- Styles converted from inline --- */
+.welcome-screen {
+    margin-top: 100px;
+}
+#home-page .box .get-started {
+    margin-top: 20px;
+}
+.get-started:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+#spes-employment-contract-page .form-container-application,
+#spes-oath-of-undertaking-page .form-container-application {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+#spes-employment-contract-page h2,
+#spes-oath-of-undertaking-page h2 {
+    margin-bottom: 20px;
+}
+#spes-employment-contract-page .image,
+#spes-oath-of-undertaking-page .image {
+    max-width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom: 30px;
+}
+#spes-employment-contract-page .submit-btn,
+#spes-oath-of-undertaking-page .submit-btn {
+    width: auto;
+    display: inline-block;
+    margin-top: 20px;
+    text-decoration: none;
+}
+#spes-employment-contract-page .back-btn,
+#spes-oath-of-undertaking-page .back-btn {
+    margin-top: 20px;
+}
+#spes-application-form-page {
+    position: relative;
+}
+#spes-application-form-page .form-container-application {
+    position: relative;
+    z-index: 1;
+}
+#spes-form-logo-1 {
+    width: 80px;
+    position: absolute;
+    top: 130px;
+    left: 7%;
+    opacity: 1;
+    pointer-events: none;
+}
+#spes-form-logo-2 {
+    width: 80px;
+    position: absolute;
+    top: 135px;
+    right: 7%;
+    opacity: 1;
+    pointer-events: none;
+}
+#spes-form-logo-bg-1 {
+    width: 550px;
+    position: absolute;
+    top: 10%;
+    left: 50px;
+    opacity: 0.1;
+    pointer-events: none;
+}
+#spes-form-logo-bg-2 {
+    width: 550px;
+    position: absolute;
+    top: 43%;
+    left: 50px;
+    opacity: 0.1;
+    pointer-events: none;
+}
+#spes-form-logo-bg-3 {
+    width: 550px;
+    position: absolute;
+    top: 75%;
+    left: 50px;
+    opacity: 0.1;
+    pointer-events: none;
+}
+#spes-application-form-page a.submit-btn {
+    padding: 8px 20px;
+    width: auto;
+    display: inline-block;
+    margin-bottom: 10px;
+    right: 20px;
+    position: absolute;
+    top: 10px;
+    text-align: center;
+    text-decoration: none;
+}
+.flex-container {
+    display: flex;
+    gap: 10px;
+}
+.flex-item {
+    flex: 1;
+}
+.table-container {
+    overflow-x: auto;
+}
+#spes-application-form-page .doc-req-section div {
+    margin-left: 20px;
+}
+.form-group {
+    margin: 20px 0;
+}
+.form-helper-text {
+    font-size: 10px;
+    color: #555;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+.form-section-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+.form-section-header.top-margin {
+    margin-top: 20px;
+}
+.spes-history-input {
+    display: inline-block;
+    width: 22%;
+}
+#history-page .history-table td {
+    padding: 10px;
+}
+#history-page .history-table tr.no-history-row td {
+    text-align: center;
+    padding: 20px;
+}
+.chat-header {
+    padding: 15px 20px;
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+    background: #f7f7fa;
+}
+.no-messages {
+    text-align: center;
+    color: #888;
+    margin-top: 20px;
+}
+#detailsModal .submit-btn {
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    margin-top: 20px;
+    width: auto;
+    padding: 10px 20px;
+}
+#notificationModal hr {
+    border: 0;
+    border-top: 1px solid #ccc;
+}
+.notification-message {
+    white-space: pre-wrap;
+}
+.notification-deadline {
+    margin-top: 5px;
+    color: red;
+}
+#toast-message {
+    display: block;
+    position: fixed;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgb(13, 160, 8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 2000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s, top 0.5s;
+}
+#toast-message.show {
+    opacity: 1;
+    top: 20px;
+    pointer-events: auto;
+}
+#toast-icon {
+    margin-left: 10px;
+    font-size: 16px;
+    vertical-align: middle;
+}
 </style>
+</head>
 <body>
+    <div id="toast-message">
+        <span id="toast-text"></span>
+        <i id="toast-icon"></i>
+    </div>
     <div class="navbar">
         <div class="logo-container">
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
@@ -1722,7 +1974,7 @@ form .label-application + div label {
 
         <div class="main-content">
             <div id="home-page" class="page active">
-                <div class="welcome-screen" style="margin-top: 100px;">
+                <div class="welcome-screen">
                     <h1 class="main-title">Welcome to PESO MIS SAN JULIAN</h1>
                     <p class="description">
                         Connecting Students and Out-of-School Youth in San Julian to Life-Changing Opportunities. Supporting Education,  <br>Building Careers, and Shaping Tomorrow Through Scholarships and SPES Programs.</p>
@@ -1730,14 +1982,18 @@ form .label-application + div label {
 
                 <div class="dashboard-boxes">
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-history"></i></div>
                         <div class="box-title">Applications History</div>
-                        <div class="box-value"><?php echo $totalApplications; ?></div> <div class="box-description">You have <?php echo $totalApplications; ?> application(s) in your history</div> <button class="get-started" style="margin-top: 20px;" onclick="showPage('history-page')">Browse</button>
+                        <div class="box-value" data-target="<?php echo $totalApplications; ?>">0</div>
+                        <div class="box-description">You have <?php echo $totalApplications; ?> application(s) in your history</div>
+                        <button class="get-started" onclick="showPage('history-page')">Browse</button>
                     </div>
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-graduation-cap"></i></div>
                         <div class="box-title">Total Scholarships</div>
-                        <div class="box-value"><?php echo $totalScholarships; ?></div>
+                        <div class="box-value" data-target="<?php echo $totalScholarships; ?>">0</div>
                         <div class="box-description"><?php echo $totalScholarships; ?> scholarship programs available for application</div>
-                        <button class="get-started" style="margin-top: 20px;" onclick="showPage('scholarships-page')">Browse</button>
+                        <button class="get-started" onclick="showPage('scholarships-page')">Browse</button>
                     </div>
                 </div>
             </div>
@@ -1746,16 +2002,33 @@ form .label-application + div label {
                 <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH (SPESOS)</h3>
                 <div class="dashboard-boxes">
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-file-contract"></i></div>
                         <div class="box-title">Employment Contract Form</div>
-                        <div class="box-description">Download or fill out your employment contract for SPES.</div>
+                        <div class="box-description">Download your employment contract for SPES.</div>
                         <button class="get-started" onclick="showPage('spes-employment-contract-page')">Open Form</button>
                     </div>
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-clipboard-list"></i></div>
                         <div class="box-title">Application Form</div>
                         <div class="box-description">Apply for the SPES program here.</div>
-                        <button class="get-started" onclick="showPage('spes-application-form-page')">Open Form</button>
+                        
+                        <?php 
+                        // Determine button text and disabled state based on status
+                        $isSpesDisabled = !is_null($spesApplicationStatus);
+                        $spesButtonText = 'Open Form';
+                        if ($isSpesDisabled) {
+                            $spesButtonText = 'Application is ' . ucfirst($spesApplicationStatus);
+                        }
+                        ?>
+                        
+                        <button class="get-started" 
+                                <?php echo $isSpesDisabled ? 'disabled' : ''; ?> 
+                                onclick="showPage('spes-application-form-page')">
+                            <?php echo $spesButtonText; ?>
+                        </button>
                     </div>
                     <div class="box">
+                        <div class="box-icon"><i class="fas fa-scroll"></i></div>
                         <div class="box-title">Oath of Undertaking Form</div>
                         <div class="box-description">Complete your Oath of Undertaking for SPES.</div>
                         <button class="get-started" onclick="showPage('spes-oath-of-undertaking-page')">Open Form</button>
@@ -1763,28 +2036,28 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <div id="spes-employment-contract-page" class="page" style="display:none;">
-                <div class="form-container-application" style="position:relative; z-index:1; text-align:center;">
-                    <h2 style="margin-bottom:20px;">Employment Contract Form</h2>
-                    <img src="../../../../images/Employment-contract.jpg" alt="Employment contract image" class="image" style="max-width:100%; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); margin-bottom:30px;">
+            <div id="spes-employment-contract-page" class="page">
+                <div class="form-container-application">
+                    <h2>Employment Contract Form</h2>
+                    <img src="../../../../images/Employment-contract.jpg" alt="Employment contract image" class="image">
                     <br>
-                    <a href="../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px; text-decoration: none;">
+                    <a href="../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx" download class="submit-btn">
                         Download Employment Contract
                     </a>
                     <br>
-                    <button class="back-btn" style="margin-top:20px;" onclick="showPage('spes-page')">Back to SPESOS</button>
+                    <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
                 </div>
             </div>
 
-           <div id="spes-application-form-page" class="page" style="display:none; position:relative;">
-            <div class="form-container-application" style="position:relative; z-index:1;">
-                <img src="../../../../images/Peso_logo1.gif"  alt="SPES_Logo1" style="width: 80px; position:absolute; top: 130px; left:7%; opacity:1; pointer-events: none;">
-                <img src="../../../../images/PESO_Logo.png"  alt="PESO_Logo" style="width: 80px; position:absolute; top: 135px; right:7%; opacity:1; pointer-events: none;">
-                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:10%; left:50px; opacity:0.1; pointer-events: none;">
-                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:43%; left:50px; opacity:0.1; pointer-events: none;">
-                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" style="width: 550px; position:absolute; top:75%; left:50px; opacity:0.1; pointer-events: none;">
+           <div id="spes-application-form-page" class="page">
+            <div class="form-container-application">
+                <img src="../../../../images/Peso_logo1.gif"  alt="SPES_Logo1" id="spes-form-logo-1">
+                <img src="../../../../images/PESO_Logo.png"  alt="PESO_Logo" id="spes-form-logo-2">
+                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" id="spes-form-logo-bg-1">
+                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" id="spes-form-logo-bg-2">
+                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" id="spes-form-logo-bg-3">
                 <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
-                <a href="../../../../download_assets/SPES-FORM-2-APPLICATION-FORM-1-1.docx" download class="submit-btn" style="padding: 8px 20px;width:auto; display:inline-block; margin-bottom:10px; right: 20px; position: absolute; top: 10px; text-align: center; text-decoration: none;">
+                <a href="../../../../download_assets/SPES-FORM-2-APPLICATION-FORM-1-1.docx" download class="submit-btn">
                     Download SPES Application Form
                 </a>
                 <p class="title-description-p">REPUBLIC OF THE PHILIPPINES<br>DEPARTMENT OF LABOR AND EMPLOYMENT<br>Regional Office No. VIII<br>PUBLIC EMPLOYMENT SERVICE OFFICE<br>SAN JULIAN, EASTERN SAMAR<br>City/Municipality/Province<br>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)<br>(RA 7323, as amended by RAs 9547 and 10917)
@@ -1793,16 +2066,16 @@ form .label-application + div label {
                 
                 <form method="POST" enctype="multipart/form-data">
                     <h4>Personal Information</h4>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="flex:1;">
+                    <div class="flex-container">
+                        <div class="flex-item">
                             <label class="label-application">Surname</label>
                             <input type="text" name="surname" class="input-field" required>
                         </div>
-                        <div style="flex:1;">
+                        <div class="flex-item">
                             <label class="label-application">First Name</label>
                             <input type="text" name="firstname" class="input-field" required>
                         </div>
-                        <div style="flex:1;">
+                        <div class="flex-item">
                             <label class="label-application">Middle Name</label>
                             <input type="text" name="middlename" class="input-field">
                         </div>
@@ -1811,28 +2084,28 @@ form .label-application + div label {
                     <input type="text" name="gsis_beneficiary" class="input-field">
                     
                     <label class="label-application">Upload ID (Front, Back, etc.)</label>
-                    <p style="font-size: 10px; color: #555; margin-top: 5px; margin-bottom: 10px;">Select Valid ID front and back.</p>
+                    <p class="form-helper-text">Select Valid ID front and back.</p>
                     <input type="file" name="id_images[]" class="input-field file-field" accept="image/*" multiple>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="flex:1;">
+                    <div class="flex-container">
+                        <div class="flex-item">
                             <label class="label-application">Date of Birth</label>
                             <input type="date" name="dob" class="input-field" required>
                         </div>
-                        <div style="flex:1;">
+                        <div class="flex-item">
                             <label class="label-application">Place of Birth</label>
                             <input type="text" name="place_of_birth" class="input-field">
                         </div>
-                        <div style="flex:1;">
+                        <div class="flex-item">
                             <label class="label-application">Citizenship</label>
                             <input type="text" name="citizenship" class="input-field">
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="flex:1;">
+                    <div class="flex-container">
+                        <div class="flex-item">
                             <label class="label-application">Contact Details/Cellphone No.</label>
                             <input type="text" name="contact" class="input-field">
                         </div>
-                        <div style="flex:1;">
+                        <div class="flex-item">
                             <label class="label-application">Email Address</label>
                             <input type="email" name="email" class="input-field">
                         </div>
@@ -1880,29 +2153,29 @@ form .label-application + div label {
                     <input type="text" name="permanent_address" class="input-field">
 
                     <h4>Parental Information</h4>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="flex:1;">
+                    <div class="flex-container">
+                        <div class="flex-item">
                             <label class="label-application">Father’s Name / Contact No.</label>
                             <input type="text" name="father_name_contact" class="input-field">
                         </div>
-                        <div style="flex:1;">
+                        <div class="flex-item">
                             <label class="label-application">Mother’s Maiden Name / Contact No.</label>
                             <input type="text" name="mother_name_contact" class="input-field">
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="flex:1;">
+                    <div class="flex-container">
+                        <div class="flex-item">
                             <label class="label-application">Father’s Occupation</label>
                             <input type="text" name="father_occupation" class="input-field">
                         </div>
-                        <div style="flex:1;">
+                        <div class="flex-item">
                             <label class="label-application">Mother’s Occupation</label>
                             <input type="text" name="mother_occupation" class="input-field">
                         </div>
                     </div>
 
                         <h4>Educational Background</h4>
-                        <div style="overflow-x:auto;">
+                        <div class="table-container">
                         <table class="history-table">
                             <thead>
                                 <tr>
@@ -1951,16 +2224,16 @@ form .label-application + div label {
                             <label>• Photocopy of Birth Certificate or any document indicating date of birth or age (age must be 15-30)</label><br>
                             <label>• Photocopy of the latest Income Tax Return (ITR) of parents/legal guardian OR certification issued by BIR that the Parents/guardians are exempted from payment of tax OR original Certificate of Indigence OR original Certificate of Low Income issued by the Barangay/DSWD or CSWD where the applicant resides</label><br>
                             <label>• For students, any of the following, in addition to requirements no. 1 and 2:</label>
-                            <div style="margin-left:20px;">
+                            <div>
                                 <label>• a) Photocopy of proof of average passing grade such as (1) class card or (2) Form 138 of the previous semester or year immediately preceding the application</label><br>
                                 <label>• b) Original copy of Certification by the School Registrar as to passing grade immediately preceding semester/year if grades are not yet available</label>
                             </div>
                             <label>• For Out of School Youth (OSY), original copy of Certification as OSY issued by DSWD/CSWD or the authorized Barangay Official where the OSY resides, in addition to requirements no. 1 and 2.</label>
                         </div>
 
-                        <div style="margin-top: 20px; margin-bottom: 10px;">
+                        <div class="form-group">
                             <label class="label-application" for="spes_documents">Upload Compiled Documents Here</label>
-                            <p style="font-size: 10px; color: #555; margin-top: 5px; margin-bottom: 10px;">Please compile all required documents (e.g., Birth Certificate, ITR/Certificate of Indigence, Grades) into a single PDF or DOCX file.</p>
+                            <p class="form-helper-text">Please compile all required documents (e.g., Birth Certificate, ITR/Certificate of Indigence, Grades) into a single PDF or DOCX file.</p>
                             <input type="file" id="spes_documents" name="spes_documents" class="input-field file-field" accept=".pdf,.doc,.docx" required>
                         </div>
                         <h4>Special Skills</h4>
@@ -1973,32 +2246,32 @@ form .label-application + div label {
                         <label><input type="checkbox" name="availment_4" value="4"> 4th Availment</label>
 
                         <h4>Year</h4>
-                        <input type="text" name="year_1" placeholder="Year 1" class="input-field" style="display:inline-block; width: 22%;">
-                        <input type="text" name="year_2" placeholder="Year 2" class="input-field" style="display:inline-block; width: 22%;">
-                        <input type="text" name="year_3" placeholder="Year 3" class="input-field" style="display:inline-block; width: 22%;">
-                        <input type="text" name="year_4" placeholder="Year 4" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="year_1" placeholder="Year 1" class="input-field spes-history-input">
+                        <input type="text" name="year_2" placeholder="Year 2" class="input-field spes-history-input">
+                        <input type="text" name="year_3" placeholder="Year 3" class="input-field spes-history-input">
+                        <input type="text" name="year_4" placeholder="Year 4" class="input-field spes-history-input">
 
                         <h4>SPES ID No. (if applicable)</h4>
-                        <input type="text" name="spesid_1" placeholder="ID 1" class="input-field" style="display:inline-block; width: 22%;">
-                        <input type="text" name="spesid_2" placeholder="ID 2" class="input-field" style="display:inline-block; width: 22%;">
-                        <input type="text" name="spesid_3" placeholder="ID 3" class="input-field" style="display:inline-block; width: 22%;">
-                        <input type="text" name="spesid_4" placeholder="ID 4" class="input-field" style="display:inline-block; width: 22%;">
+                        <input type="text" name="spesid_1" placeholder="ID 1" class="input-field spes-history-input">
+                        <input type="text" name="spesid_2" placeholder="ID 2" class="input-field spes-history-input">
+                        <input type="text" name="spesid_3" placeholder="ID 3" class="input-field spes-history-input">
+                        <input type="text" name="spesid_4" placeholder="ID 4" class="input-field spes-history-input">
                         
                         <button type="submit" name="submit_spes_application" class="submit-btn">Submit Application</button>
                     </form>
                 </div>
             </div>
 
-            <div id="spes-oath-of-undertaking-page" class="page" style="display:none;">
-                <div class="form-container-application" style="position:relative; z-index:1; text-align:center;">
-                    <h2 style="margin-bottom:20px;">Employment Contract Form</h2>
-                    <img src="../../../../images/spesos-oath-of-undertaking.jpg" alt="Employment contract image" class="image" style="max-width:100%; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); margin-bottom:30px;">
+            <div id="spes-oath-of-undertaking-page" class="page">
+                <div class="form-container-application">
+                    <h2>Oath of Undertaking Form</h2>
+                    <img src="../../../../images/spesos-oath-of-undertaking.jpg" alt="Oath of Undertaking image" class="image">
                     <br>
-                    <a href="../../../../download_assets/SPES-FORM-2-A-OATH-OF-UNDERTAKING-.docx" download class="submit-btn" style="width:auto; display:inline-block; margin-top:20px; text-decoration: none;">
+                    <a href="../../../../download_assets/SPES-FORM-2-A-OATH-OF-UNDERTAKING-.docx" download class="submit-btn">
                         Download Oath-of-Undertaking Form
                     </a>
                     <br>
-                    <button class="back-btn" style="margin-top:20px;" onclick="showPage('spes-page')">Back to SPESOS</button>
+                    <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
                 </div>
             </div>
 
@@ -2007,7 +2280,7 @@ form .label-application + div label {
                     <h2 class="history-h2">Application History</h2>
                     <p class="history-p">Review your previous scholarship applications</p>
 
-                    <div style="overflow-x:auto;">
+                    <div class="table-container">
                     <table class="history-table">
                         <thead>
                             <tr>
@@ -2062,18 +2335,18 @@ form .label-application + div label {
                                 $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
                         ?>
                             <tr>
-                                <td style="padding:10px;"><?php echo htmlspecialchars($application['id']); ?></td>
-                                <td style="padding:10px;"><?php echo htmlspecialchars($application['program_name']); ?></td>
-                                <td style="padding:10px;">
-                                    <span style="font-weight:bold;"><?php echo htmlspecialchars($application['application_type']); ?></span>
+                                <td><?php echo htmlspecialchars($application['id']); ?></td>
+                                <td><?php echo htmlspecialchars($application['program_name']); ?></td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($application['application_type']); ?></strong>
                                 </td>
-                                <td style="padding:10px;"><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
-                                <td style="padding:10px;">
+                                <td><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
+                                <td>
                                     <span class="<?php echo $statusClass; ?>">
                                         <?php echo ucfirst($application['status']); ?>
                                     </span>
                                 </td>
-                                <td style="padding:10px;">
+                                <td>
                                     <?php if ($application['application_type'] === 'Scholarship' && $application['status'] === 'rejected' && !empty($application['rejection_message'])): ?>
                                         <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>)'>See Why...</button>
                                     <?php else: ?>
@@ -2085,8 +2358,8 @@ form .label-application + div label {
                             endwhile;
                         else:
                         ?>
-                            <tr>
-                                <td colspan="6" style="text-align:center; padding:20px;">No application history found.</td>
+                            <tr class="no-history-row">
+                                <td colspan="6">No application history found.</td>
                             </tr>
                         <?php
                         endif;
@@ -2097,7 +2370,7 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <div id="rejectionMessageModal" class="modal" style="display:none;">
+            <div id="rejectionMessageModal" class="modal">
                 <div class="modal-content">
                     <span class="modal-close" onclick="closeRejectionMessageModal()">&times;</span>
                     <div class="modal-header">Rejection Reason</div>
@@ -2107,7 +2380,7 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <div id="userApplicationFormModal" class="modal" style="display:none;">
+            <div id="userApplicationFormModal" class="modal">
                 <div class="modal-content" style="max-width:800px;text-align:left;font-size:12px;">
                     <span class="modal-close" onclick="closeUserApplicationFormModal()">&times;</span>
                     <div class="modal-header">Your Application Details</div>
@@ -2135,7 +2408,7 @@ form .label-application + div label {
         </div>
         <div class="concerns-chat-area">
              <div class="chat-container">
-                <div class="chat-header" style="padding: 15px 20px; font-weight: bold; border-bottom: 1px solid #eee; background: #f7f7fa;">
+                <div class="chat-header">
                     <?php echo $chatTitle; ?>
                 </div>
                 <div class="chat-messages" id="chatMessages">
@@ -2175,7 +2448,7 @@ form .label-application + div label {
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="no-messages" style="text-align: center; color: #888; margin-top: 20px;">
+                        <div class="no-messages">
                             <p>No messages in this conversation yet.</p>
                         </div>
                     <?php endif; ?>
@@ -2220,21 +2493,37 @@ form .label-application + div label {
                         // Calculate remaining slots
                         $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
 
-                        // Check if the user has a pending or approved application for this scholarship
-                        $hasPendingOrApproved = false;
-                        $applicationStatus = '';
-                        $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? ORDER BY created_at DESC LIMIT 1";
+                        // --- START: MODIFIED BUTTON LOGIC ---
+                        // Check status for THIS specific scholarship
+                        $hasPendingOrApprovedForThis = false;
+                        $applicationStatusForThis = '';
+                        $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
                         $checkStmt = $conn->prepare($checkSql);
                         $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
                         $checkStmt->execute();
                         $checkResult = $checkStmt->get_result();
                         if ($checkResult->num_rows > 0) {
                             $app = $checkResult->fetch_assoc();
-                            $applicationStatus = $app['status'];
-                            if ($applicationStatus === 'pending' || $applicationStatus === 'approved') {
-                                $hasPendingOrApproved = true;
-                            }
+                            $applicationStatusForThis = $app['status'];
+                            $hasPendingOrApprovedForThis = true;
                         }
+
+                        // Determine button state and text based on overall and specific status
+                        $isDisabled = false;
+                        $buttonText = 'Apply Now';
+
+                        if ($isApprovedForAnyScholarship) {
+                            $isDisabled = true;
+                            // If they are approved for THIS scholarship, show 'Approved', otherwise show 'Already a Scholar'.
+                            $buttonText = ($applicationStatusForThis === 'approved') ? 'Approved' : 'Already a Scholar';
+                        } elseif ($hasPendingOrApprovedForThis) {
+                            $isDisabled = true;
+                            $buttonText = 'Pending';
+                        } elseif ($remainingSlots <= 0) {
+                            $isDisabled = true;
+                            $buttonText = 'Fully Booked';
+                        }
+                        // --- END: MODIFIED BUTTON LOGIC ---
                     ?>
                         <div class="scholarship-card">
                             <div class="scholarship-header">
@@ -2255,16 +2544,7 @@ form .label-application + div label {
                                         <?php echo json_encode(nl2br($scholarship["eligibility"])); ?>
                                     )'>View Details</button>
                                 
-                                <?php 
-                                $isDisabled = $hasPendingOrApproved || ($remainingSlots <= 0);
-                                $buttonText = ($remainingSlots <= 0) ? 'Fully Booked' : 'Apply Now';
-                                if ($hasPendingOrApproved) {
-                                    $buttonText = ucfirst($applicationStatus);
-                                }
-                                ?>
-                                
                                 <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?> 
-                                    style="<?php echo $isDisabled ? 'background-color:#ccc; cursor:not-allowed;' : ''; ?>"
                                     onclick="showApplicationForm('<?php echo htmlspecialchars($scholarship['title']); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
                                     <?php echo $buttonText; ?>
                                 </button>
@@ -2280,24 +2560,24 @@ form .label-application + div label {
                     <h2 id="application-form-title">SCHOLARSHIP FORM</h2>
                      <form enctype="multipart/form-data" method="POST">
                         <input type="hidden" name="scholarship_id" id="scholarship_id_field" value="">
-                        <p style="font-weight:bold; margin-bottom:10px;">Section 1. Student Applicant’s Information.</p>
-                        <p style="font-weight:bold; margin-bottom:10px;">1. Personal Information</p>
-                        <div style="display:flex; gap:10px;">
-                            <div style="flex:1;">
+                        <p class="form-section-header">Section 1. Student Applicant’s Information.</p>
+                        <p class="form-section-header">1. Personal Information</p>
+                        <div class="flex-container">
+                            <div class="flex-item">
                                 <label class="label-application" for="lname">Last Name</label>
                                 <input type="text" id="lname" name="lname" class="input-field" required />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="fname">First Name</label>
                                 <input type="text" id="fname" name="fname" class="input-field" required />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="mname">Middle Name</label>
                                 <input type="text" id="mname" name="mname" class="input-field" />
                             </div>
                         </div>
-                        <div style="display:flex; gap:10px;">
-                            <div style="flex:1;">
+                        <div class="flex-container">
+                            <div class="flex-item">
                                 <label class="label-application" for="gender">Gender</label>
                                 <select id="gender" name="gender" class="input-field" required>
                                     <option value="">--Select--</option>
@@ -2305,7 +2585,7 @@ form .label-application + div label {
                                     <option value="Female">Female</option>
                                 </select>
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="civil_status">Civil Status</label>
                                 <select id="civil_status" name="civil_status" class="input-field" required>
                                     <option value="">--Select--</option>
@@ -2315,11 +2595,11 @@ form .label-application + div label {
                                     <option value="Separated">Separated</option>
                                 </select>
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="dob">Date of Birth</label>
                                 <input type="date" id="dob" name="dob" class="input-field" required />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="pob">Place of Birth</label>
                                 <input type="text" id="pob" name="pob" class="input-field" required />
                             </div>
@@ -2327,51 +2607,51 @@ form .label-application + div label {
                         <label class="label-application" for="address">Home Address</label>
                         <input type="text" id="address" name="address" class="input-field" required />
 
-                        <div style="display:flex; gap:10px;">
-                            <div style="flex:1;">
+                        <div class="flex-container">
+                            <div class="flex-item">
                                 <label class="label-application" for="contact">Contact Number</label>
                                 <input type="text" id="contact" name="contact" class="input-field" required />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="facebook">Facebook Account</label>
                                 <input type="text" id="facebook" name="facebook" class="input-field" />
                             </div>
                         </div>
 
-                        <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">2. Family Background</p>
-                        <div style="display:flex; gap:10px;">
-                            <div style="flex:1;">
+                        <p class="form-section-header top-margin">2. Family Background</p>
+                        <div class="flex-container">
+                            <div class="flex-item">
                                 <label class="label-application" for="mother_name">Mother’s Name (Last, First, Middle)</label>
                                 <input type="text" id="mother_name" name="mother_name" class="input-field" required />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="mother_occupation">Mother’s Occupation</label>
                                 <input type="text" id="mother_occupation" name="mother_occupation" class="input-field" />
                             </div>
                         </div>
-                        <div style="display:flex; gap:10px;">
-                            <div style="flex:1;">
+                        <div class="flex-container">
+                            <div class="flex-item">
                                 <label class="label-application" for="father_name">Father’s Name (Last, First, Middle)</label>
                                 <input type="text" id="father_name" name="father_name" class="input-field" required />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="father_occupation">Father’s Occupation</label>
                                 <input type="text" id="father_occupation" name="father_occupation" class="input-field" />
                             </div>
                         </div>
-                        <div style="display:flex; gap:10px;">
-                            <div style="flex:1;">
+                        <div class="flex-container">
+                            <div class="flex-item">
                                 <label class="label-application" for="family_income">Monthly Family Income (Gross Amount)</label>
                                 <input type="number" id="family_income" name="family_income" class="input-field" required />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="dependents">Number of Dependents in the Family</label>
                                 <input type="number" id="dependents" name="dependents" class="input-field" required />
                             </div>
                         </div>
 
-                        <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">3. Educational Background</p>
-                        <div style="overflow-x:auto;">
+                        <p class="form-section-header top-margin">3. Educational Background</p>
+                        <div class="table-container">
                         <table class="history-table">
                             <thead>
                                 <tr>
@@ -2404,17 +2684,17 @@ form .label-application + div label {
                         </table>
                         </div>
 
-                        <p style="font-weight:bold; margin-top:20px; margin-bottom:10px;">3-A. College Background</p>
-                        <div style="display:flex; gap:10px;">
+                        <p class="form-section-header top-margin">3-A. College Background</p>
+                        <div class="flex-container">
                             <div style="flex:2;">
                                 <label class="label-application" for="college_school">Name of School</label>
                                 <input type="text" id="college_school" name="college_school" class="input-field" />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="college_course">Course & Year</label>
                                 <input type="text" id="college_course" name="college_course" class="input-field" />
                             </div>
-                            <div style="flex:1;">
+                            <div class="flex-item">
                                 <label class="label-application" for="college_average">Average from Previous Semester</label>
                                 <input type="text" id="college_average" name="college_average" class="input-field" />
                             </div>
@@ -2422,9 +2702,9 @@ form .label-application + div label {
                         <label class="label-application" for="college_awards" style="margin-top:10px;">Awards and Recognitions</label>
                         <textarea id="college_awards" name="college_awards" class="input-field textarea-field" rows="2"></textarea>
 
-                        <div style="margin: 20px 0;">
-                            <label class="label-application" for="supporting_documents">Upload Supporting Documents (Certificate of Grades, Certificate of Indigency, etc.)</label>
-                            <p style="font-size: 10px; color: #555; margin-top: 5px; margin-bottom: 10px;">Please compile your documents (e.g., COG, COI) into PDF or DOCX format before uploading. You can paste images into a Word document and save it as a PDF.</p>
+                        <div class="form-group">
+                            <label class="label-application" for="supporting_documents">Upload Supporting Documents (Documents Requirements.)</label>
+                            <p class="form-helper-text">Please compile your documents (e.g., COG, COI) into PDF or DOCX format before uploading. You can paste images into a Word document and save it as a PDF.</p>
                             <input type="file" id="supporting_documents" name="supporting_documents[]" class="input-field file-field" multiple accept=".pdf,.doc,.docx">
                         </div>
                         
@@ -2447,7 +2727,7 @@ form .label-application + div label {
             <h3>Eligibility Criteria:</h3>
             <p id="modalEligibility"></p>
 
-            <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="submit-btn" style="text-decoration: none; display: inline-block; text-align: center; margin-top: 20px; width: auto; padding: 10px 20px;">
+            <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="submit-btn">
                 Download Application Form
             </a>
             </div>
@@ -2467,7 +2747,7 @@ form .label-application + div label {
                     ?>
                         <?php if ($currentDate !== $notificationDate): ?>
                             <?php if ($currentDate !== null): ?>
-                                <hr style="border: 1px solid #ccc;" />
+                                <hr />
                             <?php endif; ?>
                             <h4><?php echo $notificationDate; ?></h4>
                             <?php $currentDate = $notificationDate;?>
@@ -2475,11 +2755,11 @@ form .label-application + div label {
                         
                         <li>
                             <strong><?php echo date('h:i A', strtotime($notification['created_at'])); ?>:</strong>
-                            <div style="white-space: pre-wrap;">
+                            <div class="notification-message">
                                 <?php echo htmlspecialchars($notification['message']); ?>
                             </div>
                             <?php if (!empty($notification['deadline'])): ?>
-                                <div style="margin-top: 5px; color: red;">
+                                <div class="notification-deadline">
                                     <strong>Deadline:</strong> <?php echo date('F j, Y h:i A', strtotime($notification['deadline'])); ?>
                                 </div>
                             <?php endif; ?>
@@ -2518,7 +2798,6 @@ form .label-application + div label {
 
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
-            page.style.display = 'none';
             page.classList.remove('active');
         });
 
@@ -2532,7 +2811,6 @@ form .label-application + div label {
         
         window.history.pushState({}, '', newUrl);
 
-        document.getElementById(pageId).style.display = 'block';
         document.getElementById(pageId).classList.add('active');
 
         switch (pageId) {
@@ -2601,7 +2879,6 @@ form .label-application + div label {
         updateNotificationDot(); 
         setInterval(updateNotificationDot, 15000); 
 
-        const urlParams = new URLSearchParams(window.location.search);
         const hash = window.location.hash.substring(1);
         const pageId = hash || 'home-page';
 
@@ -2626,11 +2903,40 @@ form .label-application + div label {
                 toggleIcon.classList.add('fa-chevron-left');
             }
         });
+
+        // Number Animation Logic
+        const animateValue = (obj, start, end, duration) => {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const targetValue = parseInt(el.getAttribute('data-target'), 10);
+                    animateValue(el, 0, targetValue, 1500); // Animate over 1.5 seconds
+                    observer.unobserve(el); // Stop observing after animation
+                }
+            });
+        }, { threshold: 0.5 }); // Trigger when 50% of the element is visible
+
+        document.querySelectorAll('.box-value').forEach(el => {
+            observer.observe(el);
+        });
     });
 
     function showApplicationForm(scholarshipTitle, scholarshipId) {
-        document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
-        document.getElementById('application-form-page').style.display = 'block';
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        document.getElementById('application-form-page').classList.add('active');
         document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
         document.getElementById('scholarship_id_field').value = scholarshipId;
     }
@@ -2745,5 +3051,43 @@ form .label-application + div label {
         if (event.target.id === 'deleteMessageModal') closeDeleteModal();
     };
 </script>
-</body>
+    <?php if (isset($_SESSION['application_submitted'])): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toast = document.getElementById('toast-message');
+        var toastText = document.getElementById('toast-text');
+        var toastIcon = document.getElementById('toast-icon');
+        
+        toastText.textContent = 'Application submitted successfully!';
+        toastIcon.className = 'fas fa-check-circle';
+        toast.style.background = '#28a745';
+        
+        toast.classList.add('show');
+        
+        setTimeout(function() {
+            toast.classList.remove('show');
+        }, 3000);
+    });
+    </script>
+    <?php unset($_SESSION['application_submitted']); endif; ?>
+    <?php if (isset($_SESSION['spes_application_submitted'])): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toast = document.getElementById('toast-message');
+        var toastText = document.getElementById('toast-text');
+        var toastIcon = document.getElementById('toast-icon');
+        
+        toastText.textContent = 'SPES application submitted successfully!';
+        toastIcon.className = 'fas fa-check-circle';
+        toast.style.background = '#28a745';
+        
+        toast.classList.add('show');
+        
+        setTimeout(function() {
+            toast.classList.remove('show');
+        }, 3000);
+    });
+    </script>
+    <?php unset($_SESSION['spes_application_submitted']); endif; ?>
+    </body>
 </html>

@@ -4,114 +4,6 @@ include "../../connect.php";
 
 <!DOCTYPE html>
 <html lang="en">
-<script>
-       function showPopupNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `popup-notification ${type}`;
-            notification.innerHTML = `
-                <i>${type === 'success' ? '✔️' : '❌'}</i>
-                <span>${message}</span>
-            `;
-            document.body.appendChild(notification);
-
-            notification.style.display = 'flex';
-
-            setTimeout(() => {
-                notification.style.display = 'none';
-                notification.remove();
-            }, 3000);
-        }
-        
-    function validateSignupForm() {
-        const requiredFields = [
-            { id: "name", errorId: "fname-error", errorMessage: "First Name required." },
-            { id: "last-name", errorId: "lname-error", errorMessage: "Last Name required." },
-            { id: "age", errorId: "age-error", errorMessage: "Age required." },
-            { id: "gender", errorId: "gender-error", errorMessage: "Gender required." },
-            { id: "signup-address", errorId: "address-error", errorMessage: "Address required." },
-            { id: "contact-number", errorId: "contact-error", errorMessage: "Contact Number required." },
-            { id: "signup-email", errorId: "email-error", errorMessage: "Email required." },
-            { id: "signup-password", errorId: "password-error", errorMessage: "Password required." },
-            { id: "confirm-password", errorId: "confirm-password-error", errorMessage: "Confirm Password required." },
-        ];
-
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            document.getElementById(field.errorId).style.display = 'none';
-        });
-
-        requiredFields.forEach(field => {
-            const input = document.getElementById(field.id);
-            if (!input.value.trim()) {
-                const errorElement = document.getElementById(field.errorId);
-                errorElement.style.display = 'block';
-                errorElement.textContent = field.errorMessage;
-                isValid = false;
-            }
-        });
-
-        if (isValid) {
-            const passwordField = document.getElementById("signup-password");
-            const confirmPasswordField = document.getElementById("confirm-password");
-            const password = passwordField.value;
-            const confirmPassword = confirmPasswordField.value;
-
-            const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-            if (!passwordRegex.test(password)) {
-                const passwordError = document.getElementById("password-error");
-                passwordError.style.display = 'block';
-                passwordError.textContent = "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one special character, and one number.";
-                isValid = false;
-            }
-
-            if (password !== confirmPassword) {
-                const confirmPasswordError = document.getElementById("confirm-password-error");
-                confirmPasswordError.style.display = 'block';
-                confirmPasswordError.textContent = "Passwords do not match.";
-                isValid = false;
-            }
-        }
-
-        return isValid;
-    }
-
-        function checkSuccessMessage() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('success')) {
-                showPopupNotification('Thank you for registering. Your request has been submitted successfully and is pending administrator approval.');
-
-                const newUrl = window.location.href.split('?')[0];
-                window.history.replaceState({}, document.title, newUrl);
-            }
-        }
-
-        window.onload = checkSuccessMessage;
-
-        function checkErrorMessage() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('error')) {
-                const errorType = urlParams.get('error');
-                if (errorType === 'email_taken') {
-                    const emailError = document.getElementById('email-error');
-                    emailError.style.display = 'block';
-                    emailError.textContent = 'Email is already taken. Please use a different email.';
-
-                    const email = urlParams.get('email');
-                    if (email) {
-                        document.getElementById('signup-email').value = email;
-                    }
-                }
-            }
-        }
-
-        window.onload = () => {
-            checkSuccessMessage();
-            checkErrorMessage();
-        };
-    </script>
-    
 <head>
     
     <meta charset="UTF-8">
@@ -121,7 +13,6 @@ include "../../connect.php";
     <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <!-- Font Awesome for the eye icon -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style> 
     body {
@@ -508,58 +399,20 @@ include "../../connect.php";
         text-decoration: underline;
     }
 
-      .popup-notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #4CAF50;
-            color: white;
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            z-index: 1000;
-            font-size: 16px;
-            text-align: center;
-        }
+    .home 
+    {
+        text-decoration: none;
+        font-size: 13px;
+        color: #545863;
+        margin-left: 20px;
+    }
 
-        .popup-notification.success {
-            background-color: #4CAF50;
-        }
-
-        .popup-notification.error {
-            background-color: #f44336;
-        }
-
-        .popup-notification i {
-            font-size: 24px;
-        }
-
-        .error-message {
-            color: #f44336;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        .home 
-        {
-            text-decoration: none;
-            font-size: 13px;
-            color: #545863;
-            margin-left: 20px;
-        }
-
-        .error-message {
-            color: #f44336;
-            font-size: 10px;
-            margin-top: 5px;
-            display: none;
-        }
+    .error-message {
+        color: #f44336;
+        font-size: 10px;
+        margin-top: 5px;
+        display: none;
+    }
 
     /* --- START: STYLES FOR PASSWORD TOGGLE --- */
     .password-wrapper {
@@ -582,50 +435,83 @@ include "../../connect.php";
     }
     /* --- END: STYLES FOR PASSWORD TOGGLE --- */
 
-        @media (max-width: 768px) {
-    .navbar {
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        height: 45px;
-        padding: 5px 10px;
+    /* --- START: NEW TOAST NOTIFICATION STYLES --- */
+    #toast-message {
+        display: block;
+        position: fixed;
+        top: 0px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 12px;
+        z-index: 2000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s, top 0.5s;
     }
-    .logo-container {
-        flex-direction: row;
-        align-items: center;
-        margin-left: 0;
-        gap: 5px;
+    #toast-message.show {
+        opacity: 1;
+        top: 20px;
+        pointer-events: auto;
     }
-    .navbar .logo-container .logo {
-        height: 33px !important;
-        margin-right: 2px !important;
+    #toast-icon {
+        margin-left: 10px;
+        font-size: 16px;
+        vertical-align: middle;
     }
-    .logo, .san-julian-logo {
-        height: 38px !important;
-        margin-right: 2px !important;
+    /* --- END: NEW TOAST NOTIFICATION STYLES --- */
+
+    @media (max-width: 768px) {
+        .navbar {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            height: 45px;
+            padding: 5px 10px;
+        }
+        .logo-container {
+            flex-direction: row;
+            align-items: center;
+            margin-left: 0;
+            gap: 5px;
+        }
+        .navbar .logo-container .logo {
+            height: 33px !important;
+            margin-right: 2px !important;
+        }
+        .logo, .san-julian-logo {
+            height: 38px !important;
+            margin-right: 2px !important;
+        }
+        .navbar .title {
+            font-size: 10px !important;
+            margin-left: 0 !important;
+        }
+        .navbar a,
+        .right-nav a,
+        .home {
+            font-size: 8px !important;
+            margin: 0 6px !important;
+        }
+        .right-nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 5px;
+        }
     }
-    .navbar .title {
-        font-size: 10px !important;
-        margin-left: 0 !important;
-    }
-    .navbar a,
-    .right-nav a,
-    .home {
-        font-size: 8px !important;
-        margin: 0 6px !important;
-    }
-    .right-nav {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 5px;
-    }
-}
-    </style>
     </style>
 </head>
 <body>
-<div class="navbar">
+    <div id="toast-message">
+        <span id="toast-text"></span>
+        <i id="toast-icon"></i>
+    </div>
+    <div class="navbar">
         <div class="logo-container">
             <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
             <img src="../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
@@ -765,74 +651,120 @@ include "../../connect.php";
         });
     });
 
-function validateSignupForm() {
-    const requiredFields = [
-        { id: "name", errorId: "fname-error", errorMessage: "First Name required." },
-        { id: "last-name", errorId: "lname-error", errorMessage: "Last Name required." },
-        { id: "age", errorId: "age-error", errorMessage: "Age required." },
-        { id: "gender", errorId: "gender-error", errorMessage: "Gender required." },
-        { id: "signup-address", errorId: "address-error", errorMessage: "Address required." },
-        { id: "contact-number", errorId: "contact-error", errorMessage: "Contact Number required." },
-        { id: "signup-email", errorId: "email-error", errorMessage: "Email required." },
-        { id: "signup-password", errorId: "password-error", errorMessage: "Password required." },
-        { id: "confirm-password", errorId: "confirm-password-error", errorMessage: "Confirm Password required." }
-    ];
+    function validateSignupForm() {
+        const requiredFields = [
+            { id: "name", errorId: "fname-error", errorMessage: "First Name required." },
+            { id: "last-name", errorId: "lname-error", errorMessage: "Last Name required." },
+            { id: "age", errorId: "age-error", errorMessage: "Age required." },
+            { id: "gender", errorId: "gender-error", errorMessage: "Gender required." },
+            { id: "signup-address", errorId: "address-error", errorMessage: "Address required." },
+            { id: "contact-number", errorId: "contact-error", errorMessage: "Contact Number required." },
+            { id: "signup-email", errorId: "email-error", errorMessage: "Email required." },
+            { id: "signup-password", errorId: "password-error", errorMessage: "Password required." },
+            { id: "confirm-password", errorId: "confirm-password-error", errorMessage: "Confirm Password required." }
+        ];
 
-    let isValid = true;
+        let isValid = true;
 
-    // Hide all error messages first
-    requiredFields.forEach(field => {
-        document.getElementById(field.errorId).style.display = 'none';
-    });
-    document.getElementById("valid-id-error").style.display = 'none';
+        // Hide all error messages first
+        requiredFields.forEach(field => {
+            document.getElementById(field.errorId).style.display = 'none';
+        });
+        document.getElementById("valid-id-error").style.display = 'none';
 
-    // Show error for each empty field
-    requiredFields.forEach(field => {
-        const input = document.getElementById(field.id);
-        if (!input.value.trim()) {
-            const errorElement = document.getElementById(field.errorId);
-            errorElement.style.display = 'block';
-            errorElement.textContent = field.errorMessage;
+        // Show error for each empty field
+        requiredFields.forEach(field => {
+            const input = document.getElementById(field.id);
+            if (!input.value.trim()) {
+                const errorElement = document.getElementById(field.errorId);
+                errorElement.style.display = 'block';
+                errorElement.textContent = field.errorMessage;
+                isValid = false;
+            }
+        });
+
+        const emailField = document.getElementById("signup-email");
+        const emailValue = emailField.value.trim();
+        const emailError = document.getElementById("email-error");
+
+        if (emailValue && !emailValue.endsWith('@gmail.com')) {
+            emailError.style.display = 'block';
+            emailError.textContent = "Invalid email format. Please use a valid @gmail.com address.";
             isValid = false;
         }
-    });
 
-    // Check valid ID upload
-    const validIdInput = document.getElementById("valid-id");
-    const validIdError = document.getElementById("valid-id-error");
-    validIdError.style.display = 'none';
-    if (!validIdInput.files || validIdInput.files.length < 2) {
-        validIdError.style.display = 'block';
-        validIdError.textContent = "Please upload both front and back images of your valid ID.";
-        isValid = false;
+        const validIdInput = document.getElementById("valid-id");
+        const validIdError = document.getElementById("valid-id-error");
+        validIdError.style.display = 'none';
+        if (!validIdInput.files || validIdInput.files.length < 2) {
+            validIdError.style.display = 'block';
+            validIdError.textContent = "Please upload both front and back images of your valid ID.";
+            isValid = false;
+        }
+
+        const passwordField = document.getElementById("signup-password");
+        const confirmPasswordField = document.getElementById("confirm-password");
+        const password = passwordField.value;
+        const confirmPassword = confirmPasswordField.value;
+
+        if (password && confirmPassword) {
+            const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+            if (!passwordRegex.test(password)) {
+                const passwordError = document.getElementById("password-error");
+                passwordError.style.display = 'block';
+                passwordError.textContent = "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one special character, and one number.";
+                isValid = false;
+            }
+            if (password !== confirmPassword) {
+                const confirmPasswordError = document.getElementById("confirm-password-error");
+                confirmPasswordError.style.display = 'block';
+                confirmPasswordError.textContent = "Passwords do not match.";
+                isValid = false;
+            }
+        }
+        return isValid;
     }
 
+    // --- START: NEW TOAST NOTIFICATION LOGIC ---
+    function checkSuccessMessage() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+            const toast = document.getElementById('toast-message');
+            const toastText = document.getElementById('toast-text');
+            const toastIcon = document.getElementById('toast-icon');
+            
+            toastText.textContent = 'Request submitted successfully! Please wait for admin approval.';
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#28a745';
+            
+            toast.classList.add('show');
+            
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 4000); // Show for 4 seconds
 
-    // Password checks only if password fields are not empty
-    const passwordField = document.getElementById("signup-password");
-    const confirmPasswordField = document.getElementById("confirm-password");
-    const password = passwordField.value;
-    const confirmPassword = confirmPasswordField.value;
-
-    if (password && confirmPassword) {
-        const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!passwordRegex.test(password)) {
-            const passwordError = document.getElementById("password-error");
-            passwordError.style.display = 'block';
-            passwordError.textContent = "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one special character, and one number.";
-            isValid = false;
-        }
-        if (password !== confirmPassword) {
-            const confirmPasswordError = document.getElementById("confirm-password-error");
-            confirmPasswordError.style.display = 'block';
-            confirmPasswordError.textContent = "Passwords do not match.";
-            isValid = false;
+            // Clean the URL
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
         }
     }
 
-    return isValid;
-}
+    function checkErrorMessage() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            const errorType = urlParams.get('error');
+            if (errorType === 'email_taken') {
+                const emailError = document.getElementById('email-error');
+                emailError.style.display = 'block';
+                emailError.textContent = 'Email is already taken. Please use a different email.';
+            }
+        }
+    }
 
-
+    window.onload = () => {
+        checkSuccessMessage();
+        checkErrorMessage();
+    };
+    // --- END: NEW TOAST NOTIFICATION LOGIC ---
 </script>
 </html>

@@ -4,93 +4,12 @@ include "../../connect.php";
 
 <!DOCTYPE html>
 <html lang="en">
-<script>
-        function displayError(fieldId, message) {
-            const errorElement = document.getElementById(fieldId);
-            errorElement.textContent = message;
-            errorElement.classList.remove('hidden');
-        }
-
-        function checkMessages() {
-            const urlParams = new URLSearchParams(window.location.search);
-
-            if (urlParams.has('error')) {
-                const errorType = urlParams.get('error');
-
-                if (errorType === 'invalid_password') {
-                    displayError('password-error', 'Incorrect password. Please try again.');
-                } else if (errorType === 'email_not_found') {
-                    displayError('email-error', 'Email not found. Please check your email or sign up.');
-                }
-            }
-        }
-
-        window.onload = checkMessages;
-
-function showPopupNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `popup-notification ${type}`;
-    notification.innerHTML = `
-        <i>${type === 'success' ? '✔️' : '❌'}</i>
-        <span>${message}</span>
-    `;
-    document.body.appendChild(notification);
-
-    notification.style.display = 'flex';
-
-    setTimeout(() => {
-        notification.style.display = 'none';
-        notification.remove();
-
-        const redirectUrl = notification.getAttribute('data-redirect');
-        if (redirectUrl) {
-            window.location.href = redirectUrl;
-        }
-    }, 2000);
-}
-
-function checkSuccessMessage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('success')) {
-        const successType = urlParams.get('success');
-        const redirectTo = urlParams.get('redirect_to');
-
-        const notification = document.createElement('div');
-        notification.className = 'popup-notification success';
-        notification.innerHTML = '<i>✔️</i><span>Login successful! Redirecting...</span>';
-        if (redirectTo) {
-            notification.setAttribute('data-redirect', redirectTo);
-        }
-        document.body.appendChild(notification);
-        
-        notification.style.display = 'flex';
-
-        setTimeout(() => {
-            notification.style.display = 'none';
-            notification.remove();
-            
-            if (redirectTo) {
-                window.location.href = redirectTo;
-            }
-        }, 2000);
-
-        const newUrl = window.location.href.split('?')[0];
-        window.history.replaceState({}, document.title, newUrl);
-    }
-}
-
-window.onload = function() {
-    checkMessages();
-    checkSuccessMessage();
-};
-    </script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../form/User_Landing_Page/style.css">
     <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <!-- Font Awesome for the eye icon -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <title>Sign In</title>
@@ -323,7 +242,7 @@ window.onload = function() {
         }
         
     .main-content {
-        height: 100vh`;
+        height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -464,68 +383,37 @@ window.onload = function() {
         text-decoration: underline;
     }
 
-     .popup-notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #4CAF50;
-            color: white;
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            z-index: 1000;
-            font-size: 16px;
-            text-align: center;
-        }
+    .error-message {
+        color: #f44336;
+        font-size: 10px;
+        margin-top: 5px;
+    }
 
-        .popup-notification.success {
-            background-color: #4CAF50;
-        }
+    .error-message.hidden {
+        display: none;
+    }
 
-        .popup-notification.error {
-            background-color: #f44336;
-        }
+    .forgot-password {
+        display: block;
+        margin-top: 10px;
+        text-align: center;
+        font-size: 11px;
+        color: #545863;
+        text-decoration: none;
+        font-weight: 600;
+    }
 
-        .popup-notification i {
-            font-size: 24px;
-        }
+    .forgot-password:hover {
+        text-decoration: underline;
+    }
 
-         .error-message {
-            color: #f44336;
-            font-size: 10px;
-            margin-top: 5px;
-        }
-
-        .error-message.hidden {
-            display: none;
-        }
-
-        .forgot-password {
-            display: block;
-            margin-top: 10px;
-            text-align: center;
-            font-size: 11px;
-            color: #545863;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .forgot-password:hover {
-            text-decoration: underline;
-        }
-
-        .home 
-        {
-            text-decoration: none;
-            font-size: 13px;
-            color: #545863;
-            margin-left: 20px;
-        }
+    .home 
+    {
+        text-decoration: none;
+        font-size: 13px;
+        color: #545863;
+        margin-left: 20px;
+    }
 
     /* --- START: STYLES FOR PASSWORD TOGGLE --- */
     .password-wrapper {
@@ -548,51 +436,84 @@ window.onload = function() {
     }
     /* --- END: STYLES FOR PASSWORD TOGGLE --- */
 
-        @media (max-width: 768px) {
-            .main-content {
-                justify-content: center;
-            }
-            .navbar {
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        height: 45px;
-        padding: 5px 10px;
+    /* --- START: NEW TOAST NOTIFICATION STYLES --- */
+    #toast-message {
+        display: block;
+        position: fixed;
+        top: 0px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 12px;
+        z-index: 2000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s, top 0.5s;
     }
-    .logo-container {
-        flex-direction: row;
-        align-items: center;
-        margin-left: 0;
-        gap: 5px;
+    #toast-message.show {
+        opacity: 1;
+        top: 20px;
+        pointer-events: auto;
     }
-    .navbar .logo-container .logo {
-        height: 33px !important;
-        margin-right: 2px !important;
+    #toast-icon {
+        margin-left: 10px;
+        font-size: 16px;
+        vertical-align: middle;
     }
-    .logo, .san-julian-logo {
-        height: 38px !important;
-        margin-right: 2px !important;
-    }
-    .navbar .title {
-        font-size: 10px !important;
-        margin-left: 0 !important;
-    }
-    .navbar a,
-    .right-nav a,
-    .home {
-        font-size: 10px !important;
-        margin: 0 6px !important;
-    }
-    .right-nav {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 5px;
-    }
+    /* --- END: NEW TOAST NOTIFICATION STYLES --- */
+
+    @media (max-width: 768px) {
+        .main-content {
+            justify-content: center;
         }
-        
+        .navbar {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            height: 45px;
+            padding: 5px 10px;
+        }
+        .logo-container {
+            flex-direction: row;
+            align-items: center;
+            margin-left: 0;
+            gap: 5px;
+        }
+        .navbar .logo-container .logo {
+            height: 33px !important;
+            margin-right: 2px !important;
+        }
+        .logo, .san-julian-logo {
+            height: 38px !important;
+            margin-right: 2px !important;
+        }
+        .navbar .title {
+            font-size: 10px !important;
+            margin-left: 0 !important;
+        }
+        .navbar a,
+        .right-nav a,
+        .home {
+            font-size: 10px !important;
+            margin: 0 6px !important;
+        }
+        .right-nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+    }
 </style>
 <body>
+    <div id="toast-message">
+        <span id="toast-text"></span>
+        <i id="toast-icon"></i>
+    </div>
     <div class="navbar">
         <div class="logo-container">
             <img src="../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
@@ -605,7 +526,6 @@ window.onload = function() {
         </div>
     </div>
     
-
     <div class="main-content">
         <div class="container">
             <form id="signin-form" class="form active" method="POST" action="process_signin.php">
@@ -632,7 +552,6 @@ window.onload = function() {
                 
                 <button type="submit" class="btn">Sign In</button>
 
-                <!-- Forgot password link -->
                 <a href="forgot_password.php" class="forgot-password">Forgot Password?</a>
                 
                 <div class="form-toggle">
@@ -642,12 +561,10 @@ window.onload = function() {
         </div>
     </div>
 
-    <script>
+<script>
     // Validate sign-in form before submit
     document.getElementById('signin-form').addEventListener('submit', function(e) {
         let valid = true;
-
-        // Email validation
         const emailInput = document.getElementById('signin-email');
         const emailError = document.getElementById('email-error');
         if (!emailInput.value.trim()) {
@@ -659,7 +576,6 @@ window.onload = function() {
             emailError.classList.add('hidden');
         }
 
-        // Password validation
         const passwordInput = document.getElementById('signin-password');
         const passwordError = document.getElementById('password-error');
         if (!passwordInput.value.trim()) {
@@ -676,35 +592,72 @@ window.onload = function() {
         }
     });
 
+    function displayError(fieldId, message) {
+        const errorElement = document.getElementById(fieldId);
+        errorElement.textContent = message;
+        errorElement.classList.remove('hidden');
+    }
+
     function checkMessages() {
-    const urlParams = new URLSearchParams(window.location.search);
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            const errorType = urlParams.get('error');
 
-    if (urlParams.has('error')) {
-        const errorType = urlParams.get('error');
-
-        if (errorType === 'invalid_password') {
-            displayError('password-error', 'Incorrect password. Please try again.');
-        } else if (errorType === 'email_not_found') {
-            displayError('email-error', 'Email not found. Please check your email or sign up.');
-        } else if (errorType === 'not_approved') {
-            displayError('email-error', 'Your account is pending approval. You cannot login until an admin approves your request.');
+            if (errorType === 'invalid_password') {
+                displayError('password-error', 'Incorrect password. Please try again.');
+            } else if (errorType === 'email_not_found') {
+                displayError('email-error', 'Email not found. Please check your email or sign up.');
+            } else if (errorType === 'not_approved') {
+                displayError('email-error', 'Your account is pending approval. You cannot login until an admin approves your request.');
+            }
         }
     }
-}
-// --- START: JAVASCRIPT FOR PASSWORD TOGGLE ---
-document.addEventListener('DOMContentLoaded', function () {
-    const togglePassword = document.querySelector('#togglePassword');
-    const password = document.querySelector('#signin-password');
 
-    togglePassword.addEventListener('click', function (e) {
-        // toggle the type attribute
-        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-        password.setAttribute('type', type);
-        // toggle the eye slash icon
-        this.classList.toggle('fa-eye-slash');
+    // --- START: NEW TOAST NOTIFICATION LOGIC ---
+    function checkSuccessMessage() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+            const redirectTo = urlParams.get('redirect_to');
+            
+            const toast = document.getElementById('toast-message');
+            const toastText = document.getElementById('toast-text');
+            const toastIcon = document.getElementById('toast-icon');
+            
+            toastText.textContent = 'Login successful! Redirecting...';
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#28a745';
+            
+            toast.classList.add('show');
+
+            // Clean the URL immediately
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            
+            // Redirect after the toast has been visible
+            setTimeout(() => {
+                if (redirectTo) {
+                    window.location.href = redirectTo;
+                }
+            }, 2000); // Redirect after 2 seconds
+        }
+    }
+    
+    window.onload = function() {
+        checkMessages();
+        checkSuccessMessage();
+    };
+    // --- END: NEW TOAST NOTIFICATION LOGIC ---
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#signin-password');
+
+        togglePassword.addEventListener('click', function (e) {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+        });
     });
-});
-// --- END: JAVASCRIPT FOR PASSWORD TOGGLE ---
 </script>
 </body>
 </html>

@@ -414,14 +414,13 @@ include "../../connect.php";
         display: none;
     }
 
-    /* --- START: STYLES FOR PASSWORD TOGGLE --- */
     .password-wrapper {
         position: relative;
         width: 100%;
     }
     
     .password-wrapper input {
-        padding-right: 40px; /* Make space for icon */
+        padding-right: 40px; 
     }
 
     .password-wrapper .fa-eye,
@@ -433,9 +432,7 @@ include "../../connect.php";
         cursor: pointer;
         color: #888;
     }
-    /* --- END: STYLES FOR PASSWORD TOGGLE --- */
 
-    /* --- START: NEW TOAST NOTIFICATION STYLES --- */
     #toast-message {
         display: block;
         position: fixed;
@@ -463,7 +460,45 @@ include "../../connect.php";
         font-size: 16px;
         vertical-align: middle;
     }
-    /* --- END: NEW TOAST NOTIFICATION STYLES --- */
+    
+    .address-group .fixed-address {
+        padding: 10px;
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        font-size: 11px;
+        color: #333;
+        margin-top: 8px;
+        text-align: center;
+    }
+    
+    /* START: Styles for File Input Clear Button */
+    .file-input-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type="file"] {
+        width: 100%;
+    }
+
+    .file-input-clear-button {
+        display: none; /* Hidden by default */
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: white; /* Color of the 'x' icon */
+        background-color: #f44336; /* Red circle */
+        border-radius: 50%; /* Makes it a circle */
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        text-align: center;
+        line-height: 20px; /* Vertically centers the icon */
+    }
+    /* END: Styles for File Input Clear Button */
 
     @media (max-width: 768px) {
         .navbar {
@@ -570,22 +605,42 @@ include "../../connect.php";
                 </div>
                 <div class="form-group">
                     <label for="birthdate">Birthdate</label>
-                    <input type="date" id="birthdate" name="birthdate">
+                    <input type="date" id="birthdate" name="birthdate" max="2009-12-31">
                     <div id="birthdate-error" class="error-message"></div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="signup-address">Address</label>
-                <input type="text" id="signup-address" name="address" placeholder="Enter your complete address">
+            <div class="form-group address-group">
+                <label for="barangay">Address (Barangay)</label>
+                <select id="barangay">
+                    <option value="" disabled selected>-- Select your Barangay --</option>
+                    <option value="Bunacan">Bunacan</option>
+                    <option value="Campidhan">Campidhan</option>
+                    <option value="Casoroy">Casoroy</option>
+                    <option value="Libas">Libas</option>
+                    <option value="Lunang">Lunang</option>
+                    <option value="Nena (Luna)">Nena (Luna)</option>
+                    <option value="Pagbabangnan">Pagbabangnan</option>
+                    <option value="Barangay No. 1 Poblacion">Barangay No. 1 Poblacion</option>
+                    <option value="Barangay No. 2 Poblacion">Barangay No. 2 Poblacion</option>
+                    <option value="Barangay No. 3 Poblacion">Barangay No. 3 Poblacion</option>
+                    <option value="Barangay No. 4 Poblacion">Barangay No. 4 Poblacion</option>
+                    <option value="Barangay No. 5 Poblacion">Barangay No. 5 Poblacion</option>
+                    <option value="Barangay No. 6 Poblacion">Barangay No. 6 Poblacion</option>
+                    <option value="Putong">Putong</option>
+                    <option value="San Isidro">San Isidro</option>
+                    <option value="San Miguel">San Miguel</option>
+                </select>
+                <div class="fixed-address">San Julian, Eastern Samar</div>
+                <input type="hidden" id="signup-address" name="address">
                 <div id="address-error" class="error-message"></div>
             </div>
-
+            
             <div class="form-group">
                 <label for="contact-number">Contact Number</label>
                 <input type="text" id="contact-number" name="contact" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" placeholder="Enter your contact number">
                 <div id="contact-error" class="error-message"></div>
-                <small style="font-size:11px;color:#8B8E98;">(e.g., 09123456789)</small>
+                <small style="font-size:11px;color:#8B8E98;">(e.g., 09123456789, +639123456789)</small>
             </div>
 
             <div class="form-group">
@@ -616,7 +671,12 @@ include "../../connect.php";
 
             <div class="form-group">
                 <label for="valid-id">Upload Valid ID (Front and Back)</label>
-                <input type="file" id="valid-id" name="valid_id[]" accept="image/*,.pdf" multiple>
+                <div class="file-input-wrapper">
+                    <input type="file" id="valid-id" name="valid_id[]" accept="image/*,.pdf" multiple>
+                    <span class="file-input-clear-button" id="clear-valid-id">
+                        <i class="fas fa-times"></i>
+                    </span>
+                </div>
                 <div id="valid-id-error" class="error-message"></div>
                 <small style="font-size:11px;color:#8B8E98;">Upload both front and back. Accepted formats: JPG, PNG</small>
             </div>
@@ -649,14 +709,52 @@ include "../../connect.php";
             confirmPassword.setAttribute('type', type);
             this.classList.toggle('fa-eye-slash');
         });
+
+        const signupForm = document.getElementById('signup-form');
+        if (signupForm) {
+            signupForm.addEventListener('submit', function(event) {
+                const barangaySelect = document.getElementById('barangay');
+                const fullAddressInput = document.getElementById('signup-address');
+                const selectedBarangay = barangaySelect.value;
+                
+                if (selectedBarangay) {
+                    fullAddressInput.value = selectedBarangay + ', San Julian, Eastern Samar';
+                }
+            });
+        }
+        
+        const validIdInput = document.getElementById('valid-id');
+        const clearValidIdButton = document.getElementById('clear-valid-id');
+
+        validIdInput.addEventListener('change', function() {
+            if (validIdInput.files.length > 0) {
+                clearValidIdButton.style.display = 'block';
+            } else {
+                clearValidIdButton.style.display = 'none';
+            }
+        });
+
+        clearValidIdButton.addEventListener('click', function() {
+            validIdInput.value = ''; 
+            clearValidIdButton.style.display = 'none';
+        });
     });
 
     function validateSignupForm() {
+        const barangaySelect = document.getElementById('barangay');
+        const fullAddressInput = document.getElementById('signup-address');
+        const selectedBarangay = barangaySelect.value;
+        
+        if (selectedBarangay) {
+            fullAddressInput.value = selectedBarangay + ', San Julian, Eastern Samar';
+        }
+
         const requiredFields = [
             { id: "name", errorId: "fname-error", errorMessage: "First Name required." },
             { id: "last-name", errorId: "lname-error", errorMessage: "Last Name required." },
             { id: "age", errorId: "age-error", errorMessage: "Age required." },
             { id: "gender", errorId: "gender-error", errorMessage: "Gender required." },
+            { id: "birthdate", errorId: "birthdate-error", errorMessage: "Birthdate required." },
             { id: "signup-address", errorId: "address-error", errorMessage: "Address required." },
             { id: "contact-number", errorId: "contact-error", errorMessage: "Contact Number required." },
             { id: "signup-email", errorId: "email-error", errorMessage: "Email required." },
@@ -666,13 +764,11 @@ include "../../connect.php";
 
         let isValid = true;
 
-        // Hide all error messages first
         requiredFields.forEach(field => {
             document.getElementById(field.errorId).style.display = 'none';
         });
         document.getElementById("valid-id-error").style.display = 'none';
 
-        // Show error for each empty field
         requiredFields.forEach(field => {
             const input = document.getElementById(field.id);
             if (!input.value.trim()) {
@@ -682,6 +778,19 @@ include "../../connect.php";
                 isValid = false;
             }
         });
+
+        const birthdateField = document.getElementById("birthdate");
+        const birthdateValue = birthdateField.value;
+        const birthdateError = document.getElementById("birthdate-error");
+
+        if (birthdateValue) { 
+            const birthYear = new Date(birthdateValue).getFullYear();
+            if (birthYear > 2009) {
+                birthdateError.style.display = 'block';
+                birthdateError.textContent = "Birth year cannot be after 2009.";
+                isValid = false;
+            }
+        }
 
         const emailField = document.getElementById("signup-email");
         const emailValue = emailField.value.trim();
@@ -708,7 +817,7 @@ include "../../connect.php";
         const confirmPassword = confirmPasswordField.value;
 
         if (password && confirmPassword) {
-            const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+            const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
             if (!passwordRegex.test(password)) {
                 const passwordError = document.getElementById("password-error");
                 passwordError.style.display = 'block';
@@ -725,7 +834,6 @@ include "../../connect.php";
         return isValid;
     }
 
-    // --- START: NEW TOAST NOTIFICATION LOGIC ---
     function checkSuccessMessage() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('success')) {
@@ -741,9 +849,8 @@ include "../../connect.php";
             
             setTimeout(function() {
                 toast.classList.remove('show');
-            }, 4000); // Show for 4 seconds
+            }, 4000); 
 
-            // Clean the URL
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
         }
@@ -765,6 +872,5 @@ include "../../connect.php";
         checkSuccessMessage();
         checkErrorMessage();
     };
-    // --- END: NEW TOAST NOTIFICATION LOGIC ---
 </script>
 </html>

@@ -17,7 +17,6 @@ include "../../connect.php";
 <style>
     body {
         font-family: 'Roboto', sans-serif;
-        overflow: hidden;
     }
 
     .form_container {
@@ -242,13 +241,13 @@ include "../../connect.php";
         }
         
     .main-content {
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
         padding: 40px 20px;
-        overflow: hidden;
-        margin-top: 60px; 
+        margin-top: 60px;
+        box-sizing: border-box;
     }
     
     .container {

@@ -4,7 +4,7 @@ include '../../../../connect.php';
 session_start();
 
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Cache-Control: post-check=0, pre-check=0", false);
+header("Cache-control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 header("Expires: 0");
 
@@ -27,9 +27,43 @@ if ($result->num_rows > 0) {
     exit();
 }
 
+
+// --- START: FETCH SPES FORM IMAGES & DOCS ---
+$spes_form_files = [
+    'employment_contract' => [
+        'image' => '../../../../images/Employment-contract.jpg', 
+        'doc' => '../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx'
+    ],
+    'oath_undertaking' => [
+        'image' => '../../../../images/spesos-oath-of-undertaking.jpg',
+        'doc' => '../../../../download_assets/SPES-FORM-2-A-OATH-OF-UNDERTAKING-.docx'
+    ]
+];
+$spesFilesSqlUser = "SELECT doc_type, file_path, doc_file_path FROM spes_files WHERE doc_type IN ('employment_contract', 'oath_undertaking')";
+$spesFilesResultUser = $conn->query($spesFilesSqlUser);
+if ($spesFilesResultUser) {
+    while($row = $spesFilesResultUser->fetch_assoc()) {
+        if (!empty($row['file_path'])) {
+            $spes_form_files[$row['doc_type']]['image'] = $row['file_path'];
+        }
+        if (!empty($row['doc_file_path'])) {
+            $spes_form_files[$row['doc_type']]['doc'] = $row['doc_file_path'];
+        }
+    }
+}
+// --- END: FETCH SPES FORM IMAGES & DOCS ---
+
 // --- START: NEW SCHOLARSHIP APPROVAL STATUS CHECK ---
 $isApprovedForAnyScholarship = false;
-$checkApprovalSql = "SELECT 1 FROM applications WHERE user_id = ? AND status = 'approved' LIMIT 1";
+// FIX: This query now joins with the scholarships table to ensure we only check for 
+// approved status on scholarships that are currently 'active'.
+$checkApprovalSql = "
+    SELECT 1 
+    FROM applications a
+    JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+    WHERE a.user_id = ? AND a.status = 'approved' AND s.status = 'active'
+    LIMIT 1
+";
 $checkApprovalStmt = $conn->prepare($checkApprovalSql);
 $checkApprovalStmt->bind_param("i", $userId);
 $checkApprovalStmt->execute();
@@ -38,6 +72,27 @@ if ($checkApprovalResult->num_rows > 0) {
     $isApprovedForAnyScholarship = true;
 }
 // --- END: NEW SCHOLARSHIP APPROVAL STATUS CHECK ---
+
+// --- START: NEW CHECK FOR ACTIVE SPES BATCH ---
+$isSpesActive = false;
+$checkSpesBatchSql = "SELECT 1 FROM spes_batches WHERE status = 'active' LIMIT 1";
+$checkSpesBatchResult = $conn->query($checkSpesBatchSql);
+if ($checkSpesBatchResult->num_rows > 0) {
+    $isSpesActive = true;
+}
+// --- END: NEW CHECK FOR ACTIVE SPES BATCH ---
+
+// --- START: CHECK IF USER HAS EVER BEEN APPROVED FOR SPES ---
+$hasBeenApprovedForSpes = false;
+$checkSpesApprovalSql = "SELECT 1 FROM spes_applications WHERE user_id = ? AND status = 'approved' LIMIT 1";
+$checkSpesApprovalStmt = $conn->prepare($checkSpesApprovalSql);
+$checkSpesApprovalStmt->bind_param("i", $userId);
+$checkSpesApprovalStmt->execute();
+$checkSpesApprovalResult = $checkSpesApprovalStmt->get_result();
+if ($checkSpesApprovalResult->num_rows > 0) {
+    $hasBeenApprovedForSpes = true;
+}
+// --- END: CHECK IF USER HAS EVER BEEN APPROVED FOR SPES ---
 
 // --- START: Scholarship FORM SUBMISSION LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
@@ -374,7 +429,7 @@ if (isset($_POST['send_concern'])) {
         }
         $file_name = basename($_FILES['attachment']['name']);
         $target_file = $target_dir . uniqid() . "_" . $file_name;
-        if (move_uploaded_file($tmp_name, $target_file)) {
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_file)) {
             $attachmentPath = $target_file;
         }
     }
@@ -791,6 +846,11 @@ body {
 
 .btn-primary:hover {
     background:rgb(9, 114, 44);
+}
+
+.btn-primary:disabled {
+    background-color: #808080;
+    border-color: #808080;
 }
 
 .notification-bell {
@@ -1911,6 +1971,113 @@ form .label-application + div label {
     font-size: 16px;
     vertical-align: middle;
 }
+/* --- NEW STYLES FOR SCHOLARSHIP TABS --- */
+.scholarship-tabs-container {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.scholarship-tab-link {
+    background-color: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    border-bottom: 3px solid transparent;
+}
+
+.scholarship-tab-link:hover {
+    background-color: #ddd;
+}
+
+.scholarship-tab-link.active {
+    background-color: #fff;
+    font-weight: bold;
+    color: #090549;
+    border-bottom: 3px solid #090549;
+}
+
+.scholarship-tab-content {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-top: none;
+    background-color: #fff;
+    border-radius: 0 0 8px 8px;
+    animation: fadeIn 0.5s;
+}
+
+.scholarship-tab-content h3 {
+    margin-top: 0;
+    color: #090549;
+}
+
+.scholarship-tab-content h4 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.scholarship-tab-content hr {
+    margin: 20px 0;
+    border: 0;
+    border-top: 1px solid #eee;
+}
+
+.scholarship-tab-content .scholarship-actions a.btn {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.scholarship-tab-content .scholarship-actions .btn-primary {
+    gap: 8px;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+/* START: Styles for File Input Clear Button */
+.file-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.file-input-wrapper input.file-field {
+    width: 100%;
+    padding-right: 35px; /* Make space for the clear button */
+    box-sizing: border-box;
+}
+
+.file-input-clear-button {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: white;
+    background-color: #f44336;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 20px;
+    z-index: 2; /* Ensure it's above the input field */
+}
+/* END: Styles for File Input Clear Button */
 </style>
 </head>
 <body>
@@ -1972,6 +2139,17 @@ form .label-application + div label {
             </div>
         </div>
 
+        
+        <?php if (isset($_SESSION['spes_application_submitted'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('SPES application submitted successfully!', 'success');
+        });
+        </script>
+        <?php unset($_SESSION['spes_application_submitted']); endif; ?>
+
+
+
         <div class="main-content">
             <div id="home-page" class="page active">
                 <div class="welcome-screen">
@@ -1998,6 +2176,176 @@ form .label-application + div label {
                 </div>
             </div>
 
+            <div id="scholarships-page" class="page">
+                <div class="scholarship-list">
+                    <h2>Available Scholarships</h2>
+                    <p>Browse and apply for available scholarship programs by selecting a tab below.</p>
+
+                    <?php if (count($scholarships) > 0): ?>
+                        <div class="scholarship-tabs-container">
+                            <?php foreach ($scholarships as $index => $scholarship): ?>
+                                <button 
+                                    class="scholarship-tab-link <?php if ($index === 0) echo 'active'; ?>" 
+                                    onclick="openScholarshipTab(event, '<?php echo $scholarship['scholarship_id']; ?>')">
+                                    <?php echo htmlspecialchars($scholarship['title']); ?>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php foreach ($scholarships as $index => $scholarship): 
+                            // Calculate remaining slots
+                            $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
+
+                            // --- Button Logic ---
+                            $hasPendingOrApprovedForThis = false;
+                            $applicationStatusForThis = '';
+                            $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
+                            $checkStmt = $conn->prepare($checkSql);
+                            $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
+                            $checkStmt->execute();
+                            $checkResult = $checkStmt->get_result();
+                            if ($checkResult->num_rows > 0) {
+                                $app = $checkResult->fetch_assoc();
+                                $applicationStatusForThis = $app['status'];
+                                $hasPendingOrApprovedForThis = true;
+                            }
+                            $isDisabled = false;
+                            $buttonText = 'Apply Now';
+                            if ($isApprovedForAnyScholarship) {
+                                $isDisabled = true;
+                                $buttonText = ($applicationStatusForThis === 'approved') ? 'Approved' : 'Cannot Apply Anymore';
+                            } elseif ($hasPendingOrApprovedForThis) {
+                                $isDisabled = true;
+                                $buttonText = 'Pending';
+                            } elseif ($remainingSlots <= 0) {
+                                $isDisabled = true;
+                                $buttonText = 'Fully Booked';
+                            }
+                        ?>
+                            <div id="scholarship-content-<?php echo $scholarship['scholarship_id']; ?>" class="scholarship-tab-content" style="<?php if ($index !== 0) echo 'display:none;'; ?>">
+                                <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
+                                <p><strong>Description:</strong> <?php echo htmlspecialchars($scholarship['description']); ?></p>
+                                <p><strong>Slots:</strong> <?php echo max(0, $remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining</p>
+                                <hr>
+                                <h4>Requirements:</h4>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
+                                <h4>Benefits:</h4>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
+                                <h4>Eligibility Criteria:</h4>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
+                                
+                                <div class="scholarship-actions">
+                                    <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?> 
+                                        onclick="showApplicationForm('<?php echo htmlspecialchars($scholarship['title']); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
+                                        <i class="fas fa-pen-alt"></i> <?php echo $buttonText; ?>
+                                    </button>
+                                    <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="btn btn-outline">
+                                        <i class="fas fa-download"></i> Download File
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p>There are currently no active scholarship programs. Please check back later.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div id="history-page" class="page">
+                <div class="application-history">
+                    <h2 class="history-h2">Application History</h2>
+                    <p class="history-p">Review your previous scholarship applications</p>
+
+                    <div class="table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Program Name</th>
+                                <th>Type</th>
+                                <th>Date Applied</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        // --- START: MODIFIED QUERY TO FETCH BOTH SCHOLARSHIP AND SPES HISTORY ---
+                        $combinedHistorySql = "
+                            (SELECT
+                                a.application_id AS id,
+                                s.title AS program_name,
+                                'Scholarship' AS application_type,
+                                a.created_at AS date_applied,
+                                a.status AS status,
+                                a.rejection_message AS rejection_message
+                            FROM applications a
+                            JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                            WHERE a.user_id = ?)
+                            
+                            UNION ALL
+                            
+                            (SELECT
+                                sa.spes_application_id AS id,
+                                'SPES Application' AS program_name,
+                                'SPES' AS application_type,
+                                sa.created_at AS date_applied,
+                                sa.status AS status,
+                                NULL AS rejection_message -- Add a NULL column to match the structure
+                            FROM spes_applications sa
+                            WHERE sa.user_id = ?)
+                            
+                            ORDER BY date_applied DESC
+                        ";
+
+                        $applicationsStmt = $conn->prepare($combinedHistorySql);
+                        // Bind the user ID twice, once for each part of the UNION query
+                        $applicationsStmt->bind_param("ii", $userId, $userId);
+                        $applicationsStmt->execute();
+                        $applicationsResult = $applicationsStmt->get_result();
+                        // --- END: MODIFIED QUERY ---
+                        
+                        if ($applicationsResult->num_rows > 0):
+                            while ($application = $applicationsResult->fetch_assoc()):
+                                // Determine status class for styling
+                                $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
+                        ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($application['id']); ?></td>
+                                <td><?php echo htmlspecialchars($application['program_name']); ?></td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($application['application_type']); ?></strong>
+                                </td>
+                                <td><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
+                                <td>
+                                    <span class="<?php echo $statusClass; ?>">
+                                        <?php echo ucfirst($application['status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php if ($application['application_type'] === 'Scholarship' && $application['status'] === 'rejected' && !empty($application['rejection_message'])): ?>
+                                        <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>)'>See Why...</button>
+                                    <?php else: ?>
+                                        N/A
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php
+                            endwhile;
+                        else:
+                        ?>
+                            <tr class="no-history-row">
+                                <td colspan="6">No application history found.</td>
+                            </tr>
+                        <?php
+                        endif;
+                        ?>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="spes-page" class="page">
                 <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH (SPESOS)</h3>
                 <div class="dashboard-boxes">
@@ -2013,10 +2361,18 @@ form .label-application + div label {
                         <div class="box-description">Apply for the SPES program here.</div>
                         
                         <?php 
-                        // Determine button text and disabled state based on status
-                        $isSpesDisabled = !is_null($spesApplicationStatus);
+                        // UPDATED LOGIC: Determine button text and disabled state
                         $spesButtonText = 'Open Form';
-                        if ($isSpesDisabled) {
+                        $isSpesDisabled = false;
+
+                        if ($hasBeenApprovedForSpes) {
+                            $isSpesDisabled = true;
+                            $spesButtonText = 'Already Availed';
+                        } elseif (!$isSpesActive) {
+                            $isSpesDisabled = true;
+                            $spesButtonText = 'Application Closed';
+                        } elseif (!is_null($spesApplicationStatus)) {
+                            $isSpesDisabled = true;
                             $spesButtonText = 'Application is ' . ucfirst($spesApplicationStatus);
                         }
                         ?>
@@ -2039,9 +2395,9 @@ form .label-application + div label {
             <div id="spes-employment-contract-page" class="page">
                 <div class="form-container-application">
                     <h2>Employment Contract Form</h2>
-                    <img src="../../../../images/Employment-contract.jpg" alt="Employment contract image" class="image">
+                    <img src="<?php echo htmlspecialchars($spes_form_files['employment_contract']['image']); ?>" alt="Employment contract image" class="image">
                     <br>
-                    <a href="../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx" download class="submit-btn">
+                    <a href="<?php echo htmlspecialchars($spes_form_files['employment_contract']['doc']); ?>" download class="submit-btn">
                         Download Employment Contract
                     </a>
                     <br>
@@ -2049,7 +2405,20 @@ form .label-application + div label {
                 </div>
             </div>
 
-           <div id="spes-application-form-page" class="page">
+            <div id="spes-oath-of-undertaking-page" class="page">
+                <div class="form-container-application">
+                    <h2>Oath of Undertaking Form</h2>
+                    <img src="<?php echo htmlspecialchars($spes_form_files['oath_undertaking']['image']); ?>" alt="Oath of Undertaking image" class="image">
+                    <br>
+                    <a href="<?php echo htmlspecialchars($spes_form_files['oath_undertaking']['doc']); ?>" download class="submit-btn">
+                        Download Oath-of-Undertaking Form
+                    </a>
+                    <br>
+                    <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
+                </div>
+            </div>
+
+            <div id="spes-application-form-page" class="page">
             <div class="form-container-application">
                 <img src="../../../../images/Peso_logo1.gif"  alt="SPES_Logo1" id="spes-form-logo-1">
                 <img src="../../../../images/PESO_Logo.png"  alt="PESO_Logo" id="spes-form-logo-2">
@@ -2061,7 +2430,7 @@ form .label-application + div label {
                     Download SPES Application Form
                 </a>
                 <p class="title-description-p">REPUBLIC OF THE PHILIPPINES<br>DEPARTMENT OF LABOR AND EMPLOYMENT<br>Regional Office No. VIII<br>PUBLIC EMPLOYMENT SERVICE OFFICE<br>SAN JULIAN, EASTERN SAMAR<br>City/Municipality/Province<br>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)<br>(RA 7323, as amended by RAs 9547 and 10917)
-</p>
+                </p>
                 <h2 id="spes-application-form-title">Application Form</h2>
                 
                 <form method="POST" enctype="multipart/form-data">
@@ -2069,15 +2438,15 @@ form .label-application + div label {
                     <div class="flex-container">
                         <div class="flex-item">
                             <label class="label-application">Surname</label>
-                            <input type="text" name="surname" class="input-field" required>
+                            <input type="text" name="surname" class="input-field" required value="<?php echo htmlspecialchars($user['Lname']); ?>">
                         </div>
                         <div class="flex-item">
                             <label class="label-application">First Name</label>
-                            <input type="text" name="firstname" class="input-field" required>
+                            <input type="text" name="firstname" class="input-field" required value="<?php echo htmlspecialchars($user['Fname']); ?>">
                         </div>
                         <div class="flex-item">
                             <label class="label-application">Middle Name</label>
-                            <input type="text" name="middlename" class="input-field">
+                            <input type="text" name="middlename" class="input-field" value="<?php echo htmlspecialchars($user['Mname']); ?>">
                         </div>
                     </div>
                     <label class="label-application">GSIS Beneficiary/Relationship</label>
@@ -2085,11 +2454,16 @@ form .label-application + div label {
                     
                     <label class="label-application">Upload ID (Front, Back, etc.)</label>
                     <p class="form-helper-text">Select Valid ID front and back.</p>
-                    <input type="file" name="id_images[]" class="input-field file-field" accept="image/*" multiple>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="spes_id_images" name="id_images[]" class="input-field file-field" accept="image/*" multiple>
+                        <span class="file-input-clear-button" id="clear-spes-id-images">
+                            <i class="fas fa-times"></i>
+                        </span>
+                    </div>
                     <div class="flex-container">
                         <div class="flex-item">
                             <label class="label-application">Date of Birth</label>
-                            <input type="date" name="dob" class="input-field" required>
+                            <input type="date" name="dob" class="input-field" required value="<?php echo htmlspecialchars($user['Birthdate']); ?>">
                         </div>
                         <div class="flex-item">
                             <label class="label-application">Place of Birth</label>
@@ -2103,11 +2477,11 @@ form .label-application + div label {
                     <div class="flex-container">
                         <div class="flex-item">
                             <label class="label-application">Contact Details/Cellphone No.</label>
-                            <input type="text" name="contact" class="input-field">
+                            <input type="text" name="contact" class="input-field" value="<?php echo htmlspecialchars($user['contact_number']); ?>">
                         </div>
                         <div class="flex-item">
                             <label class="label-application">Email Address</label>
-                            <input type="email" name="email" class="input-field">
+                            <input type="email" name="email" class="input-field" value="<?php echo htmlspecialchars($user['Email']); ?>">
                         </div>
                     </div>
                     <label class="label-application">Social Media Account (Facebook, Twitter, Instagram, etc.)</label>
@@ -2122,10 +2496,13 @@ form .label-application + div label {
                     </div>
 
                     <label class="label-application">Sex</label>
-                    <div>
-                        <label><input type="radio" name="sex" value="Male" required> Male</label>
-                        <label><input type="radio" name="sex" value="Female"> Female</label>
-                    </div>
+                        <select name="sex" class="input-field" required>
+                            <option value="">Select gender</option>
+                            <option value="male" <?php if(strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
+                            <option value="female" <?php if(strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
+                            <option value="other" <?php if(strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
+                            <option value="prefer-not-to-say" <?php if(strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
+                        </select>
 
                     <label class="label-application">Student Type</label>
                     <div>
@@ -2234,7 +2611,12 @@ form .label-application + div label {
                         <div class="form-group">
                             <label class="label-application" for="spes_documents">Upload Compiled Documents Here</label>
                             <p class="form-helper-text">Please compile all required documents (e.g., Birth Certificate, ITR/Certificate of Indigence, Grades) into a single PDF or DOCX file.</p>
-                            <input type="file" id="spes_documents" name="spes_documents" class="input-field file-field" accept=".pdf,.doc,.docx" required>
+                            <div class="file-input-wrapper">
+                                <input type="file" id="spes_documents" name="spes_documents" class="input-field file-field" accept=".pdf,.doc,.docx" required>
+                                <span class="file-input-clear-button" id="clear-spes-documents">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
                         </div>
                         <h4>Special Skills</h4>
                         <input type="text" name="special_skills" class="input-field">
@@ -2275,100 +2657,6 @@ form .label-application + div label {
                 </div>
             </div>
 
-           <div id="history-page" class="page">
-                <div class="application-history">
-                    <h2 class="history-h2">Application History</h2>
-                    <p class="history-p">Review your previous scholarship applications</p>
-
-                    <div class="table-container">
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Program Name</th>
-                                <th>Type</th>
-                                <th>Date Applied</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                        // --- START: MODIFIED QUERY TO FETCH BOTH SCHOLARSHIP AND SPES HISTORY ---
-                        $combinedHistorySql = "
-                            (SELECT
-                                a.application_id AS id,
-                                s.title AS program_name,
-                                'Scholarship' AS application_type,
-                                a.created_at AS date_applied,
-                                a.status AS status,
-                                a.rejection_message AS rejection_message
-                            FROM applications a
-                            JOIN scholarships s ON a.scholarship_id = s.scholarship_id
-                            WHERE a.user_id = ?)
-                            
-                            UNION ALL
-                            
-                            (SELECT
-                                sa.spes_application_id AS id,
-                                'SPES Application' AS program_name,
-                                'SPES' AS application_type,
-                                sa.created_at AS date_applied,
-                                sa.status AS status,
-                                NULL AS rejection_message -- Add a NULL column to match the structure
-                            FROM spes_applications sa
-                            WHERE sa.user_id = ?)
-                            
-                            ORDER BY date_applied DESC
-                        ";
-
-                        $applicationsStmt = $conn->prepare($combinedHistorySql);
-                        // Bind the user ID twice, once for each part of the UNION query
-                        $applicationsStmt->bind_param("ii", $userId, $userId);
-                        $applicationsStmt->execute();
-                        $applicationsResult = $applicationsStmt->get_result();
-                        // --- END: MODIFIED QUERY ---
-                        
-                        if ($applicationsResult->num_rows > 0):
-                            while ($application = $applicationsResult->fetch_assoc()):
-                                // Determine status class for styling
-                                $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
-                        ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($application['id']); ?></td>
-                                <td><?php echo htmlspecialchars($application['program_name']); ?></td>
-                                <td>
-                                    <strong><?php echo htmlspecialchars($application['application_type']); ?></strong>
-                                </td>
-                                <td><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
-                                <td>
-                                    <span class="<?php echo $statusClass; ?>">
-                                        <?php echo ucfirst($application['status']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <?php if ($application['application_type'] === 'Scholarship' && $application['status'] === 'rejected' && !empty($application['rejection_message'])): ?>
-                                        <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>)'>See Why...</button>
-                                    <?php else: ?>
-                                        N/A
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php
-                            endwhile;
-                        else:
-                        ?>
-                            <tr class="no-history-row">
-                                <td colspan="6">No application history found.</td>
-                            </tr>
-                        <?php
-                        endif;
-                        ?>
-                        </tbody>
-                    </table>
-                    </div>
-                </div>
-            </div>
 
             <div id="rejectionMessageModal" class="modal">
                 <div class="modal-content">
@@ -2484,75 +2772,7 @@ form .label-application + div label {
     </div>
 </div>
 
-            <div id="scholarships-page" class="page">
-                <div class="scholarship-list">
-                    <h2>Available Scholarships</h2>
-                    <p>Browse and apply for available scholarship programs</p>
-                    
-                    <?php foreach ($scholarships as $scholarship): 
-                        // Calculate remaining slots
-                        $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
 
-                        // --- START: MODIFIED BUTTON LOGIC ---
-                        // Check status for THIS specific scholarship
-                        $hasPendingOrApprovedForThis = false;
-                        $applicationStatusForThis = '';
-                        $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
-                        $checkStmt = $conn->prepare($checkSql);
-                        $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
-                        $checkStmt->execute();
-                        $checkResult = $checkStmt->get_result();
-                        if ($checkResult->num_rows > 0) {
-                            $app = $checkResult->fetch_assoc();
-                            $applicationStatusForThis = $app['status'];
-                            $hasPendingOrApprovedForThis = true;
-                        }
-
-                        // Determine button state and text based on overall and specific status
-                        $isDisabled = false;
-                        $buttonText = 'Apply Now';
-
-                        if ($isApprovedForAnyScholarship) {
-                            $isDisabled = true;
-                            // If they are approved for THIS scholarship, show 'Approved', otherwise show 'Already a Scholar'.
-                            $buttonText = ($applicationStatusForThis === 'approved') ? 'Approved' : 'Already a Scholar';
-                        } elseif ($hasPendingOrApprovedForThis) {
-                            $isDisabled = true;
-                            $buttonText = 'Pending';
-                        } elseif ($remainingSlots <= 0) {
-                            $isDisabled = true;
-                            $buttonText = 'Fully Booked';
-                        }
-                        // --- END: MODIFIED BUTTON LOGIC ---
-                    ?>
-                        <div class="scholarship-card">
-                            <div class="scholarship-header">
-                                <div class="scholarship-title"><?php echo htmlspecialchars($scholarship['title']); ?></div>
-                            </div>
-                            <div class="scholarship-body">
-                                <div class="scholarship-info">
-                                    <p><?php echo htmlspecialchars($scholarship['description']); ?></p>
-                                    <p><strong>Slots:</strong> <?php echo max(0, $remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining</p>
-                                </div>
-                            </div>
-                            <div class="scholarship-actions">
-                                <button class="btn btn-outline" 
-                                    onclick='showDetails(
-                                        <?php echo json_encode($scholarship["title"]); ?>, 
-                                        <?php echo json_encode(nl2br($scholarship["requirements"])); ?>, 
-                                        <?php echo json_encode(nl2br($scholarship["benefits"])); ?>, 
-                                        <?php echo json_encode(nl2br($scholarship["eligibility"])); ?>
-                                    )'>View Details</button>
-                                
-                                <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?> 
-                                    onclick="showApplicationForm('<?php echo htmlspecialchars($scholarship['title']); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
-                                    <?php echo $buttonText; ?>
-                                </button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
 
             <div id="application-form-page" class="page">
                 <div class="form-container-application">
@@ -2565,25 +2785,27 @@ form .label-application + div label {
                         <div class="flex-container">
                             <div class="flex-item">
                                 <label class="label-application" for="lname">Last Name</label>
-                                <input type="text" id="lname" name="lname" class="input-field" required />
+                                <input type="text" id="lname" name="lname" class="input-field" required value="<?php echo htmlspecialchars($user['Lname']); ?>" />
                             </div>
                             <div class="flex-item">
                                 <label class="label-application" for="fname">First Name</label>
-                                <input type="text" id="fname" name="fname" class="input-field" required />
+                                <input type="text" id="fname" name="fname" class="input-field" required value="<?php echo htmlspecialchars($user['Fname']); ?>" />
                             </div>
                             <div class="flex-item">
                                 <label class="label-application" for="mname">Middle Name</label>
-                                <input type="text" id="mname" name="mname" class="input-field" />
+                                <input type="text" id="mname" name="mname" class="input-field" value="<?php echo htmlspecialchars($user['Mname']); ?>" />
                             </div>
                         </div>
                         <div class="flex-container">
                             <div class="flex-item">
                                 <label class="label-application" for="gender">Gender</label>
-                                <select id="gender" name="gender" class="input-field" required>
-                                    <option value="">--Select--</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                </select>
+                                    <select name="gender" class="input-field" required>
+                                        <option value="">Select gender</option>
+                                        <option value="male" <?php if(strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
+                                        <option value="female" <?php if(strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
+                                        <option value="other" <?php if(strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
+                                        <option value="prefer-not-to-say" <?php if(strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
+                                    </select>
                             </div>
                             <div class="flex-item">
                                 <label class="label-application" for="civil_status">Civil Status</label>
@@ -2597,7 +2819,7 @@ form .label-application + div label {
                             </div>
                             <div class="flex-item">
                                 <label class="label-application" for="dob">Date of Birth</label>
-                                <input type="date" id="dob" name="dob" class="input-field" required />
+                                <input type="date" id="dob" name="dob" class="input-field" required value="<?php echo htmlspecialchars($user['Birthdate']); ?>" />
                             </div>
                             <div class="flex-item">
                                 <label class="label-application" for="pob">Place of Birth</label>
@@ -2605,12 +2827,12 @@ form .label-application + div label {
                             </div>
                         </div>
                         <label class="label-application" for="address">Home Address</label>
-                        <input type="text" id="address" name="address" class="input-field" required />
+                        <input type="text" id="address" name="address" class="input-field" required value="<?php echo htmlspecialchars($user['Address']); ?>" />
 
                         <div class="flex-container">
                             <div class="flex-item">
                                 <label class="label-application" for="contact">Contact Number</label>
-                                <input type="text" id="contact" name="contact" class="input-field" required />
+                                <input type="text" id="contact" name="contact" class="input-field" required value="<?php echo htmlspecialchars($user['contact_number']); ?>" />
                             </div>
                             <div class="flex-item">
                                 <label class="label-application" for="facebook">Facebook Account</label>
@@ -2705,7 +2927,17 @@ form .label-application + div label {
                         <div class="form-group">
                             <label class="label-application" for="supporting_documents">Upload Supporting Documents (Documents Requirements.)</label>
                             <p class="form-helper-text">Please compile your documents (e.g., COG, COI) into PDF or DOCX format before uploading. You can paste images into a Word document and save it as a PDF.</p>
-                            <input type="file" id="supporting_documents" name="supporting_documents[]" class="input-field file-field" multiple accept=".pdf,.doc,.docx">
+                            
+                            <p class="form-helper-text" style="color: #c0392b; font-weight: bold;">
+                                Important: Please rename your file to your full name (e.g., LastName_FirstName_MI.pdf) for easy identification.
+                            </p>
+
+                            <div class="file-input-wrapper">
+                                <input type="file" id="supporting_documents" name="supporting_documents[]" class="input-field file-field" multiple accept=".pdf,.doc,.docx">
+                                <span class="file-input-clear-button" id="clear-supporting-documents">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
                         </div>
                         
                        <button type="submit" name="submit_application" class="submit-btn">Submit Application</button>
@@ -2932,6 +3164,35 @@ form .label-application + div label {
         document.querySelectorAll('.box-value').forEach(el => {
             observer.observe(el);
         });
+
+        // START: Logic for file input clear buttons
+        function setupFileInputClear(inputId, clearButtonId) {
+            const fileInput = document.getElementById(inputId);
+            const clearButton = document.getElementById(clearButtonId);
+
+            if (!fileInput || !clearButton) return;
+
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    clearButton.style.display = 'block';
+                } else {
+                    clearButton.style.display = 'none';
+                }
+            });
+
+            clearButton.addEventListener('click', function() {
+                fileInput.value = ''; // This clears the file selection
+                // Create a new 'change' event to trigger the listener above
+                const changeEvent = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(changeEvent);
+            });
+        }
+
+        // Apply the logic to all relevant file inputs
+        setupFileInputClear('spes_id_images', 'clear-spes-id-images');
+        setupFileInputClear('spes_documents', 'clear-spes-documents');
+        setupFileInputClear('supporting_documents', 'clear-supporting-documents');
+        // END: Logic for file input clear buttons
     });
 
     function showApplicationForm(scholarshipTitle, scholarshipId) {
@@ -3050,44 +3311,56 @@ form .label-application + div label {
         if (event.target.id === 'notificationModal') closeNotificationModal();
         if (event.target.id === 'deleteMessageModal') closeDeleteModal();
     };
-</script>
-    <?php if (isset($_SESSION['application_submitted'])): ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+
+    function openScholarshipTab(evt, scholarshipId) {
+    // Hide all tab content
+    document.querySelectorAll('.scholarship-tab-content').forEach(tabContent => {
+        tabContent.style.display = 'none';
+    });
+
+    // Deactivate all tab links
+    document.querySelectorAll('.scholarship-tab-link').forEach(tabLink => {
+        tabLink.classList.remove('active');
+    });
+
+    // Show the current tab content and activate the link
+    document.getElementById('scholarship-content-' + scholarshipId).style.display = 'block';
+    if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+    }
+}
+
+function showToast(message, type = 'success') {
         var toast = document.getElementById('toast-message');
         var toastText = document.getElementById('toast-text');
         var toastIcon = document.getElementById('toast-icon');
-        
-        toastText.textContent = 'Application submitted successfully!';
-        toastIcon.className = 'fas fa-check-circle';
-        toast.style.background = '#28a745';
-        
+
+        toastText.textContent = message;
+
+        if (type === 'success') {
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#28a745';
+        } else if (type === 'error') {
+            toastIcon.className = 'fas fa-exclamation-triangle';
+            toast.style.background = '#dc3545';
+        } else if (type === 'info') {
+            toastIcon.className = 'fas fa-info-circle';
+            toast.style.background = '#17a2b8';
+        }
+
         toast.classList.add('show');
-        
         setTimeout(function() {
             toast.classList.remove('show');
         }, 3000);
-    });
-    </script>
-    <?php unset($_SESSION['application_submitted']); endif; ?>
-    <?php if (isset($_SESSION['spes_application_submitted'])): ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var toast = document.getElementById('toast-message');
-        var toastText = document.getElementById('toast-text');
-        var toastIcon = document.getElementById('toast-icon');
-        
-        toastText.textContent = 'SPES application submitted successfully!';
-        toastIcon.className = 'fas fa-check-circle';
-        toast.style.background = '#28a745';
-        
-        toast.classList.add('show');
-        
-        setTimeout(function() {
-            toast.classList.remove('show');
-        }, 3000);
-    });
-    </script>
-    <?php unset($_SESSION['spes_application_submitted']); endif; ?>
+    }
+        </script>
+            
+        <?php if (isset($_SESSION['application_submitted'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('Application submitted successfully!', 'success');
+        });
+        </script>
+        <?php unset($_SESSION['application_submitted']); endif; ?>
     </body>
 </html>

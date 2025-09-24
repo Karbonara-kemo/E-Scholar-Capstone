@@ -38,15 +38,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $gender = $_POST['gender'];
     $birthdate = $_POST['birthdate'];
     $address = $_POST['address'];
+    $contact_number = $_POST['contact_number'];
     $email = $_POST['email'];
 
     // Update user information in the database
-    // Corrected: Changed 'Id' to 'user_id'
-    $updateSql = "UPDATE user SET Fname = ?, Lname = ?, Mname = ?, Age = ?, Gender = ?, Birthdate = ?, Address = ?, Email = ? WHERE user_id = ?";
+    // Corrected: Changed 'Id' to 'user_id' and added contact_number
+    $updateSql = "UPDATE user SET Fname = ?, Lname = ?, Mname = ?, Age = ?, Gender = ?, Birthdate = ?, Address = ?, contact_number = ?, Email = ? WHERE user_id = ?";
     $updateStmt = $conn->prepare($updateSql);
-    $updateStmt->bind_param("sssissssi", $fname, $lname, $mname, $age, $gender, $birthdate, $address, $email, $userId);
+    // Corrected: Updated bind_param to include contact_number
+    $updateStmt->bind_param("sssisssssi", $fname, $lname, $mname, $age, $gender, $birthdate, $address, $contact_number, $email, $userId);
 
     if ($updateStmt->execute()) {
+        // Refresh user data after successful update
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
         $successMessage = "Profile updated successfully!";
     } else {
         $errorMessage = "Error updating profile. Please try again later.";
@@ -270,6 +276,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="form-group">
                 <label for="address">Address</label>
                 <input type="text" id="address" name="address" value="<?php echo htmlspecialchars($user['Address']); ?>" required>
+            </div>
+            <div class="form-group">
+                <label for="contact_number">Contact Number</label>
+                <input type="text" id="contact_number" name="contact_number" value="<?php echo htmlspecialchars($user['contact_number']); ?>" required>
             </div>
             <div class="form-group">
                 <label for="email">Email</label>

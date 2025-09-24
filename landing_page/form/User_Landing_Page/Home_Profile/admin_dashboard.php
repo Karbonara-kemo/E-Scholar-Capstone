@@ -4,13 +4,11 @@ include '../../../../connect.php';
 
 session_start();
 
-// Look for 'admin_id' in the session, not 'user_id'
 if (!isset($_SESSION['admin_id'])) {
     header("Location: ../../signin.php");
     exit();
 }
 
-// Use the correct session variable to get the admin's ID
 $admin_id = $_SESSION['admin_id'];
 
 $sql = "SELECT * FROM admin WHERE admin_id = ?";
@@ -22,11 +20,8 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $admin = $result->fetch_assoc();
     $admin_name = $admin['fname'] . " " . $admin['lname'];
-    // Corrected path separator for web compatibility
     $profile_pic = $admin['profile_pic'] ?? 'images/admin-default.png';
 } else {
-    // If no admin is found, the session is invalid.
-    // Destroy the session and redirect to the login page to be safe.
     session_unset();
     session_destroy();
     header("Location: ../../signin.php");
@@ -56,12 +51,10 @@ if (isset($_POST['send_message'])) {
     exit();
 }
 
-// --- START: MODIFIED APPROVE/REJECT LOGIC ---
 if (isset($_POST['approve_application']) || isset($_POST['reject_application'])) {
     $applicationId = $_POST['application_id'];
     $newStatus = isset($_POST['approve_application']) ? 'approved' : 'rejected';
 
-    // 1. Fetch user ID, email, and scholarship info
     $infoSql = "SELECT u.user_id, u.Email, u.Fname, u.Lname, s.title 
                 FROM applications a
                 JOIN user u ON a.user_id = u.user_id
@@ -73,34 +66,29 @@ if (isset($_POST['approve_application']) || isset($_POST['reject_application']))
     $infoResult = $infoStmt->get_result()->fetch_assoc();
 
     if ($infoResult) {
-        // 2. Update the application status in the database
         $updateSql = "UPDATE applications SET status = ? WHERE application_id = ?";
         $stmt = $conn->prepare($updateSql);
         $stmt->bind_param("si", $newStatus, $applicationId);
         $stmt->execute();
 
-        // 3. Prepare email content
         $userId = $infoResult['user_id'];
         $to = $infoResult['Email'];
         $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
         $scholarshipTitle = $infoResult['title'];
 
         if ($newStatus == 'approved') {
-            // **NEW**: Once approved, delete all other PENDING applications for this user.
             $deletePendingSql = "DELETE FROM applications WHERE user_id = ? AND status = 'pending'";
             $deleteStmt = $conn->prepare($deletePendingSql);
             $deleteStmt->bind_param("i", $userId);
             $deleteStmt->execute();
 
             $subject = "Your Scholarship Application has been Approved";
-            // **MODIFIED**: Email body updated to inform the user.
             $body = "Hello {$name},\n\nCongratulations! Your application for the '{$scholarshipTitle}' scholarship has been approved.\n\nAs a result, any other pending scholarship applications you had have been withdrawn. Please log in to your account for more details.\n\nThank you,\nPESO San Julian MIS";
-        } else { // rejected
+        } else {
             $subject = "Update on your Scholarship Application";
             $body = "Hello {$name},\n\nWe regret to inform you that your application for the '{$scholarshipTitle}' scholarship has been rejected at this time.\n\nThank you for your interest.\n\nSincerely,\nPESO San Julian MIS";
         }
         
-        // 4. Send the email
         require '../../../../vendor/autoload.php';
         $mail = new PHPMailer\PHPMailer\PHPMailer();
         try {
@@ -117,16 +105,181 @@ if (isset($_POST['approve_application']) || isset($_POST['reject_application']))
             $mail->Body    = $body;
             $mail->send();
         } catch (Exception $e) {
-            // Optional: handle mail error, e.g., log it
         }
     }
 
     header("Location: " . $_SERVER['HTTP_REFERER']);
     exit();
 }
-// --- END: MODIFIED APPROVE/REJECT LOGIC ---
+
+    // --- START: FETCH SPES FORM IMAGES ---
+$spes_forms_data = [
+    'employment_contract' => ['file_path' => '../../../../images/default-placeholder.png', 'doc_file_path' => null],
+    'oath_undertaking' => ['file_path' => '../../../../images/default-placeholder.png', 'doc_file_path' => null]
+];
+$spesFilesSql = "SELECT doc_type, file_path, doc_file_path FROM spes_files WHERE doc_type IN ('employment_contract', 'oath_undertaking')";
+$spesFilesResult = $conn->query($spesFilesSql);
+if ($spesFilesResult) {
+    while($row = $spesFilesResult->fetch_assoc()) {
+        $spes_forms_data[$row['doc_type']] = [
+            'file_path' => $row['file_path'] ?? $spes_forms_data[$row['doc_type']]['file_path'],
+            'doc_file_path' => $row['doc_file_path']
+        ];
+    }
+}
+// --- END: FETCH SPES FORM IMAGES ---
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (isset($_POST['upload_spes_doc_file'])) {
+    $doc_type = $_POST['doc_type'];
+    $allowed_types = ['employment_contract', 'oath_undertaking'];
+    $allowed_extensions = ['pdf', 'doc', 'docx'];
+
+    if (in_array($doc_type, $allowed_types) && isset($_FILES['spes_doc_source_file']) && $_FILES['spes_doc_source_file']['error'] == 0) {
+        $target_dir = "../../../../uploads/spes_source_files/";
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0755, true);
+        }
+
+        $file_name = basename($_FILES['spes_doc_source_file']['name']);
+        $file_extension = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+        if (in_array($file_extension, $allowed_extensions)) {
+            // Delete any old source file for this doc_type
+            $old_files = glob($target_dir . $doc_type . '.*');
+            foreach($old_files as $old_file){
+                if(is_file($old_file)){
+                    unlink($old_file);
+                }
+            }
+
+            // Create the new filename
+            $target_file = $target_dir . $doc_type . '.' . $file_extension;
+
+            if (move_uploaded_file($_FILES['spes_doc_source_file']['tmp_name'], $target_file)) {
+                // Update the database with the new path
+                $sql = "INSERT INTO spes_files (doc_type, doc_file_path) VALUES (?, ?) 
+                        ON DUPLICATE KEY UPDATE doc_file_path = VALUES(doc_file_path)";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("ss", $doc_type, $target_file);
+                if ($stmt->execute()) {
+                    $_SESSION['spes_form_upload_success'] = ucfirst(str_replace('_', ' ', $doc_type)) . " source file has been updated.";
+                    
+                    // Update the in-memory array to reflect the change
+                    $spes_forms_data[$doc_type]['doc_file_path'] = $target_file;
+                } else {
+                    $_SESSION['spes_form_upload_error'] = "Database error while updating the source file.";
+                }
+            } else {
+                $_SESSION['spes_form_upload_error'] = "Sorry, there was an error uploading your file.";
+            }
+        } else {
+            $_SESSION['spes_form_upload_error'] = "Invalid file type. Only PDF, DOC, and DOCX are allowed.";
+        }
+    } else {
+        $_SESSION['spes_form_upload_error'] = "Invalid request or no file uploaded.";
+    }
+    header("Location: admin_dashboard.php#scholarship-page");
+    exit();
+}
+    
+if (isset($_POST['add_spes_batch'])) {
+    $batch_name = $_POST['batch_name'];
+    // MODIFICATION START: Get both date and time from the form
+    $start_date = $_POST['start_date'];
+    $start_time = $_POST['start_time'];
+    $start_datetime = $start_date . ' ' . $start_time; // Combine them into a single DATETIME string
+    // MODIFICATION END
+
+    $checkActiveSql = "SELECT batch_id FROM spes_batches WHERE status = 'active'";
+    $activeResult = $conn->query($checkActiveSql);
+    if ($activeResult->num_rows > 0) {
+        $_SESSION['spes_batch_error'] = "An active SPES batch already exists. Please end it before starting a new one.";
+    } else {
+        // MODIFICATION: Use the new combined $start_datetime variable
+        $insertBatchSql = "INSERT INTO spes_batches (batch_name, start_date, status) VALUES (?, ?, 'active')";
+        $batchStmt = $conn->prepare($insertBatchSql);
+        $batchStmt->bind_param("ss", $batch_name, $start_datetime); // Bind the new variable
+        if ($batchStmt->execute()) {
+            $_SESSION['spes_batch_success'] = "SPES Batch '{$batch_name}' has been added and is now active.";
+        }
+    }
+    header("Location: admin_dashboard.php#scholarship-page");
+    exit();
+}
+
+    if (isset($_POST['end_spes_batch'])) {
+        $batch_id = $_POST['batch_id'];
+        // Accept both date and time for end_date
+        $end_date = $_POST['end_date'];
+        $end_time = isset($_POST['end_time']) ? $_POST['end_time'] : '';
+        // If time is provided, append it to the end_date, else default to 23:59:59
+        if ($end_time) {
+            $end_datetime = $end_date . ' ' . $end_time . ':00';
+        } else {
+            $end_datetime = $end_date . ' 23:59:59';
+        }
+
+        $endBatchSql = "UPDATE spes_batches SET status = 'ended', end_date = ? WHERE batch_id = ?";
+        $endStmt = $conn->prepare($endBatchSql);
+        $endStmt->bind_param("si", $end_datetime, $batch_id);
+        if ($endStmt->execute()) {
+            $_SESSION['spes_batch_success'] = "SPES Batch has been successfully ended.";
+        }
+        header("Location: admin_dashboard.php#scholarship-page");
+        exit();
+    }
+
+    if (isset($_POST['upload_spes_doc'])) {
+            $doc_type = $_POST['doc_type'];
+            $allowed_types = ['employment_contract', 'oath_undertaking'];
+
+            if (in_array($doc_type, $allowed_types) && isset($_FILES['spes_doc_image']) && $_FILES['spes_doc_image']['error'] == 0) {
+                $target_dir = "../../../../uploads/spes_forms/";
+                if (!is_dir($target_dir)) {
+                    mkdir($target_dir, 0755, true);
+                }
+
+                $file_name = basename($_FILES['spes_doc_image']['name']);
+                $imageFileType = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                // Create a more predictable filename based on type
+                $target_file = $target_dir . $doc_type . '.' . $imageFileType;
+                $check = getimagesize($_FILES['spes_doc_image']['tmp_name']);
+
+                if ($check !== false) {
+                    // Before uploading, delete the old file if it exists with a different extension
+                    $old_files = glob($target_dir . $doc_type . '.*');
+                    foreach($old_files as $old_file){
+                        if(is_file($old_file)){
+                            unlink($old_file);
+                        }
+                    }
+
+                    if (move_uploaded_file($_FILES['spes_doc_image']['tmp_name'], $target_file)) {
+                        // Use REPLACE INTO to either insert a new row or update an existing one
+                        $sql = "REPLACE INTO spes_files (doc_type, file_path) VALUES (?, ?)";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("ss", $doc_type, $target_file);
+                        if ($stmt->execute()) {
+                            $_SESSION['spes_form_upload_success'] = ucfirst(str_replace('_', ' ', $doc_type)) . " image has been updated.";
+                        } else {
+                            $_SESSION['spes_form_upload_error'] = "Database error while updating the form image.";
+                        }
+                    } else {
+                        $_SESSION['spes_form_upload_error'] = "Sorry, there was an error uploading your file.";
+                    }
+                } else {
+                    $_SESSION['spes_form_upload_error'] = "File is not a valid image.";
+                }
+            } else {
+                $_SESSION['spes_form_upload_error'] = "Invalid request or no file uploaded.";
+            }
+
+            // Redirect back to the SPES management tab
+        header("Location: admin_dashboard.php#scholarship-page");
+        exit();
+    }
+
     if (isset($_POST['add_scholarship'])) {
         $title = $_POST['title'];
         $description = $_POST['description'];
@@ -135,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $eligibility = $_POST['eligibility'];
         $slots = $_POST['number_of_slots'];
         
-        $insertSql = "INSERT INTO scholarships (title, description, requirements, benefits, eligibility, number_of_slots, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')";
+        $insertSql = "INSERT INTO scholarships (title, description, requirements, benefits, eligibility, number_of_slots, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())";
         $insertStmt = $conn->prepare($insertSql);
         $insertStmt->bind_param("sssssi", $title, $description, $requirements, $benefits, $eligibility, $slots); 
         if ($insertStmt->execute()) {
@@ -146,11 +299,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     } elseif (isset($_POST['delete_scholarship'])) {
         $id = $_POST['id'];
-        $deleteSql = "DELETE FROM scholarships WHERE scholarship_id = ?";
-        $deleteStmt = $conn->prepare($deleteSql);
-        $deleteStmt->bind_param("i", $id);
-        $deleteStmt->execute();
-        $_SESSION['scholarship_deleted'] = true;
+        $endScholarshipSql = "UPDATE scholarships SET status = 'ended', ended_at = NOW() WHERE scholarship_id = ?";
+        $endScholarshipStmt = $conn->prepare($endScholarshipSql);
+        $endScholarshipStmt->bind_param("i", $id);
+        $endScholarshipStmt->execute();
+        $_SESSION['scholarship_ended'] = true;
         header("Location: admin_dashboard.php#scholarship-page");
         exit();
     } elseif (isset($_POST['publish_scholarship'])) {
@@ -172,23 +325,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['slots_updated'] = true;
         header("Location: admin_dashboard.php#scholarship-page");
         exit();
-    // --- START: SPES APPROVE/REJECT LOGIC ---
-    } elseif (isset($_POST['approve_spes_application']) || isset($_POST['reject_spes_application'])) {
+} elseif (isset($_POST['approve_spes_application']) || isset($_POST['reject_spes_application'])) {
         $spesApplicationId = $_POST['spes_application_id'];
         $newStatus = isset($_POST['approve_spes_application']) ? 'approved' : 'rejected';
 
-        $updateSql = "UPDATE spes_applications SET status = ? WHERE spes_application_id = ?";
-        $stmt = $conn->prepare($updateSql);
-        $stmt->bind_param("si", $newStatus, $spesApplicationId);
-        $stmt->execute();
+        // --- START: MODIFICATION - ADD EMAIL NOTIFICATION ---
+        // 1. Get user information for the email
+        $infoSql = "SELECT u.Email, u.Fname, u.Lname 
+                    FROM spes_applications sa
+                    JOIN user u ON sa.user_id = u.user_id
+                    WHERE sa.spes_application_id = ?";
+        $infoStmt = $conn->prepare($infoSql);
+        $infoStmt->bind_param("i", $spesApplicationId);
+        $infoStmt->execute();
+        $infoResult = $infoStmt->get_result()->fetch_assoc();
 
-        // Optionally, you can add an email notification here as well.
+        if ($infoResult) {
+            // 2. Update the application status in the database
+            $updateSql = "UPDATE spes_applications SET status = ? WHERE spes_application_id = ?";
+            $stmt = $conn->prepare($updateSql);
+            $stmt->bind_param("si", $newStatus, $spesApplicationId);
+            $stmt->execute();
+
+            // 3. Prepare email content
+            $to = $infoResult['Email'];
+            $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
+
+            if ($newStatus == 'approved') {
+                $subject = "Your SPES Application has been Approved";
+                $body = "Hello {$name},\n\nCongratulations! Your application for the SPES Program has been approved.\n\nPlease log in to your account for more details.\n\nThank you,\nPESO San Julian MIS";
+            } else { // 'rejected'
+                $subject = "Update on your SPES Application";
+                $body = "Hello {$name},\n\nWe regret to inform you that your application for the SPES Program has been rejected at this time.\n\nThank you for your interest.\n\nSincerely,\nPESO San Julian MIS";
+            }
+            
+            // 4. Send the email using PHPMailer
+            require '../../../../vendor/autoload.php';
+            $mail = new PHPMailer\PHPMailer\PHPMailer();
+            try {
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'edlexus59@gmail.com';
+                $mail->Password   = 'nfsv eqpj sfur sjsw';
+                $mail->SMTPSecure = 'tls';
+                $mail->Port       = 587;
+                $mail->setFrom('edlexus59@gmail.com', 'PESO San Julian MIS');
+                $mail->addAddress($to, $name);
+                $mail->Subject = $subject;
+                $mail->Body    = $body;
+                $mail->send();
+            } catch (Exception $e) {
+                // Email sending failed, but the application status is still updated.
+                // You could add logging here if needed.
+            }
+        }
+        // --- END: MODIFICATION ---
         
-        $_SESSION['spes_status_updated'] = true; // For a toast message
+        $_SESSION['spes_status_updated'] = true;
         header("Location: admin_dashboard.php#total-applicants-spes");
         exit();
     }
-    // --- END: SPES APPROVE/REJECT LOGIC ---
 }
 
 if (isset($_POST['delete_message'])) {
@@ -205,67 +402,48 @@ if (isset($_POST['delete_message'])) {
     exit();
 }
 
-
-// --- START: ORIGINAL CODE FOR CHATS ---
-// Fetch scholarship groups that have AT LEAST ONE 'approved' applicant to act as group chats.
 $scholarshipsSql = "
     SELECT DISTINCT s.scholarship_id, s.title 
     FROM scholarships s
     JOIN applications a ON s.scholarship_id = a.scholarship_id
-    WHERE a.status = 'approved'
+    WHERE a.status = 'approved' AND s.status = 'active' -- This ensures only active scholarships are shown
 ";
 $scholarshipResult = $conn->query($scholarshipsSql);
 $scholarships = $scholarshipResult->fetch_all(MYSQLI_ASSOC);
-// --- END: ORIGINAL CODE FOR CHATS ---
 
-// --- START: FIX FOR HOME PAGE SCHOLARSHIP COUNT ---
-// This new query accurately counts ALL scholarships for the home page dashboard.
-$totalListedScholarshipsSql = "SELECT COUNT(scholarship_id) as total FROM scholarships";
+$totalListedScholarshipsSql = "SELECT COUNT(scholarship_id) as total FROM scholarships WHERE status != 'ended'";
 $totalListedScholarshipsResult = $conn->query($totalListedScholarshipsSql);
 $totalListedScholarshipsCount = $totalListedScholarshipsResult->fetch_assoc()['total'] ?? 0;
-// --- END: FIX FOR HOME PAGE SCHOLARSHIP COUNT ---
 
-// --- START: FETCH SPES APPLICANT DATA ---
-// Count total SPES applicants
 $totalSpesApplicantsSql = "SELECT COUNT(spes_application_id) as total FROM spes_applications";
 $totalSpesApplicantsResult = $conn->query($totalSpesApplicantsSql);
 $totalSpesApplicantsCount = $totalSpesApplicantsResult->fetch_assoc()['total'] ?? 0;
-// --- END: FETCH SPES APPLICANT DATA ---
 
-
-// --- START: FETCH APPROVED APPLICANT DATA (SCHOLARSHIP & SPES) ---
-// Count approved SPES applicants for the dashboard box
 $approvedSpesSql = "SELECT COUNT(spes_application_id) as total FROM spes_applications WHERE status = 'approved'";
 $approvedSpesResult = $conn->query($approvedSpesSql);
 $approvedSpesCount = $approvedSpesResult->fetch_assoc()['total'] ?? 0;
-// --- END: FETCH APPROVED APPLICANT DATA ---
-
 
 $messagesSql = "SELECT * FROM notifications ORDER BY created_at DESC";
 $messagesResult = $conn->query($messagesSql);
 $messages = $messagesResult->fetch_all(MYSQLI_ASSOC);
 
-// Fetch individual users with concerns (who are not part of a group chat context)
 $usersWithConcerns = [];
 $userQuery = $conn->query("SELECT DISTINCT u.user_id, u.Fname, u.Lname, u.profile_pic FROM user u JOIN concerns c ON u.user_id = c.user_id WHERE c.scholarship_id IS NULL");
 while ($row = $userQuery->fetch_assoc()) {
     $usersWithConcerns[] = $row;
 }
 
-// Handle chat selection (Group or User)
 $selectedGroupId = isset($_GET['chat_group']) ? intval($_GET['chat_group']) : null;
 $selectedUserId = isset($_GET['chat_user']) ? intval($_GET['chat_user']) : null;
 $chatMessages = [];
 $chatTitle = 'Select a conversation';
 
 if ($selectedGroupId) {
-    // Fetch group messages from 'concerns' table
     $stmt = $conn->prepare("SELECT c.*, u.Fname, u.Lname FROM concerns c LEFT JOIN user u ON c.user_id = u.user_id WHERE c.scholarship_id = ? ORDER BY c.created_at ASC");
     $stmt->bind_param("i", $selectedGroupId);
     $stmt->execute();
     $chatMessages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     
-    // Get scholarship title for the header
     $schTitleStmt = $conn->prepare("SELECT title FROM scholarships WHERE scholarship_id = ?");
     $schTitleStmt->bind_param("i", $selectedGroupId);
     $schTitleStmt->execute();
@@ -275,13 +453,11 @@ if ($selectedGroupId) {
     }
 
 } elseif ($selectedUserId) {
-    // Fetch 1-on-1 messages from 'concerns' table
     $stmt = $conn->prepare("SELECT * FROM concerns WHERE user_id = ? AND scholarship_id IS NULL ORDER BY created_at ASC");
     $stmt->bind_param("i", $selectedUserId);
     $stmt->execute();
     $chatMessages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    // Get user name for the header
     $userQuery = $conn->prepare("SELECT Fname, Lname FROM user WHERE user_id = ?");
     $userQuery->bind_param("i", $selectedUserId);
     $userQuery->execute();
@@ -296,7 +472,6 @@ if (isset($_POST['send_admin_reply'])) {
     $reply = trim($_POST['admin_reply']);
     $attachmentPath = null;
 
-    // ADDED: Handle file upload logic
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == 0) {
         $target_dir = "../../../../uploads/chat_attachments/";
         if (!is_dir($target_dir)) {
@@ -308,15 +483,11 @@ if (isset($_POST['send_admin_reply'])) {
             $attachmentPath = $target_file;
         }
     }
-    // END ADDED
 
-    // MODIFIED: Check for a message OR an attachment
     if (!empty($reply) || $attachmentPath) {
         if (isset($_POST['chat_group_id']) && !empty($_POST['chat_group_id'])) {
-            // It's a group message for a scholarship
             $chat_group_id = intval($_POST['chat_group_id']);
             
-            // MODIFIED: SQL query and bind_param
             $stmt = $conn->prepare("INSERT INTO concerns (admin_id, scholarship_id, sender, message, user_id, attachment_path) VALUES (?, ?, 'admin', ?, NULL, ?)");
             $stmt->bind_param("iiss", $admin_id, $chat_group_id, $reply, $attachmentPath);
             $stmt->execute();
@@ -324,10 +495,8 @@ if (isset($_POST['send_admin_reply'])) {
             exit();
 
         } elseif (isset($_POST['chat_user_id']) && !empty($_POST['chat_user_id'])) {
-            // It's a 1-on-1 message to a specific user
             $chat_user_id = intval($_POST['chat_user_id']);
             
-            // MODIFIED: SQL query and bind_param
             $stmt = $conn->prepare("INSERT INTO concerns (user_id, admin_id, sender, message, attachment_path) VALUES (?, ?, 'admin', ?, ?)");
             $stmt->bind_param("iiss", $chat_user_id, $admin_id, $reply, $attachmentPath);
             $stmt->execute();
@@ -341,7 +510,6 @@ if (isset($_POST['send_admin_reply'])) {
 if (isset($_POST['delete_admin_message']) && isset($_POST['message_id'])) {
     $message_id = intval($_POST['message_id']);
     
-    // Determine redirect URL
     $redirect_url = "admin_dashboard.php#user-concerns-page";
     if (isset($_POST['chat_user_id']) && !empty($_POST['chat_user_id'])) {
         $redirect_url = "admin_dashboard.php?chat_user=" . intval($_POST['chat_user_id']) . "#user-concerns-page";
@@ -356,7 +524,6 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id'])) {
     exit();
 }
 
-// --- START: NEW LOGIC FOR SAVING CHAT ATTACHMENTS TO SCHOLARSHIP OR SPES ---
 function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
     $attachmentPath = '';
 
@@ -374,6 +541,9 @@ function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
         return;
     }
 
+    // CORRECTED: Normalize the new attachment's path to use forward slashes
+    $normalizedAttachmentPath = str_replace('\\', '/', $attachmentPath);
+
     if ($type === 'scholarship') {
         // 2. Find the user's latest APPROVED scholarship application
         $appStmt = $conn->prepare("SELECT application_id, documents FROM applications WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1");
@@ -383,10 +553,17 @@ function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
 
         if ($appRow = $appResult->fetch_assoc()) {
             $applicationId = $appRow['application_id'];
-            $currentDocs = json_decode($appRow['documents'], true) ?: [];
-            if (!in_array($attachmentPath, $currentDocs)) {
-                $currentDocs[] = $attachmentPath;
+            $currentDocsRaw = json_decode($appRow['documents'], true) ?: [];
+            
+            // CORRECTED: Normalize all existing paths to prevent duplicates and formatting issues
+            $currentDocs = array_map(function($path) {
+                return str_replace('\\', '/', $path);
+            }, $currentDocsRaw);
+
+            if (!in_array($normalizedAttachmentPath, $currentDocs)) {
+                $currentDocs[] = $normalizedAttachmentPath;
             }
+            
             $newDocsJson = json_encode($currentDocs);
             $updateStmt = $conn->prepare("UPDATE applications SET documents = ? WHERE application_id = ?");
             $updateStmt->bind_param("si", $newDocsJson, $applicationId);
@@ -405,16 +582,21 @@ function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
         if ($appRow = $appResult->fetch_assoc()) {
             $applicationId = $appRow['spes_application_id'];
             $currentDocsPath = $appRow['spes_documents_path'];
-            $currentDocs = json_decode($currentDocsPath, true);
-
-            // If it's not a JSON array, it might be the initial single file path
-            if (!is_array($currentDocs)) {
-                $currentDocs = !empty($currentDocsPath) ? [$currentDocsPath] : [];
+            
+            // CORRECTED: This block now robustly handles both single paths and existing JSON arrays
+            $currentDocsRaw = json_decode($currentDocsPath, true);
+            if (!is_array($currentDocsRaw)) {
+                $currentDocsRaw = !empty($currentDocsPath) ? [$currentDocsPath] : [];
             }
             
-            if (!in_array($attachmentPath, $currentDocs)) {
-                $currentDocs[] = $attachmentPath;
+            $currentDocs = array_map(function($path) {
+                return str_replace('\\', '/', $path);
+            }, $currentDocsRaw);
+
+            if (!in_array($normalizedAttachmentPath, $currentDocs)) {
+                $currentDocs[] = $normalizedAttachmentPath;
             }
+
             $newDocsJson = json_encode($currentDocs);
             $updateStmt = $conn->prepare("UPDATE spes_applications SET spes_documents_path = ? WHERE spes_application_id = ?");
             $updateStmt->bind_param("si", $newDocsJson, $applicationId);
@@ -438,8 +620,6 @@ if (isset($_POST['save_to_documents_spes'])) {
     header("Location: admin_dashboard.php?chat_user=" . intval($_POST['user_id']) . "#user-concerns-page");
     exit();
 }
-// --- END: NEW LOGIC FOR SAVING CHAT ATTACHMENTS ---
-
 if (isset($_POST['approve_user'])) {
     $uid = intval($_POST['user_id']);
 
@@ -493,15 +673,12 @@ if (isset($_POST['approve_user'])) {
 if (isset($_POST['reject_user'])) {
     $uid = intval($_POST['user_id']);
 
-    // 1. Get user info before updating status
     $userResult = $conn->query("SELECT Email, Fname, Lname FROM user WHERE user_id=$uid");
     $user = $userResult->fetch_assoc();
 
     if ($user) {
-        // 2. Update status to 'rejected'
         $conn->query("UPDATE user SET status='rejected' WHERE user_id=$uid");
 
-        // 3. Send the REJECTION email
         $to = $user['Email'];
         $name = $user['Fname'] . ' ' . $user['Lname'];
         $subject = "Update on Your Account Registration";
@@ -523,7 +700,6 @@ if (isset($_POST['reject_user'])) {
             $mail->Body    = $body;
             $mail->send();
         } catch (Exception $e) {
-            // Optional: Handle email sending errors
         }
     }
 
@@ -531,12 +707,10 @@ if (isset($_POST['reject_user'])) {
     exit();
 }
 
-// --- START: MODIFIED REJECT WITH MESSAGE LOGIC WITH EMAIL NOTIFICATION ---
 if (isset($_POST['reject_application_with_message'])) {
     $applicationId = $_POST['application_id'];
     $rejectionMessage = $_POST['rejection_message'];
 
-    // 1. Fetch user and scholarship info
     $infoSql = "SELECT u.Email, u.Fname, u.Lname, s.title 
                 FROM applications a
                 JOIN user u ON a.user_id = u.user_id
@@ -548,13 +722,11 @@ if (isset($_POST['reject_application_with_message'])) {
     $infoResult = $infoStmt->get_result()->fetch_assoc();
 
     if ($infoResult) {
-        // 2. Update DB
         $updateSql = "UPDATE applications SET status = 'rejected', rejection_message = ? WHERE application_id = ?";
         $stmt = $conn->prepare($updateSql);
         $stmt->bind_param("si", $rejectionMessage, $applicationId);
         $stmt->execute();
 
-        // 3. Prepare and send email
         $to = $infoResult['Email'];
         $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
         $scholarshipTitle = $infoResult['title'];
@@ -578,21 +750,18 @@ if (isset($_POST['reject_application_with_message'])) {
             $mail->Body    = $body;
             $mail->send();
         } catch (Exception $e) {
-            // Optional: handle mail error
         }
     }
     
     header("Location: " . $_SERVER['HTTP_REFERER']);
     exit();
 }
-// --- END: MODIFIED REJECT WITH MESSAGE LOGIC ---
 
 $viewApprovedScholarshipId = isset($_GET['view_approved']) ? intval($_GET['view_approved']) : null;
 $approved_applicants = [];
 $approved_scholarship_title = '';
 
 if ($viewApprovedScholarshipId) {
-    // Fetch scholarship title
     $schTitleSql = "SELECT title FROM scholarships WHERE scholarship_id = ?";
     $schStmt = $conn->prepare($schTitleSql);
     $schStmt->bind_param("i", $viewApprovedScholarshipId);
@@ -602,7 +771,6 @@ if ($viewApprovedScholarshipId) {
         $approved_scholarship_title = $schRow['title'];
     }
 
-    // --- START: SEARCH LOGIC FOR APPROVED APPLICANTS ---
     $searchApprovedTerm = isset($_GET['search_approved_name']) ? trim($_GET['search_approved_name']) : '';
     $searchApprovedSql = '%' . $searchApprovedTerm . '%';
 
@@ -622,7 +790,6 @@ if ($viewApprovedScholarshipId) {
     } else {
         $apprStmt->bind_param("i", $viewApprovedScholarshipId);
     }
-    // --- END: SEARCH LOGIC FOR APPROVED APPLICANTS ---
 
     $apprStmt->execute();
     $result = $apprStmt->get_result();
@@ -631,7 +798,6 @@ if ($viewApprovedScholarshipId) {
     }
 }
 
-// Corrected query to get all applications for a specific scholarship
 $viewScholarshipId = isset($_GET['view_scholarship']) ? intval($_GET['view_scholarship']) : null;
 $applicants = [];
 if ($viewScholarshipId) {
@@ -645,20 +811,26 @@ if ($viewScholarshipId) {
     }
 }
 
-// --- START: PHP FOR REPORTS PAGE ---
-// Scholarship Documents Search
 $scholarshipDocsSearch = isset($_GET['search_scholarship_docs']) ? trim($_GET['search_scholarship_docs']) : '';
-$scholarshipDocsSql = "SELECT u.user_id, u.Fname, u.Lname, a.documents FROM user u JOIN applications a ON u.user_id = a.user_id WHERE a.status = 'approved'";
+// --- START: MODIFICATION - Only show reports for ACTIVE scholarships ---
+$scholarshipDocsSql = "
+    SELECT u.user_id, u.Fname, u.Lname, u.valid_id, a.documents 
+    FROM user u 
+    JOIN applications a ON u.user_id = a.user_id 
+    JOIN scholarships s ON a.scholarship_id = s.scholarship_id 
+    WHERE a.status = 'approved' AND s.status = 'active'
+";
+// --- END: MODIFICATION ---
 if (!empty($scholarshipDocsSearch)) {
     $scholarshipDocsSql .= " AND CONCAT(u.Fname, ' ', u.Lname) LIKE ?";
 }
-$scholarshipDocsSql .= " ORDER BY a.created_at ASC"; // Oldest first, newest last
+$scholarshipDocsSql .= " ORDER BY a.created_at ASC";
 
 $scholarship_docs_users = [];
 if (!empty($scholarshipDocsSearch)) {
     $stmt = $conn->prepare($scholarshipDocsSql);
     $search = "%$scholarshipDocsSearch%";
-    $stmt->bind_param("s", $search); // Correctly binds the variable by reference
+    $stmt->bind_param("s", $search);
     $stmt->execute();
     $result = $stmt->get_result();
     $scholarship_docs_users = $result->fetch_all(MYSQLI_ASSOC);
@@ -667,19 +839,43 @@ if (!empty($scholarshipDocsSearch)) {
     $scholarship_docs_users = $scholarshipDocsResult->fetch_all(MYSQLI_ASSOC);
 }
 
-// SPES Documents Search
+// --- START: MODIFICATION - Only show reports for ACTIVE SPES batch ---
+// 1. Find the start date of the currently active SPES batch
+$activeBatchStartDate = null;
+$activeBatchSql = "SELECT start_date FROM spes_batches WHERE status = 'active' LIMIT 1";
+$activeBatchResult = $conn->query($activeBatchSql);
+if ($activeBatchResult && $activeBatchRow = $activeBatchResult->fetch_assoc()) {
+    $activeBatchStartDate = $activeBatchRow['start_date'];
+}
+
+// 2. Build the query based on the active batch
 $spesDocsSearch = isset($_GET['search_spes_docs']) ? trim($_GET['search_spes_docs']) : '';
-$spesDocsSql = "SELECT u.user_id, u.Fname, u.Lname, sa.id_image_paths, sa.spes_documents_path FROM user u JOIN spes_applications sa ON u.user_id = sa.user_id WHERE sa.status = 'approved'";
+$spesDocsSql = "
+    SELECT u.user_id, u.Fname, u.Lname, sa.id_image_paths, sa.spes_documents_path 
+    FROM user u JOIN spes_applications sa ON u.user_id = sa.user_id 
+    WHERE sa.status = 'approved'
+";
+
+// Only include applicants from the currently active batch
+if ($activeBatchStartDate) {
+    // Note the use of quotes around the date string for proper SQL syntax
+    $spesDocsSql .= " AND sa.created_at >= '" . $conn->real_escape_string($activeBatchStartDate) . "'";
+} else {
+    // If no batch is active, the report should be empty. This condition ensures that.
+    $spesDocsSql .= " AND 1=0"; 
+}
+// --- END: MODIFICATION ---
+
 if (!empty($spesDocsSearch)) {
     $spesDocsSql .= " AND CONCAT(u.Fname, ' ', u.Lname) LIKE ?";
 }
-$spesDocsSql .= " ORDER BY sa.created_at ASC"; // Oldest first, newest last
+$spesDocsSql .= " ORDER BY sa.created_at ASC";
 
 $spes_docs_users = [];
 if (!empty($spesDocsSearch)) {
     $stmt = $conn->prepare($spesDocsSql);
     $search = "%$spesDocsSearch%";
-    $stmt->bind_param("s", $search); // Correctly binds the variable by reference
+    $stmt->bind_param("s", $search);
     $stmt->execute();
     $result = $stmt->get_result();
     $spes_docs_users = $result->fetch_all(MYSQLI_ASSOC);
@@ -687,7 +883,106 @@ if (!empty($spesDocsSearch)) {
     $spesDocsResult = $conn->query($spesDocsSql);
     $spes_docs_users = $spesDocsResult->fetch_all(MYSQLI_ASSOC);
 }
-// --- END: PHP FOR REPORTS PAGE ---
+
+$activeScholarshipsSql = "SELECT * FROM scholarships WHERE status = 'active' ORDER BY created_at DESC";
+$activeScholarshipsResult = $conn->query($activeScholarshipsSql);
+$activeScholarships = $activeScholarshipsResult->fetch_all(MYSQLI_ASSOC);
+
+$endedScholarshipsSql = "SELECT * FROM scholarships WHERE status = 'ended' ORDER BY ended_at DESC";
+$endedScholarshipsResult = $conn->query($endedScholarshipsSql);
+$endedScholarships = $endedScholarshipsResult->fetch_all(MYSQLI_ASSOC);
+
+// MODIFICATION: Sort by active status first, then by the most recent start date
+$spesHistorySql = "SELECT * FROM spes_batches ORDER BY status = 'active' DESC, start_date DESC";
+$spesHistoryResult = $conn->query($spesHistorySql);
+$spesHistory = $spesHistoryResult->fetch_all(MYSQLI_ASSOC);
+
+$viewRecentMembersId = isset($_GET['view_recent_members']) ? intval($_GET['view_recent_members']) : null;
+$recentMembers = [];
+$recentScholarshipTitle = '';
+if($viewRecentMembersId) {
+    $schTitleSql = "SELECT title FROM scholarships WHERE scholarship_id = ?";
+    $stmt = $conn->prepare($schTitleSql);
+    $stmt->bind_param("i", $viewRecentMembersId);
+    $stmt->execute();
+    $recentScholarshipTitle = $stmt->get_result()->fetch_assoc()['title'];
+
+    $membersSql = "SELECT u.Fname, u.Lname, a.created_at as application_date FROM applications a JOIN user u ON a.user_id = u.user_id WHERE a.scholarship_id = ? AND a.status = 'approved' ORDER BY u.Lname, u.Fname";
+    $stmt = $conn->prepare($membersSql);
+    $stmt->bind_param("i", $viewRecentMembersId);
+    $stmt->execute();
+    $recentMembers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+$viewEndedMembersId = isset($_GET['view_ended_members']) ? intval($_GET['view_ended_members']) : null;
+$endedMembers = [];
+$endedScholarshipTitle = '';
+if($viewEndedMembersId) {
+    $schTitleSql = "SELECT title FROM scholarships WHERE scholarship_id = ?";
+    $stmt = $conn->prepare($schTitleSql);
+    $stmt->bind_param("i", $viewEndedMembersId);
+    $stmt->execute();
+    $endedScholarshipTitle = $stmt->get_result()->fetch_assoc()['title'];
+
+    $membersSql = "SELECT u.Fname, u.Lname, a.created_at as application_date FROM applications a JOIN user u ON a.user_id = u.user_id WHERE a.scholarship_id = ? ORDER BY u.Lname, u.Fname";
+    $stmt = $conn->prepare($membersSql);
+    $stmt->bind_param("i", $viewEndedMembersId);
+    $stmt->execute();
+    $endedMembers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+// --- START: MODIFIED SPES MEMBER FETCHING LOGIC ---
+$viewSpesMembersId = isset($_GET['view_spes_members']) ? intval($_GET['view_spes_members']) : null;
+$spesMembers = [];
+$spesBatchName = '';
+if ($viewSpesMembersId) {
+    // 1. Fetch the selected batch's information (name, start date, end date)
+    $batchInfoSql = "SELECT batch_name, start_date, end_date FROM spes_batches WHERE batch_id = ?";
+    $stmt = $conn->prepare($batchInfoSql);
+    $stmt->bind_param("i", $viewSpesMembersId);
+    $stmt->execute();
+    $batchInfo = $stmt->get_result()->fetch_assoc();
+
+    if ($batchInfo) {
+        $spesBatchName = $batchInfo['batch_name'];
+        $startDate = $batchInfo['start_date'];
+        $endDate = $batchInfo['end_date']; // This will be NULL if the batch is still active
+
+        // 2. Build the query to find members whose application date falls within the batch's active period
+        $membersSql = "SELECT u.Fname, u.Lname, sa.created_at as application_date
+                       FROM spes_applications sa
+                       JOIN user u ON sa.user_id = u.user_id
+                       WHERE sa.status = 'approved' AND sa.created_at >= ?";
+        
+        $params = [$startDate];
+        $types = "s";
+
+        // 3. If the batch has an end date, it means it's an "ended" batch. We add the end date to the
+        //    query to create a specific time window for that batch.
+        if ($endDate) {
+            $membersSql .= " AND sa.created_at <= ?";
+            // We append the time to include the entire day of the end date
+            $params[] = $endDate . ' 23:59:59';
+            $types .= "s";
+        }
+        
+        // For active batches, the end date is NULL, so the query correctly fetches all members
+        // from the start date up to the present moment.
+
+        $membersSql .= " ORDER BY u.Lname, u.Fname";
+
+        // 4. Execute the dynamically built query to get the correct members for the selected batch
+        $stmt = $conn->prepare($membersSql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $spesMembers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+}
+// --- END: MODIFIED SPES MEMBER FETCHING LOGIC ---
+
+$spesBatchesSql = "SELECT * FROM spes_batches ORDER BY start_date DESC";
+$spesBatchesResult = $conn->query($spesBatchesSql);
+$spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -927,7 +1222,6 @@ body {
     flex: 1;
 }
 
-/* --- NEW: Icon styling for dashboard boxes --- */
 .box-icon {
     font-size: 28px;
     color: #090549;
@@ -952,7 +1246,6 @@ body {
     margin-top: 10px;
 }
 
-/* --- NEW: General button transition styles --- */
 .view-details, .btn-publish, .btn-delete-scholarship, .btn-edit-slots, 
 .btn-approve, .btn-reject, .btn-primary, .back-btn, .btn-outline,
 .scholarship-form button, .send-updates-form button {
@@ -1076,19 +1369,7 @@ body {
 
 .sent-messages {
     margin-top: 20px;
-    font-size: 10px;
-}
-
-.message-sent-h3 {
-    color: #090549;
-    margin-top: 30;
-    font-size: 15px;
-}
-
-.message-card h3 {
-    color: #090549;
-    margin-top: 0;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .message-item {
@@ -1129,7 +1410,7 @@ body {
     color: #090549;
     margin-top: 0;
     margin-bottom: 15px;
-    font-size: 15px;
+    font-size: 20px;
 }
 
 .scholarship-details {
@@ -1138,7 +1419,7 @@ body {
 
 .scholarship-details p {
     margin: 5px 0;
-    font-size: 10px;
+    font-size: 14px;
     align-items: center;
 }
 
@@ -1217,14 +1498,14 @@ body {
 .message-card h3 {
     color: #090549;
     margin-top: 0;
-    font-size: 18px;
+    font-size: 25px;
 }
 
 .message-status {
     display: inline-block;
     padding: 5px 10px;
     border-radius: 15px;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: bold;
     text-align: center;
     background-color: #D4EDDA;
@@ -1282,20 +1563,31 @@ body {
 .scholarship-form h3 {
     color:rgb(0, 0, 0);
     margin-top: 0;
-    font-size: 15px;
+    font-size: 18px;
 }
 
+.scholarship-form input[name="number_of_slots"]::placeholder {
+    font-size: 14px;
+}
+
+.send-updates-form textarea::placeholder {
+    font-size: 14px;
+}
 
 .scholarship-form textarea {
     height: 40px;
     resize: none;
     border-radius: 10px;
-    font-size : 10px;
+    font-size : 14px;
 }
-.scholarship-form input[type="text"] {
+.scholarship-form input[type="text"], .scholarship-form input[type="number"], .scholarship-form input[type="date"] {
     height: 15px;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: 14px;
+}
+
+.scholarship-form button[name="add_scholarship"] {
+    font-size: 12px !important;
 }
 
 #toast-message {
@@ -1324,7 +1616,6 @@ body {
 .concerns-chat-container {
     display: flex;
     max-width: 100%;
-    /* margin: 30px auto; */
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
@@ -1510,17 +1801,17 @@ body {
 }
 
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 10000; /* Sit on top */
+    display: none;
+    position: fixed;
+    z-index: 10000;
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
@@ -1528,7 +1819,7 @@ body {
     margin: auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 80%; /* Could be more specific based on design */
+    width: 80%;
     max-width: 600px;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
@@ -1621,7 +1912,6 @@ body {
     color: #721C24;
 }
 
-/* New Button Styles for Approve/Reject */
 .btn-approve, .btn-reject {
     padding: 6px 13px;
     font-size: 10px;
@@ -1672,7 +1962,6 @@ body {
 .concern-message.user .message-attachment a {
     color: #333;
 }
-/* --- STYLES CONVERTED FROM INLINE --- */
 #chevronIcon {
     color: white;
     cursor: pointer;
@@ -1744,7 +2033,7 @@ body {
     padding: 18px;
 }
 .scholarship-list-description {
-    font-size: 12px;
+    font-size: 15px;
     color: #555;
     margin-top: 5px;
 }
@@ -1752,7 +2041,7 @@ body {
     margin-top: 10px;
 }
 .scholarship-list-footer p {
-    font-size: 12px;
+    font-size: 13px;
     margin: 5px 0;
 }
 .text-center {
@@ -1878,6 +2167,143 @@ body {
 .message-menu i {
     margin-right: 5px;
 }
+
+.tabs {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 20px;
+}
+.tab-link {
+    background-color: #f1f1f1;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    font-size: 14px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    margin-right: 2px;
+}
+.tab-link:hover {
+    background-color: #ddd;
+}
+.tab-link.active {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-bottom: 1px solid #fff;
+    font-weight: bold;
+    color: #090549;
+}
+.tab-content {
+    display: none;
+    padding: 6px 12px;
+    border-top: none;
+    animation: fadeIn 0.5s;
+}
+
+.user-details-modal-container {
+    display: flex;
+    flex-direction: column;
+}
+.user-details-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.user-details-pic {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #090549;
+    margin-right: 20px;
+}
+.user-details-name {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+}
+.user-details-section-header {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+}
+.user-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+.user-details-item {
+    font-size: 14px;
+}
+.user-details-label {
+    font-weight: bold;
+    color: #555;
+    display: block;
+    margin-bottom: 3px;
+}
+.user-details-value {
+    color: #666;
+    font-size: 12px;
+}
+
+.spes-form-upload-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+.spes-form-section {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+}
+.spes-form-section h4 {
+    margin-top: 0;
+    font-size: 14px;
+    color: #333;
+}
+.spes-form-preview {
+    max-width: 100%;
+    height: 200px;
+    object-fit: contain;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    background-color: #f9f9f9;
+    margin-bottom: 10px;
+}
+.input-field.file-field {
+    padding: 8px;
+    font-size: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-divider {
+    margin: 20px 0;
+    border: 0;
+    border-top: 1px solid #eee;
+}
+.form-section-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 10px;
+}
+.current-file {
+    font-size: 11px;
+    padding: 8px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    word-wrap: break-word;
+}
 </style>
 
 <body>
@@ -1915,7 +2341,11 @@ body {
             </div>
             <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
                 <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
-                <div class="nav-text">Scholarship</div>
+                <div class="nav-text">Manage Scholarship/SPES</div>
+            </div>
+            <div class="nav-item" id="scholarship-history-nav" onclick="showPage('scholarship-history-page')">
+                <div class="nav-icon"><i class="fas fa-history"></i></div>
+                <div class="nav-text">Scholarship/SPES History</div>
             </div>
             <div class="nav-item" id="communication-nav" onclick="showPage('send-updates-page')">
                 <div class="nav-icon"><i class="fas fa-bullhorn"></i></div>
@@ -1943,51 +2373,23 @@ body {
         <?php if (isset($_SESSION['scholarship_added'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = 'Scholarship added successfully';
-            toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#28a745';
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 2500);
+            showToast('Scholarship added successfully', 'success');
         });
         </script>
         <?php unset($_SESSION['scholarship_added']); endif; ?>
 
-        <?php if (isset($_SESSION['scholarship_deleted'])): ?>
+        <?php if (isset($_SESSION['scholarship_ended'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = 'Scholarship deleted successfully';
-            toastIcon.className = 'fas fa-trash-alt';
-            toast.style.background = '#B22222';
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 2500);
+            showToast('Scholarship has been ended and moved to history.', 'info');
         });
         </script>
-        <?php unset($_SESSION['scholarship_deleted']); endif; ?>
-
+        <?php unset($_SESSION['scholarship_ended']); endif; ?>
 
         <?php if (isset($_SESSION['scholarship_published'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = 'Scholarship published successfully';
-            toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#191970';
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 2500);
+            showToast('Scholarship published successfully', 'success');
         });
         </script>
         <?php unset($_SESSION['scholarship_published']); endif; ?>
@@ -1995,19 +2397,66 @@ body {
         <?php if (isset($_SESSION['slots_updated'])): ?>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = 'Scholarship slots updated successfully';
-            toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#191970';
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 2500);
+            showToast('Scholarship slots updated successfully', 'success');
         });
         </script>
         <?php unset($_SESSION['slots_updated']); endif; ?>
+
+        <?php if (isset($_SESSION['message_deleted'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('Message deleted successfully', 'error');
+        });
+        </script>
+        <?php unset($_SESSION['message_deleted']); endif; ?>
+
+        <?php if (isset($_SESSION['document_saved_success'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo $_SESSION['document_saved_success']; ?>', 'success');
+        });
+        </script>
+        <?php unset($_SESSION['document_saved_success']); endif; ?>
+
+        <?php if (isset($_SESSION['document_saved_error'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo $_SESSION['document_saved_error']; ?>', 'error');
+        });
+        </script>
+        <?php unset($_SESSION['document_saved_error']); endif; ?>
+
+        <?php if (isset($_SESSION['spes_batch_success'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo $_SESSION['spes_batch_success']; ?>', 'success');
+        });
+        </script>
+        <?php unset($_SESSION['spes_batch_success']); endif; ?>
+        
+        <?php if (isset($_SESSION['spes_batch_error'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo $_SESSION['spes_batch_error']; ?>', 'error');
+        });
+        </script>
+        <?php unset($_SESSION['spes_batch_error']); endif; ?>
+
+        <?php if (isset($_SESSION['spes_form_upload_success'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo $_SESSION['spes_form_upload_success']; ?>', 'success');
+        });
+        </script>
+        <?php unset($_SESSION['spes_form_upload_success']); endif; ?>
+
+        <?php if (isset($_SESSION['spes_form_upload_error'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo $_SESSION['spes_form_upload_error']; ?>', 'error');
+        });
+        </script>
+        <?php unset($_SESSION['spes_form_upload_error']); endif; ?>
 
 
         <div id="toast-message">
@@ -2016,63 +2465,15 @@ body {
         </div>
 
 
-        <?php if (isset($_SESSION['message_deleted'])): ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = 'Message deleted successfully';
-            toastIcon.className = 'fas fa-trash-alt';
-            toast.style.background = '#B22222';
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 2500);
-        });
-        </script>
-        <?php unset($_SESSION['message_deleted']); endif; ?>
-
-        <?php if (isset($_SESSION['document_saved_success'])): ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = '<?php echo $_SESSION['document_saved_success']; ?>';
-            toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#28a745';
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 3000);
-        });
-        </script>
-        <?php unset($_SESSION['document_saved_success']); endif; ?>
-
-        <?php if (isset($_SESSION['document_saved_error'])): ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = '<?php echo $_SESSION['document_saved_error']; ?>';
-            toastIcon.className = 'fas fa-exclamation-triangle';
-            toast.style.background = '#dc3545'; // Red color for error
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 3500);
-        });
-        </script>
-        <?php unset($_SESSION['document_saved_error']); endif; ?>
-        
         <?php
-            // --- START: MODIFIED APPLICANT COUNT QUERIES (SCHOLARSHIP + SPES) ---
-            // Count Total Applicants (All Statuses from both tables)
+            // FIX: Modified the scholarship part of the query to only count applicants
+            // from 'active' scholarships for a more accurate total count on the home page.
             $totalApplicantsSql = "
                 SELECT SUM(total) as grand_total FROM (
-                    (SELECT COUNT(application_id) as total FROM applications)
+                    (SELECT COUNT(a.application_id) as total 
+                     FROM applications a
+                     JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                     WHERE s.status = 'active')
                     UNION ALL
                     (SELECT COUNT(spes_application_id) as total FROM spes_applications)
                 ) as combined_counts
@@ -2080,7 +2481,6 @@ body {
             $totalApplicantsResult = $conn->query($totalApplicantsSql);
             $totalApplicantsCount = $totalApplicantsResult->fetch_assoc()['grand_total'] ?? 0;
 
-            // Count Rejected Applicants (from both tables)
             $rejectedApplicantsSql = "
                 SELECT SUM(total) as grand_total FROM (
                     (SELECT COUNT(application_id) as total FROM applications WHERE status = 'rejected')
@@ -2091,28 +2491,21 @@ body {
             $rejectedApplicantsResult = $conn->query($rejectedApplicantsSql);
             $rejectedApplicantsCount = $rejectedApplicantsResult->fetch_assoc()['grand_total'] ?? 0;
 
-            // Count Approved Applicants (from both tables - already done for SPES, just need scholarship)
-            $approvedApplicantsSql = "SELECT COUNT(application_id) as total FROM applications WHERE status = 'approved'";
+            $approvedApplicantsSql = "
+                SELECT COUNT(a.application_id) as total 
+                FROM applications a
+                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                WHERE a.status = 'approved' AND s.status = 'active' -- This now only counts awardees of active scholarships
+            ";
             $approvedApplicantsResult = $conn->query($approvedApplicantsSql);
             $approvedApplicantsCount = $approvedApplicantsResult->fetch_assoc()['total'] ?? 0;
-            // Note: $approvedSpesCount is already calculated further up.
-            // --- END: MODIFIED APPLICANT COUNT QUERIES ---
         ?>
 
         <?php if (isset($_SESSION['message_sent'])): ?>
 
         <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var toast = document.getElementById('toast-message');
-            var toastText = document.getElementById('toast-text');
-            var toastIcon = document.getElementById('toast-icon');
-            toastText.textContent = 'Message sent successfully';
-            toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#28a745';
-            toast.classList.add('show');
-            setTimeout(function() {
-                toast.classList.remove('show');
-            }, 2500);
+            showToast('Message sent successfully', 'success');
         });
         </script>
         <?php unset($_SESSION['message_sent']); endif; ?>
@@ -2159,10 +2552,16 @@ body {
     <p class="p-description-appM">This section displays the total number of applicants in the system, grouped by Scholarship and SPES.</p>
     <div class="dashboard-boxes">
         <?php
-        // New query to get the TOTAL number of all applicants (pending, approved, and rejected)
-        $totalAllApplicantsSql = "SELECT COUNT(application_id) as total_all_applicants FROM applications";
+        // FIX: This query now joins with the scholarships table to count only applicants
+        // from scholarships that are currently 'active'.
+        $totalAllApplicantsSql = "
+            SELECT COUNT(a.application_id) as total_all_applicants 
+            FROM applications a
+            JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+            WHERE s.status = 'active'
+        ";
         $totalAllApplicantsResult = $conn->query($totalAllApplicantsSql);
-        $totalAllApplicants = $totalAllApplicantsResult->fetch_assoc()['total_all_applicants'];
+        $totalAllApplicants = $totalAllApplicantsResult->fetch_assoc()['total_all_applicants'] ?? 0;
         ?>
         <div class="box">
             <div class="box-icon"><i class="fas fa-graduation-cap"></i></div>
@@ -2182,14 +2581,11 @@ body {
 </div>
 
             <?php
-            // Handle view details for a specific scholarship
             $viewScholarshipId = isset($_GET['view_scholarship']) ? intval($_GET['view_scholarship']) : null;
                 $applicants = [];
                 if ($viewScholarshipId) {
-                    // Check for a search query and prepare it for the SQL statement
                     $searchQuery = isset($_GET['search']) && !empty($_GET['search']) ? $_GET['search'] : '%';
                     
-                    // If it's a number, allow partial matches from the start. Otherwise, search for anything.
                     if (is_numeric($searchQuery)) {
                         $searchQuery .= '%';
                     } else {
@@ -2217,8 +2613,7 @@ body {
                 <p>List of all scholarship programs available in the system:</p>
                 <button class="back-btn" onclick="showPage('total-applicants-page')">Back to Total Applicants</button>
                 <?php
-                // Corrected SQL query to count all applicants for each scholarship
-                $totalApplicantsSql = "SELECT s.*, COUNT(a.application_id) as total_applicants FROM scholarships s LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id GROUP BY s.scholarship_id";
+                $totalApplicantsSql = "SELECT s.scholarship_id, s.title, s.description, s.status, COUNT(a.application_id) as total_applicants FROM scholarships s LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id WHERE s.status != 'ended' GROUP BY s.scholarship_id";
                 $totalApplicantsResult = $conn->query($totalApplicantsSql);
                 $totalApplicantsScholarships = $totalApplicantsResult->fetch_all(MYSQLI_ASSOC);
                 ?>
@@ -2252,7 +2647,6 @@ body {
     <div class="applicants-container">
         <h2 class="applicants-h2">Applicants for 
             <?php
-            // Fetch the scholarship title
             $schTitle = '';
             $schQuery = $conn->prepare("SELECT title FROM scholarships WHERE scholarship_id = ?");
             $schQuery->bind_param("i", $viewScholarshipId);
@@ -2347,7 +2741,6 @@ body {
                     <p class="applicants-p">Review, approve, or reject applications for the SPES program. Search by Application ID.</p>
                     
                     <?php
-                    // --- PHP Logic to handle SPES search by ID ---
                     $searchSpesIdTerm = isset($_GET['search_spes_id']) ? trim($_GET['search_spes_id']) : '';
                     
                     $spesListSql = "
@@ -2465,13 +2858,13 @@ body {
                     <p class="applicants-p">Below is the list of users approved for the SPES program.</p>
                     
                     <?php
-                    // --- PHP Logic to handle SPES search ---
                     $searchSpesTerm = isset($_GET['search_spes_name']) ? trim($_GET['search_spes_name']) : '';
                     $searchSpesSql = '%' . $searchSpesTerm . '%';
 
+                    // FIX: Changed "u.Fname, u.Lname" to "u.*" to fetch all user details
+                    // so the 'View User Info' modal can be fully populated.
                     $approvedSpesListSql = "
-                        SELECT sa.*, u.Fname, u.Lname 
-                        FROM spes_applications sa
+                        SELECT sa.*, u.* FROM spes_applications sa
                         JOIN user u ON sa.user_id = u.user_id
                         WHERE sa.status = 'approved'";
 
@@ -2513,8 +2906,9 @@ body {
                                     <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
                                     <td><strong>SPES</strong></td>
                                     <td>
-                                        <button class="btn-outline" onclick='showSpesAppModal(<?php echo json_encode($app); ?>)'>View Details</button>
-                                         <button class="btn-primary" onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $app['user_id']; ?>#user-concerns-page'">
+                                        <button class="btn-outline" onclick='showSpesAppModal(<?php echo json_encode($app); ?>)'>View App Details</button>
+                                        <button class="btn-outline" onclick='showUserDetailsModal(<?php echo json_encode($app); ?>)'>View User Info</button>
+                                        <button class="btn-primary" onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $app['user_id']; ?>#user-concerns-page'">
                                             <i class="fas fa-envelope"></i> Message
                                         </button>
                                     </td>
@@ -2593,61 +2987,70 @@ body {
                     </div>
                 </div>
             </div>
-
-            <div id="scholarship-document-page" class="page">
-                <div class="applicants-container">
-                    <h2 class="applicants-h2">Scholarship Applicant Documents</h2>
-                    <p class="applicants-p">Review the submitted documents for all approved scholarship awardees.</p>
-                    <form method="GET">
-                        <input type="text" name="search_scholarship_docs" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($scholarshipDocsSearch ?? ''); ?>" class="search-input">
-                        <button type="submit" class="search-button">Search</button>
-                        <input type="hidden" name="search_spes_docs" value="<?php echo htmlspecialchars($spesDocsSearch ?? ''); ?>">
-                    </form>
-                    <button class="back-btn" onclick="showPage('reports-page')">Back to Reports</button>
-                    <table class="applicants-table">
-                        <thead>
-                            <tr>
-                                <th>View Documents</th>
-                                <th>Applicant Name</th>
-                                <th>Application Form</th>
-                                <th>Documents Requirements</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($scholarship_docs_users as $user): ?>
-                                <?php
-                                    $docs_array = json_decode($user['documents'], true);
-                                    $has_docs = is_array($docs_array) && !empty($docs_array);
-                                    $status = $has_docs ? 'Complete' : 'INC';
-                                ?>
-                                <tr>
-                                    <td>
-                                        <button class="btn-outline" <?php if(!$has_docs) echo 'disabled'; ?> onclick='viewUserDocuments(<?php echo json_encode($user['documents']); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>View Documents</button>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
-                                    <td class="text-center"><i class="fas fa-check-circle icon-check"></i></td>
-                                    <td class="text-center">
-                                        <?php if ($has_docs): ?>
-                                            <i class="fas fa-check-circle icon-check"></i>
-                                        <?php else: ?>
-                                            <i class="fas fa-times-circle icon-times"></i>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <span class="status-badge <?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
-                                            <?php echo $status; ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            <?php if (count($scholarship_docs_users) === 0): ?>
-                                <tr><td colspan="5" class="text-center" style="padding: 20px;">No approved scholarship applicants found.</td></tr>
+            
+<div id="scholarship-document-page" class="page">
+    <div class="applicants-container">
+        <h2 class="applicants-h2">Scholarship Applicant Documents</h2>
+        <p class="applicants-p">Review the submitted documents for all approved scholarship awardees.</p>
+        <form method="GET">
+            <input type="text" name="search_scholarship_docs" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($scholarshipDocsSearch ?? ''); ?>" class="search-input">
+            <button type="submit" class="search-button">Search</button>
+            <input type="hidden" name="search_spes_docs" value="<?php echo htmlspecialchars($spesDocsSearch ?? ''); ?>">
+        </form>
+        <button class="back-btn" onclick="showPage('reports-page')">Back to Reports</button>
+        <table class="applicants-table">
+            <thead>
+                <tr>
+                    <th>View Documents</th>
+                    <th>Applicant Name</th>
+                    <th>Application Form</th>
+                    <th>Documents Requirements</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($scholarship_docs_users as $user): ?>
+                    <?php
+                        // --- START: FIX - Align status with visible table columns ---
+                        // Determine if documents are complete
+                        $docs_array = json_decode($user['documents'], true);
+                        $has_docs = is_array($docs_array) && !empty($docs_array);
+                        
+                        // The status should be 'Complete' if the requirement documents are present,
+                        // as the application form is implicitly present for all listed users.
+                        $status = $has_docs ? 'Complete' : 'INC';
+                        // --- END: FIX ---
+                    ?>
+                    <tr>
+                        <td>
+                            <button class="btn-outline" <?php if(!$has_docs && !$has_id) echo 'disabled'; ?> 
+                                onclick='viewUserDocuments(<?php echo json_encode(["ids" => $user["valid_id"], "docs" => $user["documents"]]); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>
+                                View Documents
+                            </button>
+                            </td>
+                        <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
+                        <td class="text-center"><i class="fas fa-check-circle icon-check"></i></td>
+                        <td class="text-center">
+                            <?php if ($has_docs): ?>
+                                <i class="fas fa-check-circle icon-check"></i>
+                            <?php else: ?>
+                                <i class="fas fa-times-circle icon-times"></i>
                             <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        </td>
+                        <td>
+                            <span class="status-badge <?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
+                                <?php echo $status; ?>
+                            </span>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (count($scholarship_docs_users) === 0): ?>
+                    <tr><td colspan="5" class="text-center" style="padding: 20px;">No approved scholarship applicants found.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
 
             <div id="spes-document-page" class="page">
                 <div class="applicants-container">
@@ -2672,20 +3075,13 @@ body {
                         <tbody>
                             <?php foreach ($spes_docs_users as $user): ?>
                                 <?php
-                                    $id_paths_array = json_decode($user['id_image_paths'], true);
-                                    $reqs_paths_array = json_decode($user['spes_documents_path'], true);
-
-                                    $has_id = is_array($id_paths_array) && !empty($id_paths_array);
-                                    
+                                    // --- START: FIX - Align status with visible table columns ---
+                                    // The presence of an application form is implied. We only need to check for requirement documents.
                                     $has_reqs = !empty($user['spes_documents_path']);
-                                    // A more robust check if we are saving multiple reqs as JSON
-                                    if (is_string($user['spes_documents_path'])) {
-                                        $reqs_temp = json_decode($user['spes_documents_path'], true);
-                                        $has_reqs = is_array($reqs_temp) && !empty($reqs_temp);
-                                    }
 
-
-                                    $status = $has_id && $has_reqs ? 'Complete' : 'INC';
+                                    // The status is now based solely on whether requirement documents were uploaded.
+                                    $status = $has_reqs ? 'Complete' : 'INC';
+                                    // --- END: FIX ---
                                 ?>
                                 <tr>
                                     <td>
@@ -2740,7 +3136,6 @@ body {
                     <td><?php echo htmlspecialchars($user['Email']); ?></td>
                     <td>
                         <?php
-                        // Decode the JSON and check if it's valid and not empty
                         $validIdFiles = json_decode($user['valid_id'], true);
                         if (is_array($validIdFiles) && !empty($validIdFiles[0])):
                         ?>
@@ -2776,6 +3171,10 @@ body {
         </table>
     </div>
 </div>
+
+
+
+
 <div id="user-concerns-page" class="page">
     <h2>User Concerns Chat</h2>
     <div class="concerns-chat-container">
@@ -2813,13 +3212,12 @@ body {
             <div class="concerns-chat-messages" id="concernChatMessages">
                 <?php if ($selectedGroupId || $selectedUserId): ?>
                     <?php
-                        // --- START: MODIFIED - PRE-FETCH APPROVAL STATUSES ---
+                        // Pre-fetch approval statuses for all users in the current chat view
                         $userIdsInChat = array_unique(array_column($chatMessages, 'user_id'));
                         $approvedScholarUsers = [];
                         $approvedSpesUsers = [];
 
                         if (!empty($userIdsInChat)) {
-                            // Sanitize to prevent issues, although we control the user_id values
                             $userIdsInChat = array_filter($userIdsInChat, 'is_numeric');
                             if(!empty($userIdsInChat)){
                                 $userIdsPlaceholder = implode(',', array_fill(0, count($userIdsInChat), '?'));
@@ -2838,14 +3236,12 @@ body {
                                 while ($row = $result->fetch_assoc()) { $approvedSpesUsers[] = $row['user_id']; }
                             }
                         }
-                        // --- END: MODIFIED - PRE-FETCH APPROVAL STATUSES ---
                     ?>
 
                     <?php foreach ($chatMessages as $msg): ?>
                         <div class="concern-message <?php echo $msg['sender'] === 'admin' ? 'admin' : 'user'; ?>">
                             
                             <?php 
-                            // --- START: MODIFIED - CONDITIONAL THREE-DOTS MENU ---
                             if ($msg['sender'] === 'user' && !empty($msg['attachment_path'])) {
                                 $isApprovedScholar = in_array($msg['user_id'], $approvedScholarUsers);
                                 $isApprovedSpes = in_array($msg['user_id'], $approvedSpesUsers);
@@ -2875,7 +3271,7 @@ body {
                                     </div>
                                 </div>
                             <?php 
-                                } // end if is approved
+                                }
                             } elseif ($msg['sender'] === 'admin') { 
                             ?>
                                 <div class="message-options">
@@ -2892,8 +3288,7 @@ body {
                                     </div>
                                 </div>
                             <?php 
-                            } // end if sender
-                            // --- END: MODIFIED - CONDITIONAL THREE-DOTS MENU ---
+                            }
                             ?>
                             
                             <div class="concern-message-content" style="<?php echo $msg['sender'] === 'admin' ? 'margin-right:15px;' : ''; ?>">
@@ -2902,9 +3297,9 @@ body {
                                 
                                 <?php if (!empty($msg['attachment_path'])): ?>
                                     <div class="message-attachment">
-                                        <a href="<?php echo htmlspecialchars($msg['attachment_path']); ?>" target="_blank" download>
+                                        <a href="<?php echo htmlspecialchars(str_replace('../../../../', BASE_URL, $msg['attachment_path'])); ?>" target="_blank" download>
                                             <i class="fas fa-file-download"></i>
-                                            <span><?php echo htmlspecialchars(preg_replace('/^[a-f0-9]+_/', '', basename($msg['attachment_path']))); ?></span>
+                                            <span><?php echo htmlspecialchars(preg_replace('/^[a-f0_.-9]+_/', '', basename($msg['attachment_path']))); ?></span>
                                         </a>
                                     </div>
                                 <?php endif; ?>
@@ -2944,63 +3339,367 @@ body {
 
             <div id="scholarship-page" class="page">
                 <h1 class="main-title-scholar">Manage Scholarships</h1>
-                <form class="scholarship-form" method="POST">
-                    <h3>Add New Scholarship</h3>
-                    <input type="text" name="title" placeholder="Scholarship Title" required>
-                    <textarea name="description" placeholder="Scholarship Description" required></textarea>
-                    <textarea name="requirements" placeholder="Requirements" required></textarea>
-                    <textarea name="benefits" placeholder="Benefits" required></textarea>
-                    <textarea name="eligibility" placeholder="Eligibility Criteria" required></textarea>
-                    <input type="number" name="number_of_slots" placeholder="Number of Slots" min="1" required>
-                    <button type="submit" name="add_scholarship">Add Scholarship</button>
-                </form>
 
-                <h3>Scholarship List</h3>
-                <?php 
-                $scholarshipsSql_list = "SELECT s.*, COUNT(a.application_id) as total_applicants FROM scholarships s LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id GROUP BY s.scholarship_id";
-                $scholarshipResult_list = $conn->query($scholarshipsSql_list);
-                $scholarships_list = $scholarshipResult_list->fetch_all(MYSQLI_ASSOC);
-                
-                foreach ($scholarships_list as $scholarship): 
-                    $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
-                ?>
+                <div class="tabs">
+                    <button class="tab-link active" onclick="openScholarshipMgmtTab(event, 'ScholarshipMgmt')">Scholarship Management</button>
+                    <button class="tab-link" onclick="openScholarshipMgmtTab(event, 'SpesMgmt')">SPES Management</button>
+                </div>
+
+                <div id="ScholarshipMgmt" class="tab-content" style="display: block;">
+                    <form class="scholarship-form" method="POST">
+                        <h3>Add New Scholarship</h3>
+                        <input type="text" name="title" placeholder="Scholarship Title" required>
+                        <textarea name="description" placeholder="Scholarship Description" required></textarea>
+                        <textarea name="requirements" placeholder="Requirements" required></textarea>
+                        <textarea name="benefits" placeholder="Benefits" required></textarea>
+                        <textarea name="eligibility" placeholder="Eligibility Criteria" required></textarea>
+                        <input type="number" name="number_of_slots" placeholder="Number of Slots" min="1" required>
+                        <button type="submit" name="add_scholarship">Add Scholarship</button>
+                    </form>
+
+                    <h3>Scholarship List</h3>
+                    <?php 
+                    $scholarshipsSql_list = "SELECT s.*, COUNT(a.application_id) as total_applicants FROM scholarships s LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id WHERE s.status != 'ended' GROUP BY s.scholarship_id";
+                    $scholarshipResult_list = $conn->query($scholarshipsSql_list);
+                    $scholarships_list = $scholarshipResult_list->fetch_all(MYSQLI_ASSOC);
+                    
+                    foreach ($scholarships_list as $scholarship): 
+                        $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
+                    ?>
+                        <div class="scholarship-card">
+                            <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
+                            <div class="scholarship-details">
+                                <p><strong>Description:</strong></p>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['description'])); ?></p>
+                                
+                                <p><strong>Requirements:</strong></p>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
+
+                                <p><strong>Benefits:</strong></p>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
+
+                                <p><strong>Eligibility:</strong></p>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
+                            </div>
+                            <div>
+                                <span class="scholarship-status <?php echo $scholarship['status'] === 'active' ? 'status-active' : 'status-pending'; ?>">
+                                    Status: <?php echo ucfirst($scholarship['status']); ?>
+                                </span>
+                                <br>
+                                <p style="font-size: 12px; margin: 5px 0;"><strong>Slots:</strong> 
+                                    <?php echo htmlspecialchars($remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining
+                                </p>
+                            </div>
+                            <div class="scholarship-footer">
+                                <form method="POST" class="inline-form">
+                                    <input type="hidden" name="id" value="<?php echo $scholarship['scholarship_id']; ?>">
+                                    <?php if ($scholarship['status'] === 'pending'): ?>
+                                        <button type="submit" name="publish_scholarship" class="btn-publish">Publish</button>
+                                    <?php endif; ?>
+                                    <button type="submit" name="delete_scholarship" class="btn-delete-scholarship" onclick="return confirm('Are you sure you want to end this scholarship? It will be moved to history.');">End Scholarship</button>
+                                </form>
+                                <button type="button" class="btn-edit-slots" onclick="showEditSlotsModal(
+                                    '<?php echo $scholarship['scholarship_id']; ?>', 
+                                    '<?php echo $scholarship['number_of_slots']; ?>', 
+                                    '<?php echo $scholarship['total_applicants']; ?>'
+                                )">Edit Slots</button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    
+                    <?php if (count($scholarships_list) === 0): ?>
+                    <p>No active or pending scholarships found. Add a new scholarship using the form above.</p>
+                    <?php endif; ?>
+                </div>
+
+                <div id="SpesMgmt" class="tab-content">
+                    <form class="scholarship-form" method="POST">
+                        <h3>Add New SPES Batch</h3>
+                        <input type="text" name="batch_name" placeholder="Batch Name (e.g., SPES Batch 1.0)" required>
+                        <label for="start_date" style="font-size: 14px; margin-top: 10px; display:block;">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" required>
+                        
+                        <label for="start_time" style="font-size: 14px; margin-top: 10px; display:block;">Start Time</label>
+                        <input type="time" id="start_time" name="start_time" required>
+                        <button type="submit" name="add_spes_batch">Add and Start Batch</button>
+                    </form>
                     <div class="scholarship-card">
-                        <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
-                        <div class="scholarship-details">
-                            <p><strong>Description:</strong> <?php echo nl2br(htmlspecialchars($scholarship['description'])); ?></p>
-                            <p><strong>Requirements:</strong> <?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
-                            <p><strong>Benefits:</strong> <?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
-                            <p><strong>Eligibility:</strong> <?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
-                        </div>
-                        <div>
-                            <span class="scholarship-status <?php echo $scholarship['status'] === 'active' ? 'status-active' : 'status-pending'; ?>">
-                                Status: <?php echo ucfirst($scholarship['status']); ?>
-                            </span>
-                            <br>
-                            <p style="font-size: 12px; margin: 5px 0;"><strong>Slots:</strong> 
-                                <?php echo htmlspecialchars($remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining
-                            </p>
-                        </div>
-                        <div class="scholarship-footer">
-                            <form method="POST" class="inline-form">
-                                <input type="hidden" name="id" value="<?php echo $scholarship['scholarship_id']; ?>">
-                                <?php if ($scholarship['status'] === 'pending'): ?>
-                                    <button type="submit" name="publish_scholarship" class="btn-publish">Publish</button>
-                                <?php endif; ?>
-                                <button type="submit" name="delete_scholarship" class="btn-delete-scholarship" onclick="return confirm('Are you sure you want to delete this scholarship?');">Delete</button>
-                            </form>
-                            <button type="button" class="btn-edit-slots" onclick="showEditSlotsModal(
-                                '<?php echo $scholarship['scholarship_id']; ?>', 
-                                '<?php echo $scholarship['number_of_slots']; ?>', 
-                                '<?php echo $scholarship['total_applicants']; ?>'
-                            )">Edit Slots</button>
+                        <h3>SPES Form Management</h3>
+                        <p style="font-size:12px; color: #555; margin-bottom: 20px;">Upload the preview images and the downloadable source files (.pdf, .docx, .doc) for the SPES forms.</p>
+                        
+                        <div class="spes-form-upload-container">
+                            <div class="spes-form-section">
+                                <h4>Employment Contract Form</h4>
+                                <p class="form-section-label">Preview Image</p>
+                                <img src="<?php echo htmlspecialchars(str_replace('../../../../', BASE_URL, $spes_forms_data['employment_contract']['file_path'])); ?>" alt="Contract Preview" class="spes-form-preview" onerror="this.src='<?php echo BASE_URL; ?>images/default-placeholder.png'">
+                                <form method="POST" enctype="multipart/form-data">
+                                    <input type="hidden" name="doc_type" value="employment_contract">
+                                    <input type="file" name="spes_doc_image" accept="image/*" class="input-field file-field" required>
+                                    <button type="submit" name="upload_spes_doc" class="btn-publish" style="width:100%;">
+                                        <i class="fas fa-upload"></i> Upload Preview Image
+                                    </button>
+                                </form>
+                                <hr class="form-divider">
+                                <p class="form-section-label">Downloadable Source File</p>
+                                <div class="current-file" id="employment-contract-current" data-original="Current File: <strong><?php echo htmlspecialchars(basename($spes_forms_data['employment_contract']['doc_file_path'] ?? 'None')); ?></strong>">
+                                    Current File: <strong><?php echo htmlspecialchars(basename($spes_forms_data['employment_contract']['doc_file_path'] ?? 'None')); ?></strong>
+                                </div>
+                                <form method="POST" enctype="multipart/form-data">
+                                    <input type="hidden" name="doc_type" value="employment_contract">
+                                    <input type="file" name="spes_doc_source_file" accept=".pdf,.doc,.docx" class="input-field file-field" required onchange="updateCurrentFileName(this, 'employment-contract-current')">
+                                    <button type="submit" name="upload_spes_doc_file" class="btn-primary" style="width:100%; border-radius:14px; font-size:10px;">
+                                        <i class="fas fa-file-upload"></i> Upload Source File
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="spes-form-section">
+                                <h4>Oath of Undertaking Form</h4>
+                                <p class="form-section-label">Preview Image</p>
+                                <img src="<?php echo htmlspecialchars(str_replace('../../../../', BASE_URL, $spes_forms_data['oath_undertaking']['file_path'])); ?>" alt="Oath Preview" class="spes-form-preview" onerror="this.src='<?php echo BASE_URL; ?>images/default-placeholder.png'">
+                                <form method="POST" enctype="multipart/form-data">
+                                    <input type="hidden" name="doc_type" value="oath_undertaking">
+                                    <input type="file" name="spes_doc_image" accept="image/*" class="input-field file-field" required>
+                                    <button type="submit" name="upload_spes_doc" class="btn-publish" style="width:100%;">
+                                        <i class="fas fa-upload"></i> Upload Preview Image
+                                    </button>
+                                </form>
+                                <hr class="form-divider">
+                                <p class="form-section-label">Downloadable Source File</p>
+                                <div class="current-file" id="oath-undertaking-current" data-original="Current File: <strong><?php echo htmlspecialchars(basename($spes_forms_data['oath_undertaking']['doc_file_path'] ?? 'None')); ?></strong>">
+                                    Current File: <strong><?php echo htmlspecialchars(basename($spes_forms_data['oath_undertaking']['doc_file_path'] ?? 'None')); ?></strong>
+                                </div>
+                                <form method="POST" enctype="multipart/form-data">
+                                    <input type="hidden" name="doc_type" value="oath_undertaking">
+                                    <input type="file" name="spes_doc_source_file" accept=".pdf,.doc,.docx" class="input-field file-field" required onchange="updateCurrentFileName(this, 'oath-undertaking-current')">
+                                    <button type="submit" name="upload_spes_doc_file" class="btn-primary" style="width:100%; border-radius:14px; font-size:10px;">
+                                        <i class="fas fa-file-upload"></i> Upload Source File
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                <?php endforeach; ?>
-                
-                <?php if (count($scholarships_list) === 0): ?>
-                <p>No scholarships found. Add a new scholarship using the form above.</p>
-                <?php endif; ?>
+                    <h3>SPES Batch List</h3>
+                     <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>Batch Name</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (count($spesBatches) > 0): ?>
+                            <?php foreach ($spesBatches as $batch): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($batch['batch_name']); ?></td>
+                                <td><?php echo date('M d, Y, g:i A', strtotime($batch['start_date'])); ?></td>
+                                <td><?php echo $batch['end_date'] ? date('M d, Y, g:i A', strtotime($batch['end_date'])) : 'N/A'; ?></td>
+                                <td>
+                                    <span class="status-badge <?php echo $batch['status'] === 'active' ? 'status-active' : 'status-rejected'; ?>">
+                                        <?php echo ucfirst($batch['status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                <?php if ($batch['status'] === 'active'): ?>
+                                    <button type="button" class="btn-delete-scholarship" onclick="showEndSpesModal('<?php echo $batch['batch_id']; ?>')">End Batch</button>
+                                <?php else: ?>
+                                    <span>N/A</span>
+                                <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="5" class="text-center" style="padding: 20px;">No SPES batches found.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                     </table>
+                </div>
+
+            </div>
+
+            <div id="scholarship-history-page" class="page">
+                <h1 class="main-title-scholar">Scholarship History</h1>
+                <p>View active, ended, and SPES scholarship programs.</p>
+
+                <div class="tabs">
+                    <button class="tab-link active" onclick="openHistoryTab(event, 'RecentScholarshipsTab')">Recent Scholarship (Current Ongoing)</button>
+                    <button class="tab-link" onclick="openHistoryTab(event, 'EndedScholarshipsTab')">Ended Scholarships</button>
+                    <button class="tab-link" onclick="openHistoryTab(event, 'SpesHistoryTab')">SPES History</button>
+                </div>
+
+                <div id="RecentScholarshipsTab" class="tab-content" style="display: block;">
+                    <h3>Recent Scholarships</h3>
+                     <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>Scholarship Start/End Year</th>
+                                <th>Scholarship Program</th>
+                                <th>Application Date Start</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (count($activeScholarships) > 0): ?>
+                            <?php foreach ($activeScholarships as $scholarship): ?>
+                                <tr>
+                                    <td><?php echo date('Y', strtotime($scholarship['created_at'])); ?> - Present</td>
+                                    <td><?php echo htmlspecialchars($scholarship['title']); ?></td>
+                                    <td><?php echo date('F d, Y', strtotime($scholarship['created_at'])); ?></td>
+                                    <td>
+                                        <a href="?view_recent_members=<?php echo $scholarship['scholarship_id']; ?>#view-recent-members-page" class="view-details">View Members</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                             <tr><td colspan="4" class="text-center" style="padding: 20px;">No recent (active) scholarships found.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                     </table>
+                </div>
+
+                <div id="EndedScholarshipsTab" class="tab-content">
+                    <h3>Ended Scholarships</h3>
+                     <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>Scholarship Start/End Year</th>
+                                <th>Scholarship Program</th>
+                                <th>Application Date Start</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (count($endedScholarships) > 0): ?>
+                            <?php foreach ($endedScholarships as $scholarship): ?>
+                                <tr>
+                                    <td><?php echo date('Y', strtotime($scholarship['created_at'])); ?> - <?php echo date('Y', strtotime($scholarship['ended_at'])); ?></td>
+                                    <td><?php echo htmlspecialchars($scholarship['title']); ?></td>
+                                    <td><?php echo date('F d, Y', strtotime($scholarship['created_at'])); ?></td>
+                                    <td>
+                                        <a href="?view_ended_members=<?php echo $scholarship['scholarship_id']; ?>#view-ended-members-page" class="view-details">View Members</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                             <tr><td colspan="4" class="text-center" style="padding: 20px;">No ended scholarships found.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                     </table>
+                </div>
+
+            <div id="SpesHistoryTab" class="tab-content">
+                    <h3>SPES History</h3>
+                    <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>SPES</th>
+                                <th>Program</th>
+                                <th>Application Date</th>
+                                <th>Status</th> <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (count($spesHistory) > 0): ?>
+                            <?php foreach ($spesHistory as $batch): ?>
+                            <tr>
+                                <td><?php echo date('Y', strtotime($batch['start_date'])); ?></td>
+                                <td><?php echo htmlspecialchars($batch['batch_name']); ?></td>
+                                <td><?php echo date('F d, Y', strtotime($batch['start_date'])); ?></td>
+                                
+                                <td>
+                                    <span class="status-badge <?php echo $batch['status'] === 'active' ? 'status-active' : 'status-rejected'; ?>">
+                                        <?php echo ucfirst($batch['status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="?view_spes_members=<?php echo $batch['batch_id']; ?>#view-spes-members-page" class="view-details">View Members</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="5" class="text-center" style="padding: 20px;">No SPES History found.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-recent-members-page" class="page">
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">Members for: <?php echo htmlspecialchars($recentScholarshipTitle); ?> (Current Ongoing)</h2>
+                    <button class="back-btn" onclick="showPage('scholarship-history-page')">Back to History</button>
+                    <table class="applicants-table">
+                        <thead>
+                            <tr><th>Name</th><th>Program</th><th>Scholarship Application Date</th></tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($recentMembers) > 0): ?>
+                                <?php foreach($recentMembers as $member): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($member['Fname'] . ' ' . $member['Lname']); ?></td>
+                                    <td><?php echo htmlspecialchars($recentScholarshipTitle); ?></td>
+                                    <td><?php echo date('F d, Y', strtotime($member['application_date'])); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td colspan="3" class="text-center">No members found for this scholarship.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-ended-members-page" class="page">
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">Members for: <?php echo htmlspecialchars($endedScholarshipTitle); ?> (Ended)</h2>
+                    <button class="back-btn" onclick="showPage('scholarship-history-page')">Back to History</button>
+                    <table class="applicants-table">
+                         <thead>
+                            <tr><th>Name</th><th>Program</th><th>Scholarship Application Date</th></tr>
+                        </thead>
+                        <tbody>
+                             <?php if (count($endedMembers) > 0): ?>
+                                <?php foreach($endedMembers as $member): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($member['Fname'] . ' ' . $member['Lname']); ?></td>
+                                    <td><?php echo htmlspecialchars($endedScholarshipTitle); ?></td>
+                                    <td><?php echo date('F d, Y', strtotime($member['application_date'])); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td colspan="3" class="text-center">No members found for this ended scholarship.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="view-spes-members-page" class="page">
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">Members for: <?php echo htmlspecialchars($spesBatchName); ?></h2>
+                    <button class="back-btn" onclick="showPage('scholarship-history-page')">Back to History</button>
+                    <table class="applicants-table">
+                        <thead>
+                            <tr><th>Name</th><th>Program</th><th>Application Date</th></tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($spesMembers) > 0): ?>
+                                <?php foreach($spesMembers as $member): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($member['Fname'] . ' ' . $member['Lname']); ?></td>
+                                    <td><?php echo htmlspecialchars($spesBatchName); ?></td>
+                                    <td><?php echo date('F d, Y', strtotime($member['application_date'])); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td colspan="3" class="text-center">No members found for this SPES batch.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="rejectionModal" class="modal">
@@ -3030,6 +3729,23 @@ body {
                     <div class="modal-body" id="spesAppModalBody"></div>
                 </div>
             </div>
+
+            <div id="endSpesModal" class="modal">
+                <div class="modal-content">
+                    <span class="modal-close" onclick="closeEndSpesModal()">&times;</span>
+                    <div class="modal-header">End SPES Batch</div>
+                    <form method="POST">
+                        <input type="hidden" name="batch_id" id="endSpesBatchId">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" id="end_date" name="end_date" required style="width:100%;padding:10px;box-sizing:border-box;margin-top:5px;">
+                        <label for="end_time">End Time:</label>
+                        <input type="time" id="end_time" name="end_time" required style="width:100%;padding:10px;box-sizing:border-box;margin-top:5px;">
+                        <button type="submit" name="end_spes_batch" class="btn-danger" style="margin-top:10px;">Confirm End Batch</button>
+                    </form>
+                </div>
+            </div>
+
+
             <div id="send-updates-page" class="page">
                 <h1 class="main-title-send-updates">Send Updates</h1>
                 <form class="send-updates-form" method="POST">
@@ -3048,7 +3764,7 @@ Closing/Signature:" rows="5" required></textarea>
                         <div class="message-status">Sent</div>
                         <h3>Message:</h3>
                         <p><?php echo nl2br(htmlspecialchars($message['message'])); ?></p>
-                        <p><strong>Deadline:</strong> <?php echo $message['deadline'] ?: 'No deadline'; ?></p>
+                        <p><strong>Deadline:</strong> <?php echo $message['deadline'] ? date('F j, Y', strtotime($message['deadline'])) : 'No deadline'; ?></p>
                         <div class="message-footer">
                             <form method="POST" class="inline-form">
                                 <input type="hidden" name="message_id" value="<?php echo $message['notification_id']; ?>">
@@ -3084,15 +3800,13 @@ Closing/Signature:" rows="5" required></textarea>
 
         </div> </div>
     <script>
+     const BASE_URL = '<?php echo BASE_URL; ?>';   
+
     function toggleMenu() {
         var menu = document.getElementById("dropdownMenu");
         var chevron = document.getElementById("chevronIcon");
         const isOpen = menu.classList.toggle("show");
-        if (isOpen) {
-            chevron.classList.add("open");
-        } else {
-            chevron.classList.remove("open");
-        }
+        chevron.classList.toggle("open", isOpen);
     }
 
     function showPage(pageId) {
@@ -3102,48 +3816,71 @@ Closing/Signature:" rows="5" required></textarea>
         
         const url = new URL(window.location);
         url.hash = pageId;
-        // Clean up search params when navigating to a new main page
-        if (['home-page', 'application-page', 'scholarship-page', 'send-updates-page', 'total-applicants-page', 'reports-page', 'user-concerns-page', 'user-request-page'].includes(pageId)) {
-            url.search = '';
+
+        const mainPages = ['home-page', 'application-page', 'scholarship-page', 'scholarship-history-page', 'send-updates-page', 'total-applicants-page', 'reports-page', 'user-concerns-page', 'user-request-page'];
+        if (mainPages.includes(pageId)) {
+            url.searchParams.delete('view_scholarship');
+            url.searchParams.delete('view_approved');
+            url.searchParams.delete('search_spes_name');
+            url.searchParams.delete('search_spes_id');
+            url.searchParams.delete('view_recent_members');
+            url.searchParams.delete('view_ended_members');
+            url.searchParams.delete('view_spes_members');
         }
         history.pushState({}, '', url);
 
-        document.getElementById(pageId).classList.add('active');
-
-        switch (pageId) {
-            case 'home-page':
-                highlightActiveNav('home-nav');
-                break;
-            case 'application-page':
-            case 'approved-scholarship-programs-page':
-            case 'approved-applicants-list-page':
-            case 'approved-spes-list-page':
-                highlightActiveNav('history-nav');
-                break;
-            case 'scholarship-page':
-                highlightActiveNav('scholarships-nav');
-                break;
-            case 'send-updates-page':
-                highlightActiveNav('communication-nav');
-                break;
-            case 'total-applicants-page':
-            case 'total-applicants-scholarship': 
-            case 'scholarship-applicants-page': 
-            case 'total-applicants-spes': 
-                highlightActiveNav('total-applicants-nav');
-                break;
-            case 'reports-page':
-            case 'scholarship-document-page':
-            case 'spes-document-page':
-                highlightActiveNav('reports-nav');
-                break;
-            case 'user-concerns-page':
-                highlightActiveNav('user-concerns-nav');
-                break;
-            case 'user-request-page':
-                highlightActiveNav('user-request-nav');
-                break;
+        const pageElement = document.getElementById(pageId);
+        if (pageElement) {
+             pageElement.classList.add('active');
         }
+
+        if (pageId === 'scholarship-page') {
+            const activeTab = sessionStorage.getItem('activeScholarshipTab') || 'ScholarshipMgmt';
+            openScholarshipMgmtTab(null, activeTab);
+        }
+
+        // START: === FIX ===
+        // This new block checks sessionStorage for the last active history tab
+        if (pageId === 'scholarship-history-page') {
+            const activeTab = sessionStorage.getItem('activeHistoryTab') || 'RecentScholarshipsTab';
+            openHistoryTab(null, activeTab);
+        }
+        // END: === FIX ===
+
+        const navMapping = {
+            'home-page': 'home-nav',
+            'application-page': 'history-nav',
+            'approved-scholarship-programs-page': 'history-nav',
+            'approved-applicants-list-page': 'history-nav',
+            'approved-spes-list-page': 'history-nav',
+            'scholarship-page': 'scholarships-nav',
+            'scholarship-history-page': 'scholarship-history-nav',
+            'view-recent-members-page': 'scholarship-history-nav',
+            'view-ended-members-page': 'scholarship-history-nav',
+            'view-spes-members-page': 'scholarship-history-nav',
+            'send-updates-page': 'communication-nav',
+            'total-applicants-page': 'total-applicants-nav',
+            'total-applicants-scholarship': 'total-applicants-nav',
+            'scholarship-applicants-page': 'total-applicants-nav',
+            'total-applicants-spes': 'total-applicants-nav',
+            'reports-page': 'reports-nav',
+            'scholarship-document-page': 'reports-nav',
+            'spes-document-page': 'reports-nav',
+            'user-concerns-page': 'user-concerns-nav',
+            'user-request-page': 'user-request-nav'
+        };
+        
+        if (navMapping[pageId]) {
+            highlightActiveNav(navMapping[pageId]);
+        }
+    }
+
+     function openHistoryTab(evt, tabName) {
+        openTab(evt, 'scholarship-history-page', tabName);
+        // START: === FIX ===
+        // This line saves the currently clicked tab name to the session storage
+        sessionStorage.setItem('activeHistoryTab', tabName);
+        // END: === FIX ===
     }
 
     function highlightActiveNav(navId) {
@@ -3158,16 +3895,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     let hash = window.location.hash.substr(1);
     
-    // Prioritize search params to determine the active page
-    if (urlParams.has('view_scholarship')) {
-        hash = 'scholarship-applicants-page';
-    } else if (urlParams.has('view_approved')) {
-        hash = 'approved-applicants-list-page';
-    } else if (urlParams.has('search_spes_name')) {
-        hash = 'approved-spes-list-page';
-    } else if (urlParams.has('search_spes_id')) {
-        hash = 'total-applicants-spes';
-    }
+    if (urlParams.has('view_scholarship')) hash = 'scholarship-applicants-page';
+    else if (urlParams.has('view_approved')) hash = 'approved-applicants-list-page';
+    else if (urlParams.has('search_spes_name')) hash = 'approved-spes-list-page';
+    else if (urlParams.has('search_spes_id')) hash = 'total-applicants-spes';
+    else if (urlParams.has('view_recent_members')) hash = 'view-recent-members-page';
+    else if (urlParams.has('view_ended_members')) hash = 'view-ended-members-page';
+    else if (urlParams.has('view_spes_members')) hash = 'view-spes-members-page';
 
     if (hash && document.getElementById(hash)) {
         showPage(hash);
@@ -3193,7 +3927,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- NEW: Number Animation Logic ---
     const animateValue = (obj, start, end, duration) => {
         let startTimestamp = null;
         const step = (timestamp) => {
@@ -3212,54 +3945,40 @@ document.addEventListener('DOMContentLoaded', function() {
             if (entry.isIntersecting) {
                 const el = entry.target;
                 const targetValue = parseInt(el.getAttribute('data-target'), 10);
-                animateValue(el, 0, targetValue, 1500); // Animate over 1.5 seconds
-                observer.unobserve(el); // Stop observing after animation
+                animateValue(el, 0, targetValue, 1500);
+                observer.unobserve(el);
             }
         });
-    }, { threshold: 0.5 }); // Trigger when 50% of the element is visible
+    }, { threshold: 0.5 });
 
     document.querySelectorAll('.box-value').forEach(el => {
         observer.observe(el);
     });
-    // --- END: Number Animation Logic ---
 
-    // --- START: JAVASCRIPT FOR APPROVED APPLICANT SEARCH ---
-    const searchApprovedForm = document.getElementById('searchApprovedForm');
-    if(searchApprovedForm) {
-        searchApprovedForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const searchTerm = form.querySelector('input[name="search_approved_name"]').value;
-            const scholarshipId = form.querySelector('input[name="view_approved"]').value;
-            window.location.href = `admin_dashboard.php?view_approved=${scholarshipId}&search_approved_name=${encodeURIComponent(searchTerm)}#approved-applicants-list-page`;
-        });
-    }
-    // --- END: JAVASCRIPT FOR APPROVED APPLICANT SEARCH ---
-    
-    // --- START: JAVASCRIPT FOR APPROVED SPES SEARCH ---
-    const searchSpesForm = document.getElementById('searchSpesForm');
-    if(searchSpesForm) {
-        searchSpesForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const searchTerm = form.querySelector('input[name="search_spes_name"]').value;
-            window.location.href = `admin_dashboard.php?search_spes_name=${encodeURIComponent(searchTerm)}#approved-spes-list-page`;
-        });
-    }
-    // --- END: JAVASCRIPT FOR APPROVED SPES SEARCH ---
-    
-    // --- START: JAVASCRIPT FOR TOTAL SPES APPLICANTS SEARCH ---
-    const searchSpesTotalForm = document.getElementById('searchSpesTotalForm');
-    if(searchSpesTotalForm) {
-        searchSpesTotalForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const searchTerm = form.querySelector('input[name="search_spes_id"]').value;
-            window.location.href = `admin_dashboard.php?search_spes_id=${encodeURIComponent(searchTerm)}#total-applicants-spes`;
-        });
-    }
-    // --- END: JAVASCRIPT FOR TOTAL SPES APPLICANTS SEARCH ---
 });
+    function showToast(message, type = 'success') {
+        var toast = document.getElementById('toast-message');
+        var toastText = document.getElementById('toast-text');
+        var toastIcon = document.getElementById('toast-icon');
+
+        toastText.textContent = message;
+
+        if (type === 'success') {
+            toastIcon.className = 'fas fa-check-circle';
+            toast.style.background = '#28a745';
+        } else if (type === 'error') {
+            toastIcon.className = 'fas fa-exclamation-triangle';
+            toast.style.background = '#dc3545';
+        } else if (type === 'info') {
+            toastIcon.className = 'fas fa-info-circle';
+            toast.style.background = '#17a2b8';
+        }
+
+        toast.classList.add('show');
+        setTimeout(function() {
+            toast.classList.remove('show');
+        }, 3000);
+    }
 
     function showAppFormModal(applicantJson) {
         let app = typeof applicantJson === 'string' ? JSON.parse(applicantJson) : applicantJson;
@@ -3336,11 +4055,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (Array.isArray(docs) && docs.length > 0) {
                 docs.forEach(docPath => {
                     const fullPath = `<?php echo BASE_URL; ?>${docPath.replace('../../../../', '')}`;
-                    // Extract the original filename after the unique ID and underscore
                     const fileNameWithId = docPath.split('/').pop();
                     const fileName = fileNameWithId.substring(fileNameWithId.indexOf('_') + 1);
 
-                    // Create a download link for each document. The 'download' attribute prompts the browser to download.
                     html += `<p style="margin-bottom: 8px;">
                                 <i class="fas fa-file-download" style="margin-right: 8px; color: #090549;"></i>
                                 <a href="${fullPath}" download="${fileName}" style="color:#090549; text-decoration: none; font-weight: bold;">
@@ -3386,59 +4103,60 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('rejectionModal').style.display = "none";
     }
 
-    function showUserDetailsModal(user) {
-        var modal = document.getElementById('userDetailsModal');
-        var content = document.getElementById('userDetailsContent');
+function showUserDetailsModal(user) {
+    let modalContent = document.getElementById('userDetailsContent');
+    const profilePicPath = user.profile_pic ? `../../../../${user.profile_pic}` : '../../../../images/user.png';
 
-        
-        const fullName = `${user.Fname || ''} ${user.Mname || ''} ${user.Lname || ''}`.replace(/\s+/g, ' ').trim();
+    const contentHTML = `
+        <div class="user-details-modal-container">
+            <div class="user-details-header">
+                <img src="${profilePicPath}" alt="Profile Picture" class="user-details-pic" onerror="this.onerror=null;this.src='../../../../images/user.png';">
+                <div class="user-details-name">${user.Fname} ${user.Mname || ''} ${user.Lname}</div>
+            </div>
 
-        content.innerHTML = `
-            <style>
-                .modal-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-family: 'Roboto', sans-serif;}
-                .modal-info-item { display: flex; flex-direction: column; }
-                .modal-info-label { font-weight: bold; color: #333; margin-bottom: 5px; font-size: 14px; }
-                .modal-info-value { color: #666; font-size: 12px; }
-            </style>
-            <div class="modal-info-grid">
-                <div class="modal-info-item" style="grid-column: 1 / -1;">
-                    <span class="modal-info-label">Full Name</span>
-                    <span class="modal-info-value">${fullName}</span>
+            <div class="user-details-section-header">Basic Information</div>
+            <div class="user-details-grid">
+                 <div class="user-details-item">
+                    <span class="user-details-label">Full Name</span>
+                    <div class="user-details-value">${user.Fname} ${user.Mname || ''} ${user.Lname}</div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="modal-info-label">Age</span>
-                    <span class="modal-info-value">${user.Age || 'N/A'}</span>
+                <div class="user-details-item">
+                    <span class="user-details-label">Age</span>
+                    <div class="user-details-value">${user.Age || 'N/A'}</div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="modal-info-label">Gender</span>
-                    <span class="modal-info-value">${user.Gender || 'N/A'}</span>
+                <div class="user-details-item">
+                    <span class="user-details-label">Gender</span>
+                    <div class="user-details-value">${user.Gender || 'N/A'}</div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="modal-info-label">Birthdate</span>
-                    <span class="modal-info-value">${user.Birthdate || 'N/A'}</span>
+                <div class="user-details-item">
+                    <span class="user-details-label">Birthdate</span>
+                    <div class="user-details-value">${user.Birthdate || 'N/A'}</div>
                 </div>
-                <div class="modal-info-item">
-                    <span class="modal-info-label">Contact Number</span>
-                    <span class="modal-info-value">${user.contact_number || 'N/A'}</span>
+                <div class="user-details-item">
+                    <span class="user-details-label">Address</span>
+                    <div class="user-details-value">${user.Address || 'N/A'}</div>
                 </div>
-                <div class="modal-info-item" style="grid-column: 1 / -1;">
-                     <span class="modal-info-label">Address</span>
-                    <span class="modal-info-value">${user.Address || 'N/A'}</span>
+                <div class="user-details-item">
+                    <span class="user-details-label">Contact Number</span>
+                    <div class="user-details-value">${user.contact_number || 'N/A'}</div>
                 </div>
-                <div class="modal-info-item" style="grid-column: 1 / -1;">
-                    <span class="modal-info-label">Email</span>
-                    <span class="modal-info-value">${user.Email || 'N/A'}</span>
+                <div class="user-details-item">
+                    <span class="user-details-label">Email</span>
+                    <div class="user-details-value">${user.Email || 'N/A'}</div>
                 </div>
             </div>
-        `;
-        modal.style.display = 'flex';
-    }
+        </div>
+    `;
+
+    modalContent.innerHTML = contentHTML;
+    document.getElementById('userDetailsModal').style.display = 'flex';
+}
 
     function closeUserDetailsModal() {
         document.getElementById('userDetailsModal').style.display = 'none';
     }
     
-    function showSpesAppModal(spesAppJson) {
+function showSpesAppModal(spesAppJson) {
         let app = typeof spesAppJson === 'string' ? JSON.parse(spesAppJson) : spesAppJson;
         let html = '<div style="font-size: 12px;">';
 
@@ -3450,12 +4168,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
         
-        // --- START: NEW CODE - Define path for SPES documents ---
         const docPath = `<?php echo BASE_URL; ?>${app.spes_documents_path ? app.spes_documents_path.replace('../../../../', '') : ''}`;
-        // --- END: NEW CODE ---
 
-
-        // --- Personal Information Section ---
         html += '<h4>Personal Information</h4>';
         html += `<p><strong>Full Name:</strong> ${fullName}</p>`;
         html += `<p><strong>Date of Birth:</strong> ${app.dob || 'N/A'}</p>`;
@@ -3469,7 +4183,6 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `<p><strong>Present Address:</strong> ${app.present_address || 'N/A'}</p>`;
         html += `<p><strong>Permanent Address:</strong> ${app.permanent_address || 'N/A'}</p>`;
         
-        // --- MODIFIED UPLOADED ID DISPLAY ---
         html += `<p><strong>Uploaded ID:</strong></p>`;
         try {
             const idImagePaths = JSON.parse(app.id_image_paths);
@@ -3489,7 +4202,6 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<p>No ID images were uploaded or there was an error reading them.</p>`;
         }
 
-        // --- Parental & Status Section ---
         html += '<hr style="margin: 15px 0;"><h4>Parental & Status Information</h4>';
         html += `<p><strong>GSIS Beneficiary:</strong> ${app.gsis_beneficiary || 'N/A'}</p>`;
         html += `<p><strong>Student Type:</strong> ${app.student_type || 'N/A'}</p>`;
@@ -3497,58 +4209,23 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `<p><strong>Father:</strong> ${app.father_name_contact || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i></p>`;
         html += `<p><strong>Mother:</strong> ${app.mother_name_contact || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i></p>`;
 
-        // --- Educational Background Section ---
         html += '<hr style="margin: 15px 0;"><h4>Educational Background</h4>';
         html += `<table class="applicants-table" style="font-size: 11px;">
-                    <thead>
-                        <tr>
-                            <th>Level</th>
-                            <th>School</th>
-                            <th>Degree/Course</th>
-                            <th>Year/Level</th>
-                            <th>Attendance</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Level</th><th>School</th><th>Degree/Course</th><th>Year/Level</th><th>Attendance</th></tr></thead>
                     <tbody>
-                        <tr>
-                            <td>Elementary</td>
-                            <td>${app.elem_school || 'N/A'}</td>
-                            <td>${app.elem_degree || 'N/A'}</td>
-                            <td>${app.elem_year || 'N/A'}</td>
-                            <td>${app.elem_attendance || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td>Secondary</td>
-                            <td>${app.sec_school || 'N/A'}</td>
-                            <td>${app.sec_degree || 'N/A'}</td>
-                            <td>${app.sec_year || 'N/A'}</td>
-                            <td>${app.sec_attendance || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td>Tertiary</td>
-                            <td>${app.ter_school || 'N/A'}</td>
-                            <td>${app.ter_degree || 'N/A'}</td>
-                            <td>${app.ter_year || 'N/A'}</td>
-                            <td>${app.ter_attendance || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td>Tech-Voc</td>
-                            <td>${app.tech_school || 'N/A'}</td>
-                            <td>${app.tech_degree || 'N/A'}</td>
-                            <td>${app.tech_year || 'N/A'}</td>
-                            <td>${app.tech_attendance || 'N/A'}</td>
-                        </tr>
+                        <tr><td>Elementary</td><td>${app.elem_school||'N/A'}</td><td>${app.elem_degree||'N/A'}</td><td>${app.elem_year||'N/A'}</td><td>${app.elem_attendance||'N/A'}</td></tr>
+                        <tr><td>Secondary</td><td>${app.sec_school||'N/A'}</td><td>${app.sec_degree||'N/A'}</td><td>${app.sec_year||'N/A'}</td><td>${app.sec_attendance||'N/A'}</td></tr>
+                        <tr><td>Tertiary</td><td>${app.ter_school||'N/A'}</td><td>${app.ter_degree||'N/A'}</td><td>${app.ter_year||'N/A'}</td><td>${app.ter_attendance||'N/A'}</td></tr>
+                        <tr><td>Tech-Voc</td><td>${app.tech_school||'N/A'}</td><td>${app.tech_degree||'N/A'}</td><td>${app.tech_year||'N/A'}</td><td>${app.tech_attendance||'N/A'}</td></tr>
                     </tbody>
                 </table>`;
         
-        // --- Skills & SPES History Section ---
         html += '<hr style="margin: 15px 0;"><h4>Skills & SPES History</h4>';
         html += `<p><strong>Special Skills:</strong> ${app.special_skills || 'None'}</p>`;
         html += `<p><strong>Availment History:</strong> ${app.availment_history || 'None'}</p>`;
         html += `<p><strong>Year History:</strong> ${app.year_history || 'N/A'}</p>`;
         html += `<p><strong>SPES ID History:</strong> ${app.spes_id_history || 'N/A'}</p>`;
         
-        // --- START: NEW SECTION FOR SPES DOCUMENTS ---
         html += '<hr style="margin: 15px 0;"><h4>Uploaded Requirement Documents</h4>';
         if (app.spes_documents_path) {
             const fileNameWithId = app.spes_documents_path.split('/').pop();
@@ -3562,8 +4239,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             html += '<p>No requirement documents were uploaded.</p>';
         }
-        // --- END: NEW SECTION FOR SPES DOCUMENTS ---
-
 
         html += '</div>';
 
@@ -3576,9 +4251,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('spesAppModalBody').innerHTML = '';
     }
 
-    // --- START: NEW JAVASCRIPT FOR VALID ID MODAL ---
-    // --- START: RESTORED WORKING JAVASCRIPT FOR VALID ID MODAL ---
-    function showValidIdModal(validIdJson) {
+function showValidIdModal(validIdJson) {
         let idFiles;
         try {
             idFiles = JSON.parse(validIdJson);
@@ -3617,37 +4290,90 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('validIdModal').style.display = 'flex';
     }
 
+
     function closeValidIdModal() {
         document.getElementById('validIdModal').style.display = 'none';
     }
-    // --- END: NEW JAVASCRIPT FOR VALID ID MODAL ---
 
-    // --- START: JAVASCRIPT FOR VIEW DOCUMENTS MODAL ---
-    function viewUserDocuments(documents, userName) {
-        document.getElementById('viewDocumentsModalHeader').textContent = `Documents for ${userName}`;
-        let docs;
-        try {
-            docs = JSON.parse(documents);
-        } catch (e) {
-            docs = documents ? [documents] : [];
-        }
+function viewUserDocuments(scholarshipData, userName) {
+    document.getElementById('viewDocumentsModalHeader').textContent = `Scholarship Documents for ${userName}`;
+    let html = '';
 
-        let html = '';
+    // Handle requirement documents
+    html += '<hr style="margin: 20px 0;"><h4>Requirement Documents:</h4>';
+    try {
+        const docs = JSON.parse(scholarshipData.docs);
         if (Array.isArray(docs) && docs.length > 0 && docs[0] !== null) {
             docs.forEach(docPath => {
                 if (docPath) { 
                     const fullPath = `<?php echo BASE_URL; ?>${docPath.replace('../../../../', '')}`;
-                    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(docPath);
                     const fileName = docPath.substring(docPath.indexOf('_') + 1);
                     
                     html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline">
-                    <i class="fas fa-download"></i> ${fileName}</a></p>`;
+                    <i class="fas fa-file-alt"></i> ${fileName}</a></p>`;
                 }
             });
+        } else {
+             html += '<p>No requirement documents were uploaded by this applicant.</p>';
         }
+    } catch (e) {
+        html += '<p>No requirement documents were uploaded by this applicant.</p>';
+    }
+
+    document.getElementById('viewDocumentsModalBody').innerHTML = html;
+    document.getElementById('viewDocumentsModal').style.display = 'flex';
+}
+
+    function viewSpesUserDocuments(spesDocs, userName) {
+        document.getElementById('viewDocumentsModalHeader').textContent = `SPES Documents for ${userName}`;
+        let html = '';
         
-        if (html === '') {
-             html = '<p>No documents were uploaded by this applicant.</p>';
+        // Handle ID images
+        html += '<h4>Uploaded IDs:</h4>';
+        try {
+            const idPaths = JSON.parse(spesDocs.ids);
+            if (Array.isArray(idPaths) && idPaths.length > 0 && idPaths[0]) {
+                 idPaths.forEach(path => {
+                    if (path) {
+                        const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
+                        html += `<a href="${fullPath}" target="_blank" title="Click to view full size">
+                                     <img src="${fullPath}" alt="User ID" style="max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ddd; cursor: pointer;">
+                                 </a>`;
+                    }
+                });
+            } else {
+                 html += '<p>No ID documents were uploaded.</p>';
+            }
+        } catch(e) {
+            html += '<p>No ID documents were uploaded or there was an error reading them.</p>';
+        }
+
+        // Handle requirement documents
+        html += '<hr style="margin: 20px 0;"><h4>Requirement Documents:</h4>';
+        
+        let requirementFiles = [];
+        try {
+            const parsedReqs = JSON.parse(spesDocs.reqs);
+            if (Array.isArray(parsedReqs)) {
+                requirementFiles = parsedReqs;
+            }
+        } catch (e) {
+            if (spesDocs.reqs) {
+                requirementFiles.push(spesDocs.reqs);
+            }
+        }
+
+        if (requirementFiles.length > 0) {
+            requirementFiles.forEach(path => {
+                if(path) {
+                    const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
+                    const fileName = path.substring(path.indexOf('_') + 1);
+                    html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline">
+                    <i class="fas fa-file-alt"></i> ${fileName}</a></p>`;
+                }
+            });
+        } else {
+            html += '<p>No requirement documents were uploaded.</p>';
         }
 
         document.getElementById('viewDocumentsModalBody').innerHTML = html;
@@ -3659,105 +4385,36 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('viewDocumentsModalBody').innerHTML = '';
     }
 
-    function viewSpesUserDocuments(spesDocs, userName) {
-        document.getElementById('viewDocumentsModalHeader').textContent = `SPES Documents for ${userName}`;
-        let html = '';
-        
-        // Handle ID images
-        html += '<h4>Uploaded IDs:</h4>';
-        try {
-            const idPaths = JSON.parse(spesDocs.ids);
-            if (Array.isArray(idPaths) && idPaths.length > 0) {
-                 idPaths.forEach(path => {
-                    if (path) {
-                        const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
-                        const fileName = path.substring(path.indexOf('_') + 1);
-                        html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline">
-                        <i class="fas fa-id-card"></i> ${fileName}</a></p>`;
-                    }
-                });
-            } else {
-                 html += '<p>No ID documents were uploaded.</p>';
-            }
-        } catch(e) {
-            html += '<p>No ID documents were uploaded.</p>';
-        }
-
-        // Handle requirement documents
-        html += '<hr style="margin: 20px 0;"><h4>Requirement Documents:</h4>';
-        try {
-             const reqsPaths = JSON.parse(spesDocs.reqs);
-             if(Array.isArray(reqsPaths) && reqsPaths.length > 0) {
-                 reqsPaths.forEach(path => {
-                    if (path) {
-                        const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
-                        const fileName = path.substring(path.indexOf('_') + 1);
-                        html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline">
-                        <i class="fas fa-file-alt"></i> ${fileName}</a></p>`;
-                    }
-                });
-             } else {
-                 html += '<p>No requirement documents were uploaded.</p>';
-             }
-        } catch(e) {
-             html += '<p>No requirement documents were uploaded.</p>';
-        }
-
-        document.getElementById('viewDocumentsModalBody').innerHTML = html;
-        document.getElementById('viewDocumentsModal').style.display = 'flex';
-    }
-
-    window.onclick = function(event) {
-        let appModal = document.getElementById('appFormModal');
-        let editSlotsModal = document.getElementById('editSlotsModal');
-        let rejectionModal = document.getElementById('rejectionModal');
-        let userDetailsModal = document.getElementById('userDetailsModal');
-        let spesAppModal = document.getElementById('spesAppModal');
-        let validIdModal = document.getElementById('validIdModal');
-        let viewDocumentsModal = document.getElementById('viewDocumentsModal');
-        
-        if (event.target === appModal) closeAppFormModal();
-        if (event.target === editSlotsModal) closeEditSlotsModal();
-        if (event.target === rejectionModal) closeRejectionModal();
-        if (event.target === userDetailsModal) closeUserDetailsModal();
-        if (event.target === spesAppModal) closeSpesAppModal();
-        if (event.target === validIdModal) closeValidIdModal();
-        if (event.target === viewDocumentsModal) closeViewDocumentsModal();
-    };
-    // --- END: JAVASCRIPT FOR VIEW DOCUMENTS MODAL ---
-
     function scrollAdminChatToBottom() {
-        var chatMessages = document.getElementById('concernChatMessages');
+        const chatMessages = document.getElementById('concernChatMessages');
         if (chatMessages) {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const chatMessages = document.getElementById('concernChatMessages');
-        if (chatMessages && document.getElementById('user-concerns-page').classList.contains('active')) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-    });
 
     window.showPage = (function(origShowPage) {
         return function(pageId) {
             origShowPage(pageId);
             if (pageId === 'user-concerns-page') {
+                // Use a small timeout to ensure the content is rendered before scrolling
                 setTimeout(scrollAdminChatToBottom, 100);
             }
         };
     })(window.showPage || function() {});
 
-    function toggleMessageMenu(messageId) {
+function toggleMessageMenu(messageId) {
+        // This makes sure only one menu is open at a time
         document.querySelectorAll('.message-menu').forEach(menu => {
             if (menu.id !== 'menu-' + messageId) {
                 menu.style.display = 'none';
             }
         });
         
+        // This toggles the specific menu you clicked on
         const menu = document.getElementById('menu-' + messageId);
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        if (menu) {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
     }
     
     document.addEventListener('click', function(event) {
@@ -3768,26 +4425,70 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    function showUploadPopup() {
-        document.getElementById('uploadPopup').style.display = 'block';
-    }
-    
-    function closeUploadPopup() {
-        document.getElementById('uploadPopup').style.display = 'none';
-    }
-    
-    function triggerFileInput() {
-        document.getElementById('chatUpload').click();
-        closeUploadPopup();
-    }
-    
-    document.addEventListener('click', function(event) {
-        const popup = document.getElementById('uploadPopup');
-        const btn = document.querySelector('.upload-btn');
-        if (popup && !popup.contains(event.target) && !btn.contains(event.target)) {
-            popup.style.display = 'none';
+    function openTab(evt, parentId, tabName) {
+        var i, tabcontent, tablinks;
+        var parentElement = document.getElementById(parentId);
+        tabcontent = parentElement.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
         }
-    });
+        tablinks = parentElement.getElementsByClassName("tab-link");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        
+        if (evt && evt.currentTarget) {
+            evt.currentTarget.className += " active";
+        } else {
+            const fallbackButton = document.querySelector(`#${parentId} .tab-link[onclick*="'${tabName}'"]`);
+            if (fallbackButton) {
+                fallbackButton.classList.add('active');
+            }
+        }
+    }
+
+    function openScholarshipMgmtTab(evt, tabName) {
+        openTab(evt, 'scholarship-page', tabName);
+        sessionStorage.setItem('activeScholarshipTab', tabName);
+    }
+
+
+    function showEndSpesModal(batchId) {
+        document.getElementById('endSpesBatchId').value = batchId;
+        document.getElementById('endSpesModal').style.display = 'flex';
+    }
+
+    function closeEndSpesModal() {
+        document.getElementById('endSpesModal').style.display = 'none';
+    }
+
+
+    window.onclick = function(event) {
+        const modals = ['appFormModal', 'editSlotsModal', 'rejectionModal', 'userDetailsModal', 'spesAppModal', 'validIdModal', 'viewDocumentsModal', 'endSpesModal'];
+        modals.forEach(modalId => {
+            let modal = document.getElementById(modalId);
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    };
+
+function updateCurrentFileName(inputElement, displayElementId) {
+    const file = inputElement.files[0];
+    const displayElement = document.getElementById(displayElementId);
+    
+    if (file) {
+        displayElement.innerHTML = `Selected: <strong>${file.name}</strong> <em>(Click upload to save)</em>`;
+        displayElement.style.color = '#007bff';
+    } else {
+        // Reset to original content if no file selected
+        const originalText = displayElement.getAttribute('data-original');
+        displayElement.innerHTML = originalText;
+        displayElement.style.color = '';
+    }
+}
+
 </script>
 </body>
 </html>

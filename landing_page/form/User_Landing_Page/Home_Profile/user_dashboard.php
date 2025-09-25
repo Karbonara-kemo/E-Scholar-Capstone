@@ -998,6 +998,7 @@ body {
 }
 .page.active {
     display: block;
+    animation: fadeIn 0.5s;
 }
 
 .submit-btn {
@@ -2148,7 +2149,13 @@ form .label-application + div label {
         </script>
         <?php unset($_SESSION['spes_application_submitted']); endif; ?>
 
-
+        <?php if (isset($_SESSION['application_submitted'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('Application submitted successfully!', 'success');
+        });
+        </script>
+        <?php unset($_SESSION['application_submitted']); endif; ?>
 
         <div class="main-content">
             <div id="home-page" class="page active">
@@ -2251,11 +2258,180 @@ form .label-application + div label {
                 </div>
             </div>
 
+                        <div id="application-form-page" class="page">
+                <div class="form-container-application">
+                    <button class="back-btn" onclick="showScholarshipsPage()">Back to Scholarships</button>
+                    <h2 id="application-form-title">SCHOLARSHIP FORM</h2>
+                     <form enctype="multipart/form-data" method="POST">
+                        <input type="hidden" name="scholarship_id" id="scholarship_id_field" value="">
+                        <p class="form-section-header">Section 1. Student Applicant’s Information.</p>
+                        <p class="form-section-header">1. Personal Information</p>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application" for="lname">Last Name</label>
+                                <input type="text" id="lname" name="lname" class="input-field" required value="<?php echo htmlspecialchars($user['Lname']); ?>" />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="fname">First Name</label>
+                                <input type="text" id="fname" name="fname" class="input-field" required value="<?php echo htmlspecialchars($user['Fname']); ?>" />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="mname">Middle Name</label>
+                                <input type="text" id="mname" name="mname" class="input-field" value="<?php echo htmlspecialchars($user['Mname']); ?>" />
+                            </div>
+                        </div>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application" for="gender">Gender</label>
+                                    <select name="gender" class="input-field" required>
+                                        <option value="">Select gender</option>
+                                        <option value="male" <?php if(strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
+                                        <option value="female" <?php if(strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
+                                        <option value="other" <?php if(strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
+                                        <option value="prefer-not-to-say" <?php if(strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
+                                    </select>
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="civil_status">Civil Status</label>
+                                <select id="civil_status" name="civil_status" class="input-field" required>
+                                    <option value="">--Select--</option>
+                                    <option value="Single">Single</option>
+                                    <option value="Married">Married</option>
+                                    <option value="Widow/er">Widow/er</option>
+                                    <option value="Separated">Separated</option>
+                                </select>
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="dob">Date of Birth</label>
+                                <input type="date" id="dob" name="dob" class="input-field" required value="<?php echo htmlspecialchars($user['Birthdate']); ?>" />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="pob">Place of Birth</label>
+                                <input type="text" id="pob" name="pob" class="input-field" required />
+                            </div>
+                        </div>
+                        <label class="label-application" for="address">Home Address</label>
+                        <input type="text" id="address" name="address" class="input-field" required value="<?php echo htmlspecialchars($user['Address']); ?>" />
+
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application" for="contact">Contact Number</label>
+                                <input type="text" id="contact" name="contact" class="input-field" required value="<?php echo htmlspecialchars($user['contact_number']); ?>" />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="facebook">Facebook Account</label>
+                                <input type="text" id="facebook" name="facebook" class="input-field" />
+                            </div>
+                        </div>
+
+                        <p class="form-section-header top-margin">2. Family Background</p>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application" for="mother_name">Mother’s Name (Last, First, Middle)</label>
+                                <input type="text" id="mother_name" name="mother_name" class="input-field" required />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="mother_occupation">Mother’s Occupation</label>
+                                <input type="text" id="mother_occupation" name="mother_occupation" class="input-field" />
+                            </div>
+                        </div>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application" for="father_name">Father’s Name (Last, First, Middle)</label>
+                                <input type="text" id="father_name" name="father_name" class="input-field" required />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="father_occupation">Father’s Occupation</label>
+                                <input type="text" id="father_occupation" name="father_occupation" class="input-field" />
+                            </div>
+                        </div>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application" for="family_income">Monthly Family Income (Gross Amount)</label>
+                                <input type="number" id="family_income" name="family_income" class="input-field" required />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="dependents">Number of Dependents in the Family</label>
+                                <input type="number" id="dependents" name="dependents" class="input-field" required />
+                            </div>
+                        </div>
+
+                        <p class="form-section-header top-margin">3. Educational Background</p>
+                        <div class="table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Level</th>
+                                    <th>Name of School</th>
+                                    <th>Honors Received</th>
+                                    <th>Date Graduated/Current Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Elementary</td>
+                                    <td><input type="text" name="elem_school" class="input-field"></td>
+                                    <td><input type="text" name="elem_honors" class="input-field"></td>
+                                    <td><input type="text" name="elem_grad" class="input-field"></td>
+                                </tr>
+                                <tr>
+                                    <td>High School</td>
+                                    <td><input type="text" name="hs_school" class="input-field"></td>
+                                    <td><input type="text" name="hs_honors" class="input-field"></td>
+                                    <td><input type="text" name="hs_grad" class="input-field"></td>
+                                </tr>
+                                <tr>
+                                    <td>Vocational</td>
+                                    <td><input type="text" name="voc_school" class="input-field"></td>
+                                    <td><input type="text" name="voc_honors" class="input-field"></td>
+                                    <td><input type="text" name="voc_grad" class="input-field"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        </div>
+
+                        <p class="form-section-header top-margin">3-A. College Background</p>
+                        <div class="flex-container">
+                            <div style="flex:2;">
+                                <label class="label-application" for="college_school">Name of School</label>
+                                <input type="text" id="college_school" name="college_school" class="input-field" />
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application" for="college_course">Course & Year</label>
+                                <input type="text" id="college_course" name="college_course" class="input-field" />
+                            </div>
+                            <div class="flex-item" style="flex: 2;">
+                                <label class="label-application" for="college_average">Average from Previous Semester</label>
+                                <input type="text" id="college_average" name="college_average" class="input-field" />
+                            </div>
+                        </div>
+                        <label class="label-application" for="college_awards" style="margin-top:10px;">Awards and Recognitions</label>
+                        <textarea id="college_awards" name="college_awards" class="input-field textarea-field" rows="2"></textarea>
+
+                        <div class="form-group">
+                            <label class="label-application" for="supporting_documents">Upload Supporting Documents (Documents Requirements.)</label>
+                            <p class="form-helper-text">Please compile your documents (e.g., COG, COI) into PDF or DOCX format before uploading. You can paste images into a Word document and save it as a PDF.</p>
+                            
+                            <p class="form-helper-text" style="color: #c0392b; font-weight: bold;">
+                                Important: Please rename your file to your full name (e.g., LastName_FirstName_MI.pdf) for easy identification.
+                            </p>
+
+                            <div class="file-input-wrapper">
+                                <input type="file" id="supporting_documents" name="supporting_documents[]" class="input-field file-field" multiple accept=".pdf,.doc,.docx">
+                                <span class="file-input-clear-button" id="clear-supporting-documents">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
+                        </div> 
+                       <button type="submit" name="submit_application" class="submit-btn">Submit Application</button>
+                    </form> 
+                </div>
+            </div>
+
             <div id="history-page" class="page">
                 <div class="application-history">
                     <h2 class="history-h2">Application History</h2>
                     <p class="history-p">Review your previous scholarship applications</p>
-
                     <div class="table-container">
                     <table class="history-table">
                         <thead>
@@ -2270,7 +2446,6 @@ form .label-application + div label {
                         </thead>
                         <tbody>
                         <?php
-                        // --- START: MODIFIED QUERY TO FETCH BOTH SCHOLARSHIP AND SPES HISTORY ---
                         $combinedHistorySql = "
                             (SELECT
                                 a.application_id AS id,
@@ -2611,6 +2786,9 @@ form .label-application + div label {
                         <div class="form-group">
                             <label class="label-application" for="spes_documents">Upload Compiled Documents Here</label>
                             <p class="form-helper-text">Please compile all required documents (e.g., Birth Certificate, ITR/Certificate of Indigence, Grades) into a single PDF or DOCX file.</p>
+                            <p class="form-helper-text" style="color: #c0392b; font-weight: bold;">
+                                Important: Please rename your file to your full name (e.g., LastName_FirstName_MI.pdf) for easy identification.
+                            </p>
                             <div class="file-input-wrapper">
                                 <input type="file" id="spes_documents" name="spes_documents" class="input-field file-field" accept=".pdf,.doc,.docx" required>
                                 <span class="file-input-clear-button" id="clear-spes-documents">
@@ -2774,176 +2952,7 @@ form .label-application + div label {
 
 
 
-            <div id="application-form-page" class="page">
-                <div class="form-container-application">
-                    <button class="back-btn" onclick="showScholarshipsPage()">Back to Scholarships</button>
-                    <h2 id="application-form-title">SCHOLARSHIP FORM</h2>
-                     <form enctype="multipart/form-data" method="POST">
-                        <input type="hidden" name="scholarship_id" id="scholarship_id_field" value="">
-                        <p class="form-section-header">Section 1. Student Applicant’s Information.</p>
-                        <p class="form-section-header">1. Personal Information</p>
-                        <div class="flex-container">
-                            <div class="flex-item">
-                                <label class="label-application" for="lname">Last Name</label>
-                                <input type="text" id="lname" name="lname" class="input-field" required value="<?php echo htmlspecialchars($user['Lname']); ?>" />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="fname">First Name</label>
-                                <input type="text" id="fname" name="fname" class="input-field" required value="<?php echo htmlspecialchars($user['Fname']); ?>" />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="mname">Middle Name</label>
-                                <input type="text" id="mname" name="mname" class="input-field" value="<?php echo htmlspecialchars($user['Mname']); ?>" />
-                            </div>
-                        </div>
-                        <div class="flex-container">
-                            <div class="flex-item">
-                                <label class="label-application" for="gender">Gender</label>
-                                    <select name="gender" class="input-field" required>
-                                        <option value="">Select gender</option>
-                                        <option value="male" <?php if(strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
-                                        <option value="female" <?php if(strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
-                                        <option value="other" <?php if(strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
-                                        <option value="prefer-not-to-say" <?php if(strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
-                                    </select>
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="civil_status">Civil Status</label>
-                                <select id="civil_status" name="civil_status" class="input-field" required>
-                                    <option value="">--Select--</option>
-                                    <option value="Single">Single</option>
-                                    <option value="Married">Married</option>
-                                    <option value="Widow/er">Widow/er</option>
-                                    <option value="Separated">Separated</option>
-                                </select>
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="dob">Date of Birth</label>
-                                <input type="date" id="dob" name="dob" class="input-field" required value="<?php echo htmlspecialchars($user['Birthdate']); ?>" />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="pob">Place of Birth</label>
-                                <input type="text" id="pob" name="pob" class="input-field" required />
-                            </div>
-                        </div>
-                        <label class="label-application" for="address">Home Address</label>
-                        <input type="text" id="address" name="address" class="input-field" required value="<?php echo htmlspecialchars($user['Address']); ?>" />
 
-                        <div class="flex-container">
-                            <div class="flex-item">
-                                <label class="label-application" for="contact">Contact Number</label>
-                                <input type="text" id="contact" name="contact" class="input-field" required value="<?php echo htmlspecialchars($user['contact_number']); ?>" />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="facebook">Facebook Account</label>
-                                <input type="text" id="facebook" name="facebook" class="input-field" />
-                            </div>
-                        </div>
-
-                        <p class="form-section-header top-margin">2. Family Background</p>
-                        <div class="flex-container">
-                            <div class="flex-item">
-                                <label class="label-application" for="mother_name">Mother’s Name (Last, First, Middle)</label>
-                                <input type="text" id="mother_name" name="mother_name" class="input-field" required />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="mother_occupation">Mother’s Occupation</label>
-                                <input type="text" id="mother_occupation" name="mother_occupation" class="input-field" />
-                            </div>
-                        </div>
-                        <div class="flex-container">
-                            <div class="flex-item">
-                                <label class="label-application" for="father_name">Father’s Name (Last, First, Middle)</label>
-                                <input type="text" id="father_name" name="father_name" class="input-field" required />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="father_occupation">Father’s Occupation</label>
-                                <input type="text" id="father_occupation" name="father_occupation" class="input-field" />
-                            </div>
-                        </div>
-                        <div class="flex-container">
-                            <div class="flex-item">
-                                <label class="label-application" for="family_income">Monthly Family Income (Gross Amount)</label>
-                                <input type="number" id="family_income" name="family_income" class="input-field" required />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="dependents">Number of Dependents in the Family</label>
-                                <input type="number" id="dependents" name="dependents" class="input-field" required />
-                            </div>
-                        </div>
-
-                        <p class="form-section-header top-margin">3. Educational Background</p>
-                        <div class="table-container">
-                        <table class="history-table">
-                            <thead>
-                                <tr>
-                                    <th>Level</th>
-                                    <th>Name of School</th>
-                                    <th>Honors Received</th>
-                                    <th>Date Graduated/Current Level</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Elementary</td>
-                                    <td><input type="text" name="elem_school" class="input-field"></td>
-                                    <td><input type="text" name="elem_honors" class="input-field"></td>
-                                    <td><input type="text" name="elem_grad" class="input-field"></td>
-                                </tr>
-                                <tr>
-                                    <td>High School</td>
-                                    <td><input type="text" name="hs_school" class="input-field"></td>
-                                    <td><input type="text" name="hs_honors" class="input-field"></td>
-                                    <td><input type="text" name="hs_grad" class="input-field"></td>
-                                </tr>
-                                <tr>
-                                    <td>Vocational</td>
-                                    <td><input type="text" name="voc_school" class="input-field"></td>
-                                    <td><input type="text" name="voc_honors" class="input-field"></td>
-                                    <td><input type="text" name="voc_grad" class="input-field"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        </div>
-
-                        <p class="form-section-header top-margin">3-A. College Background</p>
-                        <div class="flex-container">
-                            <div style="flex:2;">
-                                <label class="label-application" for="college_school">Name of School</label>
-                                <input type="text" id="college_school" name="college_school" class="input-field" />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="college_course">Course & Year</label>
-                                <input type="text" id="college_course" name="college_course" class="input-field" />
-                            </div>
-                            <div class="flex-item">
-                                <label class="label-application" for="college_average">Average from Previous Semester</label>
-                                <input type="text" id="college_average" name="college_average" class="input-field" />
-                            </div>
-                        </div>
-                        <label class="label-application" for="college_awards" style="margin-top:10px;">Awards and Recognitions</label>
-                        <textarea id="college_awards" name="college_awards" class="input-field textarea-field" rows="2"></textarea>
-
-                        <div class="form-group">
-                            <label class="label-application" for="supporting_documents">Upload Supporting Documents (Documents Requirements.)</label>
-                            <p class="form-helper-text">Please compile your documents (e.g., COG, COI) into PDF or DOCX format before uploading. You can paste images into a Word document and save it as a PDF.</p>
-                            
-                            <p class="form-helper-text" style="color: #c0392b; font-weight: bold;">
-                                Important: Please rename your file to your full name (e.g., LastName_FirstName_MI.pdf) for easy identification.
-                            </p>
-
-                            <div class="file-input-wrapper">
-                                <input type="file" id="supporting_documents" name="supporting_documents[]" class="input-field file-field" multiple accept=".pdf,.doc,.docx">
-                                <span class="file-input-clear-button" id="clear-supporting-documents">
-                                    <i class="fas fa-times"></i>
-                                </span>
-                            </div>
-                        </div>
-                        
-                       <button type="submit" name="submit_application" class="submit-btn">Submit Application</button>
-                    </form> 
-                </div>
-            </div>
         </div>
     </div>
 
@@ -3330,37 +3339,7 @@ form .label-application + div label {
     }
 }
 
-function showToast(message, type = 'success') {
-        var toast = document.getElementById('toast-message');
-        var toastText = document.getElementById('toast-text');
-        var toastIcon = document.getElementById('toast-icon');
-
-        toastText.textContent = message;
-
-        if (type === 'success') {
-            toastIcon.className = 'fas fa-check-circle';
-            toast.style.background = '#28a745';
-        } else if (type === 'error') {
-            toastIcon.className = 'fas fa-exclamation-triangle';
-            toast.style.background = '#dc3545';
-        } else if (type === 'info') {
-            toastIcon.className = 'fas fa-info-circle';
-            toast.style.background = '#17a2b8';
-        }
-
-        toast.classList.add('show');
-        setTimeout(function() {
-            toast.classList.remove('show');
-        }, 3000);
-    }
         </script>
-            
-        <?php if (isset($_SESSION['application_submitted'])): ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            showToast('Application submitted successfully!', 'success');
-        });
-        </script>
-        <?php unset($_SESSION['application_submitted']); endif; ?>
+        
     </body>
 </html>

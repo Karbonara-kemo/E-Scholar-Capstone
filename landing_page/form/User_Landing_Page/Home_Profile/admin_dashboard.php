@@ -623,7 +623,7 @@ if (isset($_POST['save_to_documents_spes'])) {
 if (isset($_POST['approve_user'])) {
     $uid = intval($_POST['user_id']);
 
-    $result = $conn->query("SELECT Email, Fname, Mname, Lname, status FROM user WHERE user_id=$uid");
+    $result = $conn->query("SELECT Email, Fname, Lname, status FROM user WHERE user_id=$uid");
     $user = $result->fetch_assoc();
 
     if (!$user || $user['status'] === 'approved') {
@@ -633,38 +633,47 @@ if (isset($_POST['approve_user'])) {
 
     $to = $user['Email'];
 
+    // 1. Validate email format
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-        echo "<script>alert('Error: The user\\'s email address is in an invalid format.'); window.location.href='admin_dashboard.php#user-request-page';</script>";
+        $_SESSION['user_request_error'] = "Error: The user's email address ({$to}) has an invalid format. Approval failed.";
+        header("Location: admin_dashboard.php#user-request-page");
         exit();
     }
     
+    // 2. Validate email domain's mail server record
     $domain = substr($to, strpos($to, '@') + 1);
     if (!checkdnsrr($domain, "MX")) {
-        echo "<script>alert('Error: The user\\'s email domain does not have a valid mail server. Approval failed.'); window.location.href='admin_dashboard.php#user-request-page';</script>";
+        $_SESSION['user_request_error'] = "Error: The user's email domain ({$domain}) does not have a valid mail server. Approval failed.";
+        header("Location: admin_dashboard.php#user-request-page");
         exit();
     }
 
+    // 3. Update status in database
     $conn->query("UPDATE user SET status='approved' WHERE user_id=$uid");
 
-    $result = $conn->query("SELECT Email, Fname, Mname, Lname FROM user WHERE user_id=$uid");
-    $user = $result->fetch_assoc();
-    $to = $user['Email'];
     $name = $user['Fname'] . ' ' . $user['Lname'];
 
+    // 4. Send notification email
     require '../../../../vendor/autoload.php';
     $mail = new PHPMailer\PHPMailer\PHPMailer();
-    $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com';
-    $mail->SMTPAuth = true;
-    $mail->Username = 'edlexus59@gmail.com';
-    $mail->Password = 'nfsv eqpj sfur sjsw';
-    $mail->SMTPSecure = 'tls';
-    $mail->Port = 587;
-    $mail->setFrom('edlexus59@gmail.com', 'PESO San Julian MIS');
-    $mail->addAddress($to, $name);
-    $mail->Subject = 'Account Approved';
-    $mail->Body = "Hello {$user['Fname']} {$user['Lname']},\n\nYour account has been approved by the admin. You may now log in and use the system.\n\nThank you!";
-    $mail->send();
+    try {
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'edlexus59@gmail.com';
+        $mail->Password = 'nfsv eqpj sfur sjsw'; // Note: It's better to use environment variables for credentials
+        $mail->SMTPSecure = 'tls';
+        $mail->Port = 587;
+        $mail->setFrom('edlexus59@gmail.com', 'PESO San Julian MIS');
+        $mail->addAddress($to, $name);
+        $mail->Subject = 'Account Approved';
+        $mail->Body = "Hello {$name},\n\nYour account has been approved by the admin. You may now log in and use the system.\n\nThank you!";
+        $mail->send();
+        $_SESSION['user_request_success'] = "User '{$name}' has been approved.";
+    } catch (Exception $e) {
+        // The user is approved, but the email failed. Inform the admin.
+        $_SESSION['user_request_error'] = "User was approved, but the notification email failed to send. Error: {$mail->ErrorInfo}";
+    }
 
     header("Location: admin_dashboard.php#user-request-page");
     exit();
@@ -699,11 +708,13 @@ if (isset($_POST['reject_user'])) {
             $mail->Subject = $subject;
             $mail->Body    = $body;
             $mail->send();
+            $_SESSION['user_request_success'] = "User '{$name}' has been rejected.";
         } catch (Exception $e) {
+            $_SESSION['user_request_error'] = "User was rejected, but the notification email could not be sent. Error: {$mail->ErrorInfo}";
         }
     }
 
-    header("Location: " . $_SERVER['HTTP_REFERER']);
+    header("Location: admin_dashboard.php#user-request-page");
     exit();
 }
 
@@ -811,33 +822,44 @@ if ($viewScholarshipId) {
     }
 }
 
+// --- START: MODIFIED SCHOLARSHIP REPORT DATA FETCHING ---
 $scholarshipDocsSearch = isset($_GET['search_scholarship_docs']) ? trim($_GET['search_scholarship_docs']) : '';
-// --- START: MODIFICATION - Only show reports for ACTIVE scholarships ---
+
+// This query now fetches the scholarship_id and title to be used for tabbing
 $scholarshipDocsSql = "
-    SELECT u.user_id, u.Fname, u.Lname, u.valid_id, a.documents 
+    SELECT u.user_id, u.Fname, u.Lname, u.valid_id, a.documents, s.scholarship_id, s.title 
     FROM user u 
     JOIN applications a ON u.user_id = a.user_id 
     JOIN scholarships s ON a.scholarship_id = s.scholarship_id 
     WHERE a.status = 'approved' AND s.status = 'active'
 ";
-// --- END: MODIFICATION ---
 if (!empty($scholarshipDocsSearch)) {
     $scholarshipDocsSql .= " AND CONCAT(u.Fname, ' ', u.Lname) LIKE ?";
 }
-$scholarshipDocsSql .= " ORDER BY a.created_at ASC";
+$scholarshipDocsSql .= " ORDER BY s.title ASC, u.Lname ASC";
 
-$scholarship_docs_users = [];
+$stmt = $conn->prepare($scholarshipDocsSql);
 if (!empty($scholarshipDocsSearch)) {
-    $stmt = $conn->prepare($scholarshipDocsSql);
     $search = "%$scholarshipDocsSearch%";
     $stmt->bind_param("s", $search);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $scholarship_docs_users = $result->fetch_all(MYSQLI_ASSOC);
-} else {
-    $scholarshipDocsResult = $conn->query($scholarshipDocsSql);
-    $scholarship_docs_users = $scholarshipDocsResult->fetch_all(MYSQLI_ASSOC);
 }
+$stmt->execute();
+$result = $stmt->get_result();
+$scholarship_docs_users = $result->fetch_all(MYSQLI_ASSOC);
+
+// New array to hold users grouped by their scholarship
+$scholarshipReportsData = [];
+foreach ($scholarship_docs_users as $user) {
+    $sch_id = $user['scholarship_id'];
+    if (!isset($scholarshipReportsData[$sch_id])) {
+        $scholarshipReportsData[$sch_id] = [
+            'title' => $user['title'],
+            'users' => []
+        ];
+    }
+    $scholarshipReportsData[$sch_id]['users'][] = $user;
+}
+// --- END: MODIFIED SCHOLARSHIP REPORT DATA FETCHING ---
 
 // --- START: MODIFICATION - Only show reports for ACTIVE SPES batch ---
 // 1. Find the start date of the currently active SPES batch
@@ -1079,6 +1101,7 @@ body {
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     padding: 15px 30px;
+    right: 40px;
     top: 60px;
     z-index: 1000;
 }
@@ -1264,11 +1287,15 @@ body {
     background-color: #090549;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 10px 15px; /* Adjusted padding for a better fit */
     border-radius: 15px;
     cursor: pointer;
-    font-size: 10px;
     margin-top: 10px;
+    font-size: 10px;
+    text-decoration: none; /* Removes the underline */
+    display: inline-flex;  /* Aligns icon and text */
+    align-items: center;   /* Vertically centers icon and text */
+    gap: 8px;              /* Adds space between the icon and text */
 }
 
 .view-details:hover {
@@ -1484,6 +1511,11 @@ body {
 
 .page.active {
     display: block;
+}
+
+/* ADD THIS RULE TO APPLY THE FADE-IN ANIMATION */
+.page.active {
+    animation: fadeIn 0.5s;
 }
 
 .message-card {
@@ -2304,6 +2336,51 @@ body {
     margin-bottom: 10px;
     word-wrap: break-word;
 }
+
+.btn-download {
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 10px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.btn-download:hover {
+    background-color: #138496;
+}
+
+.tabs {
+    display: flex; /* Use flexbox for alignment */
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+    /* Key properties for horizontal scrolling */
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+}
+/* Style the scrollbar for the tabs container */
+.tabs::-webkit-scrollbar {
+    display: none;
+}
+.tabs::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Light grey track */
+}
+.tabs::-webkit-scrollbar-thumb {
+    background: #888; /* Darker grey handle */
+    border-radius: 3px;
+}
+.tabs::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Even darker handle on hover */
+}
+
+#scholarship-document-page .tab-link {
+    padding: 10px 12px;
+    font-size: 12px;
+} 
 </style>
 
 <body>
@@ -2339,8 +2416,8 @@ body {
                 <div class="nav-icon"><i class="fas fa-user-check"></i></div>
                 <div class="nav-text">Approved Applicants</div>
             </div>
-            <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
-                <div class="nav-icon"><i class="fas fa-graduation-cap"></i></div>
+           <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
+                <div class="nav-icon"><i class="fas fa-tasks"></i></div>
                 <div class="nav-text">Manage Scholarship/SPES</div>
             </div>
             <div class="nav-item" id="scholarship-history-nav" onclick="showPage('scholarship-history-page')">
@@ -2458,6 +2535,35 @@ body {
         </script>
         <?php unset($_SESSION['spes_form_upload_error']); endif; ?>
 
+        <?php if (isset($_SESSION['spes_form_upload_error'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo $_SESSION['spes_form_upload_error']; ?>', 'error');
+        });
+        </script>
+        <?php unset($_SESSION['spes_form_upload_error']); endif; ?>
+
+        <?php if (isset($_SESSION['user_request_success'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo addslashes($_SESSION['user_request_success']); ?>', 'success');
+        });
+        </script>
+        <?php unset($_SESSION['user_request_success']); endif; ?>
+
+        <?php if (isset($_SESSION['user_request_error'])): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('<?php echo addslashes($_SESSION['user_request_error']); ?>', 'error');
+        });
+        </script>
+        <?php unset($_SESSION['user_request_error']); endif; ?>
+        <div id="toast-message">
+            <span id="toast-text"></span>
+            <i class="fas fa-check-circle" id="toast-icon"></i>
+        </div>
+
+
 
         <div id="toast-message">
             <span id="toast-text"></span>
@@ -2547,38 +2653,38 @@ body {
         </div>
             
 
-<div id="total-applicants-page" class="page">
-    <h1 class="h1-title-appManagement">Total Applicants</h1>
-    <p class="p-description-appM">This section displays the total number of applicants in the system, grouped by Scholarship and SPES.</p>
-    <div class="dashboard-boxes">
-        <?php
-        // FIX: This query now joins with the scholarships table to count only applicants
-        // from scholarships that are currently 'active'.
-        $totalAllApplicantsSql = "
-            SELECT COUNT(a.application_id) as total_all_applicants 
-            FROM applications a
-            JOIN scholarships s ON a.scholarship_id = s.scholarship_id
-            WHERE s.status = 'active'
-        ";
-        $totalAllApplicantsResult = $conn->query($totalAllApplicantsSql);
-        $totalAllApplicants = $totalAllApplicantsResult->fetch_assoc()['total_all_applicants'] ?? 0;
-        ?>
-        <div class="box">
-            <div class="box-icon"><i class="fas fa-graduation-cap"></i></div>
-            <div class="box-title">Scholarship Applicants</div>
-            <div class="box-value" data-target="<?php echo htmlspecialchars($totalAllApplicants); ?>">0</div>
-            <div class="box-description">View all scholarship programs and their applicants.</div>
-            <button class="view-details" onclick="showPage('total-applicants-scholarship')">View Details</button>
-        </div>
-        <div class="box">
-            <div class="box-icon"><i class="fas fa-briefcase"></i></div>
-            <div class="box-title">SPES Applicants</div>
-            <div class="box-value" data-target="<?php echo $totalSpesApplicantsCount; ?>">0</div>
-            <div class="box-description">Special Program for Employment of Students (SPES)</div>
-            <button class="view-details" onclick="showPage('total-applicants-spes')">View Details</button>
+    <div id="total-applicants-page" class="page">
+        <h1 class="h1-title-appManagement">Total Applicants</h1>
+        <p class="p-description-appM">This section displays the total number of applicants in the system, grouped by Scholarship and SPES.</p>
+        <div class="dashboard-boxes">
+            <?php
+            // FIX: This query now joins with the scholarships table to count only applicants
+            // from scholarships that are currently 'active'.
+            $totalAllApplicantsSql = "
+                SELECT COUNT(a.application_id) as total_all_applicants 
+                FROM applications a
+                JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                WHERE s.status = 'active'
+            ";
+            $totalAllApplicantsResult = $conn->query($totalAllApplicantsSql);
+            $totalAllApplicants = $totalAllApplicantsResult->fetch_assoc()['total_all_applicants'] ?? 0;
+            ?>
+            <div class="box">
+                <div class="box-icon"><i class="fas fa-graduation-cap"></i></div>
+                <div class="box-title">Scholarship Applicants</div>
+                <div class="box-value" data-target="<?php echo htmlspecialchars($totalAllApplicants); ?>">0</div>
+                <div class="box-description">View all scholarship programs and their applicants.</div>
+                <button class="view-details" onclick="showPage('total-applicants-scholarship')">View Details</button>
+            </div>
+            <div class="box">
+                <div class="box-icon"><i class="fas fa-briefcase"></i></div>
+                <div class="box-title">SPES Applicants</div>
+                <div class="box-value" data-target="<?php echo $totalSpesApplicantsCount; ?>">0</div>
+                <div class="box-description">Special Program for Employment of Students (SPES)</div>
+                <button class="view-details" onclick="showPage('total-applicants-spes')">View Details</button>
+            </div>
         </div>
     </div>
-</div>
 
             <?php
             $viewScholarshipId = isset($_GET['view_scholarship']) ? intval($_GET['view_scholarship']) : null;
@@ -2743,10 +2849,16 @@ body {
                     <?php
                     $searchSpesIdTerm = isset($_GET['search_spes_id']) ? trim($_GET['search_spes_id']) : '';
                     
+                    // --- MODIFIED: This query now joins with spes_batches to get the batch_name ---
                     $spesListSql = "
-                        SELECT sa.*, u.Fname, u.Lname 
+                        SELECT 
+                            sa.*, 
+                            u.Fname, 
+                            u.Lname,
+                            sb.batch_name 
                         FROM spes_applications sa
                         JOIN user u ON sa.user_id = u.user_id
+                        LEFT JOIN spes_batches sb ON sa.created_at >= sb.start_date AND (sa.created_at <= sb.end_date OR sb.end_date IS NULL)
                     ";
 
                     if (!empty($searchSpesIdTerm)) {
@@ -2776,7 +2888,7 @@ body {
                             <tr>
                                 <th>Application ID</th>
                                 <th>Name</th>
-                                <th>Date Applied</th>
+                                <th>Program</th> <th>Date Applied</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -2787,6 +2899,7 @@ body {
                                 <tr>
                                     <td><?php echo htmlspecialchars($app['spes_application_id']); ?></td>
                                     <td><?php echo htmlspecialchars($app['Fname'] . ' ' . $app['Lname']); ?></td>
+                                    <td><strong><?php echo htmlspecialchars($app['batch_name'] ?? 'N/A'); ?></strong></td>
                                     <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
                                     <td>
                                         <?php 
@@ -2809,12 +2922,14 @@ body {
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr><td colspan="5" class="text-center" style="padding: 20px;">No SPES applicants found for this search.</td></tr>
+                            <tr><td colspan="6" class="text-center" style="padding: 20px;">No SPES applicants found for this search.</td></tr>
                         <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
+
+
             <div id="application-page" class="page">
                 <h1 class="h1-title-appManagement">Approved Applicants</h1>
                 <p class="p-description-appM">This section displays the total number of approved applicants, categorized by program type.</p>
@@ -2906,7 +3021,6 @@ body {
                                     <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
                                     <td><strong>SPES</strong></td>
                                     <td>
-                                        <button class="btn-outline" onclick='showSpesAppModal(<?php echo json_encode($app); ?>)'>View App Details</button>
                                         <button class="btn-outline" onclick='showUserDetailsModal(<?php echo json_encode($app); ?>)'>View User Info</button>
                                         <button class="btn-primary" onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $app['user_id']; ?>#user-concerns-page'">
                                             <i class="fas fa-envelope"></i> Message
@@ -2991,65 +3105,74 @@ body {
 <div id="scholarship-document-page" class="page">
     <div class="applicants-container">
         <h2 class="applicants-h2">Scholarship Applicant Documents</h2>
-        <p class="applicants-p">Review the submitted documents for all approved scholarship awardees.</p>
+        <p class="applicants-p">Review submitted documents for approved awardees, organized by program.</p>
+        
         <form method="GET">
             <input type="text" name="search_scholarship_docs" placeholder="Search by applicant name..." value="<?php echo htmlspecialchars($scholarshipDocsSearch ?? ''); ?>" class="search-input">
             <button type="submit" class="search-button">Search</button>
-            <input type="hidden" name="search_spes_docs" value="<?php echo htmlspecialchars($spesDocsSearch ?? ''); ?>">
         </form>
         <button class="back-btn" onclick="showPage('reports-page')">Back to Reports</button>
-        <table class="applicants-table">
-            <thead>
-                <tr>
-                    <th>View Documents</th>
-                    <th>Applicant Name</th>
-                    <th>Application Form</th>
-                    <th>Documents Requirements</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($scholarship_docs_users as $user): ?>
-                    <?php
-                        // --- START: FIX - Align status with visible table columns ---
-                        // Determine if documents are complete
-                        $docs_array = json_decode($user['documents'], true);
-                        $has_docs = is_array($docs_array) && !empty($docs_array);
-                        
-                        // The status should be 'Complete' if the requirement documents are present,
-                        // as the application form is implicitly present for all listed users.
-                        $status = $has_docs ? 'Complete' : 'INC';
-                        // --- END: FIX ---
-                    ?>
-                    <tr>
-                        <td>
-                            <button class="btn-outline" <?php if(!$has_docs && !$has_id) echo 'disabled'; ?> 
-                                onclick='viewUserDocuments(<?php echo json_encode(["ids" => $user["valid_id"], "docs" => $user["documents"]]); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>
-                                View Documents
-                            </button>
-                            </td>
-                        <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
-                        <td class="text-center"><i class="fas fa-check-circle icon-check"></i></td>
-                        <td class="text-center">
-                            <?php if ($has_docs): ?>
-                                <i class="fas fa-check-circle icon-check"></i>
-                            <?php else: ?>
-                                <i class="fas fa-times-circle icon-times"></i>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <span class="status-badge <?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>">
-                                <?php echo $status; ?>
-                            </span>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                <?php if (count($scholarship_docs_users) === 0): ?>
-                    <tr><td colspan="5" class="text-center" style="padding: 20px;">No approved scholarship applicants found.</td></tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
+
+        <div class="tabs" style="margin-top: 20px;">
+            <?php $is_first_tab = true; ?>
+            <?php foreach ($scholarshipReportsData as $sch_id => $data): ?>
+                <button class="tab-link <?php if ($is_first_tab) echo 'active'; ?>" onclick="openScholarshipReportTab(event, 'sch-<?php echo $sch_id; ?>')"><?php echo htmlspecialchars($data['title']); ?></button>
+                <?php $is_first_tab = false; ?>
+            <?php endforeach; ?>
+        </div>
+
+        <?php $is_first_content = true; ?>
+        <?php foreach ($scholarshipReportsData as $sch_id => $data): ?>
+            <div id="report-tab-sch-<?php echo $sch_id; ?>" class="tab-content" style="<?php if ($is_first_content) echo 'display: block;'; ?>">
+                
+                <a href="generate_pdf_report.php?report=scholarship&id=<?php echo $sch_id; ?>" class="btn-download" target="_blank" style="text-decoration:none; display:inline-block; vertical-align:middle; margin-bottom:15px;">
+                    <i class="fas fa-file-pdf"></i> Download PDF for <?php echo htmlspecialchars($data['title']); ?>
+                </a>
+
+                <table class="applicants-table">
+                    <thead>
+                        <tr>
+                            <th>View Documents</th>
+                            <th>Applicant Name</th>
+                            <th>Application Form</th>
+                            <th>Documents Requirements</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($data['users'] as $user): ?>
+                            <?php
+                                $docs_array = json_decode($user['documents'], true);
+                                $has_docs = is_array($docs_array) && !empty($docs_array);
+                                $status = $has_docs ? 'Complete' : 'INC';
+                            ?>
+                             <tr>
+                                <td>
+                                    <button class="btn-outline" <?php if(!$has_docs) echo 'disabled'; ?> 
+                                        onclick='viewUserDocuments(<?php echo json_encode(["docs" => $user["documents"]]); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>
+                                        View Documents
+                                    </button>
+                                </td>
+                                <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
+                                <td class="text-center"><i class="fas fa-check-circle icon-check"></i></td>
+                                <td class="text-center">
+                                    <?php if ($has_docs): ?><i class="fas fa-check-circle icon-check"></i><?php else: ?><i class="fas fa-times-circle icon-times"></i><?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="status-badge <?php echo $status === 'Complete' ? 'status-approved' : 'status-rejected'; ?>"><?php echo $status; ?></span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php $is_first_content = false; ?>
+        <?php endforeach; ?>
+        
+        <?php if (empty($scholarshipReportsData)): ?>
+             <p style="text-align:center; padding: 20px;">No approved scholarship applicants found for any active programs.</p>
+        <?php endif; ?>
+        </div>
 </div>
 
             <div id="spes-document-page" class="page">
@@ -3062,6 +3185,9 @@ body {
                         <input type="hidden" name="search_scholarship_docs" value="<?php echo htmlspecialchars($scholarshipDocsSearch ?? ''); ?>">
                     </form>
                     <button class="back-btn" onclick="showPage('reports-page')">Back to Reports</button>
+                    <a href="generate_pdf_report.php?report=spes" class="btn-download" target="_blank" style="text-decoration:none; display:inline-block; vertical-align:middle;">
+                        <i class="fas fa-file-pdf"></i> Download PDF
+                    </a>
                     <table class="applicants-table">
                         <thead>
                             <tr>
@@ -3075,17 +3201,20 @@ body {
                         <tbody>
                             <?php foreach ($spes_docs_users as $user): ?>
                                 <?php
-                                    // --- START: FIX - Align status with visible table columns ---
-                                    // The presence of an application form is implied. We only need to check for requirement documents.
+                                    // --- START: FIX ---
+                                    // Define both variables to check for documents and IDs
+                                    $id_docs = json_decode($user['id_image_paths'], true);
+                                    $has_id = is_array($id_docs) && !empty($id_docs);
                                     $has_reqs = !empty($user['spes_documents_path']);
-
-                                    // The status is now based solely on whether requirement documents were uploaded.
                                     $status = $has_reqs ? 'Complete' : 'INC';
                                     // --- END: FIX ---
                                 ?>
                                 <tr>
                                     <td>
-                                        <button class="btn-outline" <?php if(!$has_id && !$has_reqs) echo 'disabled'; ?> onclick='viewSpesUserDocuments(<?php echo json_encode(["ids" => $user["id_image_paths"], "reqs" => $user["spes_documents_path"]]); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>View Documents</button>
+                                        <button class="btn-outline" <?php if(!$has_id && !$has_reqs) echo 'disabled'; ?> 
+                                            onclick='viewSpesUserDocuments(<?php echo json_encode(["ids" => json_decode($user["id_image_paths"]), "reqs" => $user["spes_documents_path"]]); ?>, "<?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?>")'>
+                                            View Documents
+                                        </button>
                                     </td>
                                     <td><?php echo htmlspecialchars($user['Fname'] . ' ' . $user['Lname']); ?></td>
                                     <td class="text-center"><i class="fas fa-check-circle icon-check"></i></td>
@@ -3521,7 +3650,7 @@ body {
             </div>
 
             <div id="scholarship-history-page" class="page">
-                <h1 class="main-title-scholar">Scholarship History</h1>
+                <h1 class="main-title-scholar">Scholarship & SPES History</h1>
                 <p>View active, ended, and SPES scholarship programs.</p>
 
                 <div class="tabs">
@@ -3549,7 +3678,7 @@ body {
                                     <td><?php echo htmlspecialchars($scholarship['title']); ?></td>
                                     <td><?php echo date('F d, Y', strtotime($scholarship['created_at'])); ?></td>
                                     <td>
-                                        <a href="?view_recent_members=<?php echo $scholarship['scholarship_id']; ?>#view-recent-members-page" class="view-details">View Members</a>
+                                        <a href="?view_recent_members=<?php echo $scholarship['scholarship_id']; ?>#view-recent-members-page" class="view-details"><i class="fas fa-eye"></i> View Members</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -3579,7 +3708,7 @@ body {
                                     <td><?php echo htmlspecialchars($scholarship['title']); ?></td>
                                     <td><?php echo date('F d, Y', strtotime($scholarship['created_at'])); ?></td>
                                     <td>
-                                        <a href="?view_ended_members=<?php echo $scholarship['scholarship_id']; ?>#view-ended-members-page" class="view-details">View Members</a>
+                                        <a href="?view_ended_members=<?php echo $scholarship['scholarship_id']; ?>#view-ended-members-page" class="view-details"><i class="fas fa-eye"></i> View Members</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -3615,7 +3744,7 @@ body {
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="?view_spes_members=<?php echo $batch['batch_id']; ?>#view-spes-members-page" class="view-details">View Members</a>
+                                    <a href="?view_spes_members=<?php echo $batch['batch_id']; ?>#view-spes-members-page" class="view-details"><i class="fas fa-eye"></i> View Members</a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -3980,102 +4109,81 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
-    function showAppFormModal(applicantJson) {
-        let app = typeof applicantJson === 'string' ? JSON.parse(applicantJson) : applicantJson;
-        let html = '<div style="font-size: 12px;">';
+function showAppFormModal(applicantJson) {
+    let app = typeof applicantJson === 'string' ? JSON.parse(applicantJson) : applicantJson;
+    let html = '<div style="font-size: 12px;">';
 
-        if (!app) {
-            document.getElementById('appFormModalBody').innerHTML = "<p>No application data found.</p>";
-            document.getElementById('appFormModal').style.display = 'flex';
-            return;
-        }
-        
-        // Personal Info
-        html += '<h4>Personal Information</h4>';
-        html += `<p><strong>Full Name:</strong> ${app.fullname || 'N/A'}</p>`;
-        html += `<p><strong>Date of Birth:</strong> ${app.birthdate || 'N/A'}</p>`;
-        html += `<p><strong>Place of Birth:</strong> ${app.place_of_birth || 'N/A'}</p>`;
-        html += `<p><strong>Gender:</strong> ${app.gender || 'N/A'}</p>`;
-        html += `<p><strong>Civil Status:</strong> ${app.civil_status || 'N/A'}</p>`;
-        html += `<p><strong>Address:</strong> ${app.address || 'N/A'}</p>`;
-        html += `<p><strong>Contact Number:</strong> ${app.contact || 'N/A'}</p>`;
-        html += `<p><strong>Facebook Account:</strong> ${app.facebook || 'N/A'}</p>`;
-
-        // Family Background
-        html += '<hr style="margin: 15px 0;"><h4>Family Background</h4>';
-        html += `<p><strong>Father\'s Name:</strong> ${app.father_name || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i></p>`;
-        html += `<p><strong>Mother\'s Name:</strong> ${app.mother_name || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i></p>`;
-        html += `<p><strong>Monthly Family Income:</strong> ${app.family_income || 'N/A'}</p>`;
-        html += `<p><strong>Number of Dependents:</strong> ${app.dependents || 'N/A'}</p>`;
-
-        // Educational Background
-        html += '<hr style="margin: 15px 0;"><h4>Educational Background</h4>';
-        html += `<table class="applicants-table" style="font-size: 11px;">
-                    <thead>
-                        <tr>
-                            <th>Level</th>
-                            <th>School</th>
-                            <th>Honors</th>
-                            <th>Graduation/Level</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Elementary</td>
-                            <td>${app.elem_school || 'N/A'}</td>
-                            <td>${app.elem_honors || 'N/A'}</td>
-                            <td>${app.elem_grad || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td>High School</td>
-                            <td>${app.hs_school || 'N/A'}</td>
-                            <td>${app.hs_honors || 'N/A'}</td>
-                            <td>${app.hs_grad || 'N/A'}</td>
-                        </tr>
-                        <tr>
-                            <td>Vocational</td>
-                            <td>${app.voc_school || 'N/A'}</td>
-                            <td>${app.voc_honors || 'N/A'}</td>
-                            <td>${app.voc_grad || 'N/A'}</td>
-                        </tr>
-                    </tbody>
-                </table>`;
-        
-        // College Background
-        html += '<hr style="margin: 15px 0;"><h4>College Background</h4>';
-        html += `<p><strong>School:</strong> ${app.college_school || 'N/A'}</p>`;
-        html += `<p><strong>Course & Year:</strong> ${app.college_course || 'N/A'}</p>`;
-        html += `<p><strong>Previous Semester Average:</strong> ${app.college_average || 'N/A'}</p>`;
-        html += `<p><strong>Awards / Recognitions:</strong> ${app.college_awards || 'N/A'}</p>`;
-
-        // Documents
-        html += '<hr style="margin: 15px 0;"><h4>Uploaded Documents</h4>';
-        try {
-            const docs = JSON.parse(app.documents);
-            if (Array.isArray(docs) && docs.length > 0) {
-                docs.forEach(docPath => {
-                    const fullPath = `<?php echo BASE_URL; ?>${docPath.replace('../../../../', '')}`;
-                    const fileNameWithId = docPath.split('/').pop();
-                    const fileName = fileNameWithId.substring(fileNameWithId.indexOf('_') + 1);
-
-                    html += `<p style="margin-bottom: 8px;">
-                                <i class="fas fa-file-download" style="margin-right: 8px; color: #090549;"></i>
-                                <a href="${fullPath}" download="${fileName}" style="color:#090549; text-decoration: none; font-weight: bold;">
-                                    ${fileName}
-                                </a>
-                             </p>`;
-                });
-            } else {
-                html += '<p>No documents were uploaded.</p>';
-            }
-        } catch (e) {
-            html += '<p>No documents were uploaded or there was an error reading them.</p>';
-        }
-
-        html += '</div>';
-        document.getElementById('appFormModalBody').innerHTML = html;
+    if (!app) {
+        document.getElementById('appFormModalBody').innerHTML = "<p>No application data found.</p>";
         document.getElementById('appFormModal').style.display = 'flex';
+        return;
     }
+    
+    // Helper function for creating a grid item
+    const createDetailItem = (label, value) => `
+        <div class="user-details-item">
+            <span class="user-details-label">${label}</span>
+            <div class="user-details-value">${value || 'N/A'}</div>
+        </div>`;
+
+    // Personal Info
+    html += '<div class="user-details-section-header">1. Personal Information</div>';
+    html += '<div class="user-details-grid">';
+    html += createDetailItem('Full Name', app.fullname);
+    html += createDetailItem('Date of Birth', app.birthdate);
+    html += createDetailItem('Place of Birth', app.place_of_birth);
+    html += createDetailItem('Gender', app.gender);
+    html += createDetailItem('Civil Status', app.civil_status);
+    html += createDetailItem('Contact Number', app.contact);
+    html += createDetailItem('Facebook Account', app.facebook);
+    html += `</div><div class="user-details-item" style="margin-top:15px;"><span class="user-details-label">Address</span><div class="user-details-value">${app.address || 'N/A'}</div></div>`;
+
+    // Family Background
+    html += '<div class="user-details-section-header" style="margin-top: 20px;">2. Family Background</div>';
+    html += '<div class="user-details-grid">';
+    html += createDetailItem("Father's Name & Occupation", `${app.father_name || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i>`);
+    html += createDetailItem("Mother's Name & Occupation", `${app.mother_name || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i>`);
+    html += createDetailItem('Monthly Family Income', app.family_income);
+    html += createDetailItem('Number of Dependents', app.dependents);
+    html += `</div>`;
+
+    // Educational Background
+    html += '<div class="user-details-section-header" style="margin-top: 20px;">3. Educational Background</div>';
+    html += `<table class="applicants-table" style="font-size: 11px;">
+                <thead><tr><th>Level</th><th>School</th><th>Honors</th><th>Graduated/Level</th></tr></thead>
+                <tbody>
+                    <tr><td>Elementary</td><td>${app.elem_school || 'N/A'}</td><td>${app.elem_honors || 'N/A'}</td><td>${app.elem_grad || 'N/A'}</td></tr>
+                    <tr><td>High School</td><td>${app.hs_school || 'N/A'}</td><td>${app.hs_honors || 'N/A'}</td><td>${app.hs_grad || 'N/A'}</td></tr>
+                    <tr><td>Vocational</td><td>${app.voc_school || 'N/A'}</td><td>${app.voc_honors || 'N/A'}</td><td>${app.voc_grad || 'N/A'}</td></tr>
+                </tbody>
+            </table>`;
+    
+    // College Background
+    html += '<div class="user-details-section-header" style="margin-top: 15px;">3-A. College Background</div>';
+    html += '<div class="user-details-grid">';
+    html += createDetailItem('School', app.college_school);
+    html += createDetailItem('Course & Year', app.college_course);
+    html += createDetailItem('Previous Sem Average', app.college_average);
+    html += createDetailItem('Awards / Recognitions', app.college_awards);
+    html += `</div>`;
+
+    // Documents
+    html += '<div class="user-details-section-header" style="margin-top: 20px;">4. Uploaded Documents</div>';
+    try {
+        const docs = JSON.parse(app.documents);
+        if (Array.isArray(docs) && docs.length > 0 && docs[0]) {
+            docs.forEach(docPath => {
+                const fullPath = `${BASE_URL}${docPath.replace('../../../../', '')}`;
+                const fileName = docPath.substring(docPath.indexOf('_') + 1);
+                html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" class="btn-outline" style="text-decoration:none;"><i class="fas fa-file-alt"></i> ${fileName}</a></p>`;
+            });
+        } else { html += '<p class="user-details-value">No documents were uploaded.</p>'; }
+    } catch (e) { html += '<p class="user-details-value">No documents were uploaded.</p>'; }
+
+    html += '</div>';
+    document.getElementById('appFormModalBody').innerHTML = html;
+    document.getElementById('appFormModal').style.display = 'flex';
+}
 
     function closeAppFormModal() {
         document.getElementById('appFormModal').style.display = 'none';
@@ -4157,99 +4265,84 @@ function showUserDetailsModal(user) {
     }
     
 function showSpesAppModal(spesAppJson) {
-        let app = typeof spesAppJson === 'string' ? JSON.parse(spesAppJson) : spesAppJson;
-        let html = '<div style="font-size: 12px;">';
+    let app = typeof spesAppJson === 'string' ? JSON.parse(spesAppJson) : spesAppJson;
+    let html = '<div style="font-size: 12px;">';
 
-        if (!app) {
-            document.getElementById('spesAppModalBody').innerHTML = "<p>No application data found.</p>";
-            document.getElementById('spesAppModal').style.display = 'flex';
-            return;
-        }
-
-        const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
-        
-        const docPath = `<?php echo BASE_URL; ?>${app.spes_documents_path ? app.spes_documents_path.replace('../../../../', '') : ''}`;
-
-        html += '<h4>Personal Information</h4>';
-        html += `<p><strong>Full Name:</strong> ${fullName}</p>`;
-        html += `<p><strong>Date of Birth:</strong> ${app.dob || 'N/A'}</p>`;
-        html += `<p><strong>Place of Birth:</strong> ${app.place_of_birth || 'N/A'}</p>`;
-        html += `<p><strong>Citizenship:</strong> ${app.citizenship || 'N/A'}</p>`;
-        html += `<p><strong>Sex:</strong> ${app.sex || 'N/A'}</p>`;
-        html += `<p><strong>Civil Status:</strong> ${app.civil_status || 'N/A'}</p>`;
-        html += `<p><strong>Contact:</strong> ${app.contact || 'N/A'}</p>`;
-        html += `<p><strong>Email:</strong> ${app.email || 'N/A'}</p>`;
-        html += `<p><strong>Social Media:</strong> ${app.social_media || 'N/A'}</p>`;
-        html += `<p><strong>Present Address:</strong> ${app.present_address || 'N/A'}</p>`;
-        html += `<p><strong>Permanent Address:</strong> ${app.permanent_address || 'N/A'}</p>`;
-        
-        html += `<p><strong>Uploaded ID:</strong></p>`;
-        try {
-            const idImagePaths = JSON.parse(app.id_image_paths);
-            if (Array.isArray(idImagePaths) && idImagePaths.length > 0) {
-                idImagePaths.forEach(path => {
-                    if(path) {
-                        const fullPath = `<?php echo BASE_URL; ?>${path.replace('../../../../', '')}`;
-                        html += `<a href="${fullPath}" target="_blank" style="display:inline-block; margin-right: 10px; margin-bottom: 10px;">
-                                     <img src="${fullPath}" alt="Applicant ID" style="max-width: 200px; height: auto; border-radius: 5px; cursor: pointer; border: 1px solid #ddd;">
-                                 </a>`;
-                    }
-                });
-            } else {
-                html += `<p>No ID images were uploaded.</p>`;
-            }
-        } catch (e) {
-            html += `<p>No ID images were uploaded or there was an error reading them.</p>`;
-        }
-
-        html += '<hr style="margin: 15px 0;"><h4>Parental & Status Information</h4>';
-        html += `<p><strong>GSIS Beneficiary:</strong> ${app.gsis_beneficiary || 'N/A'}</p>`;
-        html += `<p><strong>Student Type:</strong> ${app.student_type || 'N/A'}</p>`;
-        html += `<p><strong>Parent Status:</strong> ${app.parent_status || 'N/A'}</p>`;
-        html += `<p><strong>Father:</strong> ${app.father_name_contact || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i></p>`;
-        html += `<p><strong>Mother:</strong> ${app.mother_name_contact || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i></p>`;
-
-        html += '<hr style="margin: 15px 0;"><h4>Educational Background</h4>';
-        html += `<table class="applicants-table" style="font-size: 11px;">
-                    <thead><tr><th>Level</th><th>School</th><th>Degree/Course</th><th>Year/Level</th><th>Attendance</th></tr></thead>
-                    <tbody>
-                        <tr><td>Elementary</td><td>${app.elem_school||'N/A'}</td><td>${app.elem_degree||'N/A'}</td><td>${app.elem_year||'N/A'}</td><td>${app.elem_attendance||'N/A'}</td></tr>
-                        <tr><td>Secondary</td><td>${app.sec_school||'N/A'}</td><td>${app.sec_degree||'N/A'}</td><td>${app.sec_year||'N/A'}</td><td>${app.sec_attendance||'N/A'}</td></tr>
-                        <tr><td>Tertiary</td><td>${app.ter_school||'N/A'}</td><td>${app.ter_degree||'N/A'}</td><td>${app.ter_year||'N/A'}</td><td>${app.ter_attendance||'N/A'}</td></tr>
-                        <tr><td>Tech-Voc</td><td>${app.tech_school||'N/A'}</td><td>${app.tech_degree||'N/A'}</td><td>${app.tech_year||'N/A'}</td><td>${app.tech_attendance||'N/A'}</td></tr>
-                    </tbody>
-                </table>`;
-        
-        html += '<hr style="margin: 15px 0;"><h4>Skills & SPES History</h4>';
-        html += `<p><strong>Special Skills:</strong> ${app.special_skills || 'None'}</p>`;
-        html += `<p><strong>Availment History:</strong> ${app.availment_history || 'None'}</p>`;
-        html += `<p><strong>Year History:</strong> ${app.year_history || 'N/A'}</p>`;
-        html += `<p><strong>SPES ID History:</strong> ${app.spes_id_history || 'N/A'}</p>`;
-        
-        html += '<hr style="margin: 15px 0;"><h4>Uploaded Requirement Documents</h4>';
-        if (app.spes_documents_path) {
-            const fileNameWithId = app.spes_documents_path.split('/').pop();
-            const fileName = fileNameWithId.substring(fileNameWithId.indexOf('_') + 1);
-            html += `<p style="margin-bottom: 8px;">
-                        <i class="fas fa-file-download" style="margin-right: 8px; color: #090549;"></i>
-                        <a href="${docPath}" download="${fileName}" style="color:#090549; text-decoration: none; font-weight: bold;">
-                            ${fileName}
-                        </a>
-                     </p>`;
-        } else {
-            html += '<p>No requirement documents were uploaded.</p>';
-        }
-
-        html += '</div>';
-
-        document.getElementById('spesAppModalBody').innerHTML = html;
+    if (!app) {
+        document.getElementById('spesAppModalBody').innerHTML = "<p>No application data found.</p>";
         document.getElementById('spesAppModal').style.display = 'flex';
+        return;
     }
 
-    function closeSpesAppModal() {
-        document.getElementById('spesAppModal').style.display = 'none';
-        document.getElementById('spesAppModalBody').innerHTML = '';
-    }
+    const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
+    const createDetailItem = (label, value) => `<div class="user-details-item"><span class="user-details-label">${label}</span><div class="user-details-value">${value || 'N/A'}</div></div>`;
+
+    html += '<div class="user-details-section-header">1. Personal Information</div>';
+    html += '<div class="user-details-grid">';
+    html += createDetailItem('Full Name', fullName);
+    html += createDetailItem('Date of Birth', app.dob);
+    html += createDetailItem('Place of Birth', app.place_of_birth);
+    html += createDetailItem('Citizenship', app.citizenship);
+    html += createDetailItem('Sex', app.sex);
+    html += createDetailItem('Civil Status', app.civil_status);
+    html += createDetailItem('Contact', app.contact);
+    html += createDetailItem('Email', app.email);
+    html += createDetailItem('Social Media', app.social_media);
+    html += `</div>`;
+    html += `<div class="user-details-item" style="margin-top:15px;"><span class="user-details-label">Present Address</span><div class="user-details-value">${app.present_address || 'N/A'}</div></div>`;
+    html += `<div class="user-details-item" style="margin-top:15px;"><span class="user-details-label">Permanent Address</span><div class="user-details-value">${app.permanent_address || 'N/A'}</div></div>`;
+
+    html += '<div class="user-details-section-header" style="margin-top: 20px;">2. Parental & Status Information</div>';
+    html += '<div class="user-details-grid">';
+    html += createDetailItem('GSIS Beneficiary', app.gsis_beneficiary);
+    html += createDetailItem('Student Type', app.student_type);
+    html += createDetailItem("Father's Info", `${app.father_name_contact || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i>`);
+    html += createDetailItem("Mother's Info", `${app.mother_name_contact || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i>`);
+    html += `</div>`;
+    html += `<div class="user-details-item" style="margin-top:15px;"><span class="user-details-label">Parent Status</span><div class="user-details-value">${app.parent_status || 'N/A'}</div></div>`;
+
+    html += '<div class="user-details-section-header" style="margin-top: 20px;">3. Educational Background</div>';
+    html += `<table class="applicants-table" style="font-size: 11px;">
+                <thead><tr><th>Level</th><th>School</th><th>Degree/Course</th><th>Year/Level</th><th>Attendance</th></tr></thead>
+                <tbody>
+                    <tr><td>Elementary</td><td>${app.elem_school||'N/A'}</td><td>${app.elem_degree||'N/A'}</td><td>${app.elem_year||'N/A'}</td><td>${app.elem_attendance||'N/A'}</td></tr>
+                    <tr><td>Secondary</td><td>${app.sec_school||'N/A'}</td><td>${app.sec_degree||'N/A'}</td><td>${app.sec_year||'N/A'}</td><td>${app.sec_attendance||'N/A'}</td></tr>
+                    <tr><td>Tertiary</td><td>${app.ter_school||'N/A'}</td><td>${app.ter_degree||'N/A'}</td><td>${app.ter_year||'N/A'}</td><td>${app.ter_attendance||'N/A'}</td></tr>
+                    <tr><td>Tech-Voc</td><td>${app.tech_school||'N/A'}</td><td>${app.tech_degree||'N/A'}</td><td>${app.tech_year||'N/A'}</td><td>${app.tech_attendance||'N/A'}</td></tr>
+                </tbody>
+            </table>`;
+    
+    html += '<div class="user-details-section-header" style="margin-top: 15px;">4. Skills & SPES History</div>';
+    html += '<div class="user-details-grid">';
+    html += createDetailItem('Special Skills', app.special_skills);
+    html += createDetailItem('Availment History', app.availment_history);
+    html += createDetailItem('Year History', app.year_history);
+    html += createDetailItem('SPES ID History', app.spes_id_history);
+    html += `</div>`;
+    
+    html += '<div class="user-details-section-header" style="margin-top: 20px;">5. Uploaded Documents</div>';
+    html += `<h4>Uploaded ID(s):</h4>`;
+    try {
+        const idImagePaths = JSON.parse(app.id_image_paths);
+        if (Array.isArray(idImagePaths) && idImagePaths.length > 0 && idImagePaths[0]) {
+            idImagePaths.forEach(path => {
+                const fullPath = `${BASE_URL}${path.replace('../../../../', '')}`;
+                html += `<a href="${fullPath}" target="_blank" style="margin-right: 10px;"><img src="${fullPath}" alt="ID" style="max-width: 200px; height: auto; border-radius: 5px;"></a>`;
+            });
+        } else { html += '<p class="user-details-value">No ID images uploaded.</p>'; }
+    } catch (e) { html += '<p class="user-details-value">No ID images uploaded.</p>'; }
+
+    html += `<h4 style="margin-top:15px;">Requirement Documents:</h4>`;
+    if (app.spes_documents_path) {
+        const docPath = `${BASE_URL}${app.spes_documents_path.replace('../../../../', '')}`;
+        const fileName = app.spes_documents_path.substring(app.spes_documents_path.indexOf('_') + 1);
+        html += `<p><a href="${docPath}" target="_blank" download="${fileName}" class="btn-outline" style="text-decoration:none;"><i class="fas fa-file-alt"></i> ${fileName}</a></p>`;
+    } else { html += '<p class="user-details-value">No requirement documents uploaded.</p>'; }
+
+    html += '</div>';
+    document.getElementById('spesAppModalBody').innerHTML = html;
+    document.getElementById('spesAppModal').style.display = 'flex';
+}
 
 function showValidIdModal(validIdJson) {
         let idFiles;
@@ -4418,10 +4511,17 @@ function toggleMessageMenu(messageId) {
     }
     
     document.addEventListener('click', function(event) {
+        // This part closes the chat message options menus
         if (!event.target.closest('.message-options')) {
             document.querySelectorAll('.message-menu').forEach(menu => {
                 menu.style.display = 'none';
             });
+        }
+
+        // ADDED: This part closes the main user dropdown menu if a click occurs outside of it
+        if (!event.target.closest('.menu-container')) {
+            document.getElementById('dropdownMenu').classList.remove('show');
+            document.getElementById('chevronIcon').classList.remove('open');
         }
     });
     
@@ -4486,6 +4586,31 @@ function updateCurrentFileName(inputElement, displayElementId) {
         const originalText = displayElement.getAttribute('data-original');
         displayElement.innerHTML = originalText;
         displayElement.style.color = '';
+    }
+}
+
+function openScholarshipReportTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    
+    // Get the parent container of the tabs
+    var parentContainer = document.getElementById('scholarship-document-page');
+
+    // Hide all tab content within this specific report page
+    tabcontent = parentContainer.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    // Deactivate all tab links within this specific report page
+    tablinks = parentContainer.getElementsByClassName("tab-link");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the selected tab content and activate the button
+    document.getElementById('report-tab-' + tabName).style.display = "block";
+    if (evt) {
+        evt.currentTarget.className += " active";
     }
 }
 

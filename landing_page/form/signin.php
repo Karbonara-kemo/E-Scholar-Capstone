@@ -530,7 +530,7 @@ include "../../connect.php";
             <form id="signin-form" class="form active" method="POST" action="process_signin.php">
                 <div class="form-header">
                     <img src="../../assets/PESO Logo Assets.png" alt="E-Scholar Logo">
-                    <h2 class="title-h2">Welcome Back</h2>
+                    <h2 class="title-h2">Welcome</h2>
                     <p class="desc-p">Sign in to continue to your account</p>
                 </div>
                 

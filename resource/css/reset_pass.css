@@ -1,0 +1,231 @@
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: linear-gradient(155deg, #090549 23.3%, #aa0505 49.5%,rgb(165, 137, 0) 49.5%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 50px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+        }
+
+        .logo {
+            height: 50px;
+            margin-right: 10px;
+        }
+
+        .san-julian-logo {
+            height: 58px;
+            margin-right: 10px;
+        }
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+        }
+        .navbar .right-nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+
+        .reset-password-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 70px);
+            padding: 20px;
+        }
+
+        .reset-password-container {
+            background-color: #ffffff;
+            padding: 40px;
+            margin-top: 70px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .reset-password-header img {
+            width: 100px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        .reset-password-header h2 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 0 10px;
+        }
+
+        .reset-password-header p {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .reset-password-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color:rgb(0, 0, 0);
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dfe6e9;
+            border-radius: 14px;
+            font-size: 11px;
+            color: #34495e;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .reset-password-form button {
+            background-color: #090549;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .reset-password-form button:hover {
+            background-color: #34495e;
+        }
+
+        .password-requirements {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .requirement {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .requirement-icon {
+            margin-right: 5px;
+            color: #bdc3c7;
+        }
+
+        .requirement.valid .requirement-icon {
+            color: #2ecc71;
+        }
+
+        .requirement.valid {
+            color: #2ecc71;
+        }
+
+        @media (max-width: 768px) {
+            .reset-password-wrapper {
+                justify-content: center;
+                align-items: center;
+                display: flex;
+                min-height: 100vh;
+                margin-top: 0;
+                padding: 0;
+            }
+            .reset-password-container {
+                margin: 0 auto;
+                width: 100%;
+                max-width: 370px;
+                min-width: 0;
+                padding: 24px 16px;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .reset-password-form {
+                width: 100%;
+            }
+            .navbar {
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                height: 45px;
+                padding: 5px 10px;
+            }
+            .logo-container {
+                flex-direction: row;
+                align-items: center;
+                margin-left: 0;
+                gap: 5px;
+            }
+            .navbar .logo-container .logo {
+                height: 33px !important;
+                margin-right: 2px !important;
+            }
+            .logo, .san-julian-logo {
+                height: 38px !important;
+                margin-right: 2px !important;
+            }
+            .navbar .title {
+                font-size: 10px !important;
+                margin-left: 0 !important;
+            }
+            .navbar .right-nav a,
+            .navbar a {
+                font-size: 8px !important;
+                margin: 0 6px !important;
+            }
+            .right-nav {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 5px;
+            }
+        }

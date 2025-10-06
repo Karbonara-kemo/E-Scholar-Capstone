@@ -165,6 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     } else {
         // --- START: MODIFIED - SET SESSION AND REDIRECT ---
         $_SESSION['application_submitted'] = true;
+        session_write_close(); // Force session to save before redirecting
         header("Location: user_dashboard.php#scholarships-page");
         exit();
         // --- END: MODIFIED - SET SESSION AND REDIRECT ---
@@ -271,9 +272,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     }
     // --- END: NEW CODE FOR SPES DOCUMENT UPLOAD ---
 
+    // Fetch current active SPES batch
+    $batch_id = null;
+    $activeBatchStmt = $conn->prepare("SELECT batch_id FROM spes_batches WHERE status = 'active' LIMIT 1");
+    $activeBatchStmt->execute();
+    $activeBatchResult = $activeBatchStmt->get_result();
+    if ($activeBatchResult && $activeBatchResult->num_rows > 0) {
+        $activeBatchRow = $activeBatchResult->fetch_assoc();
+        $batch_id = $activeBatchRow['batch_id'];
+    }
+
+
     // Prepare SQL Statement (MODIFIED)
     $sql = "INSERT INTO spes_applications (
-        user_id, surname, firstname, middlename, gsis_beneficiary, id_image_paths, spes_documents_path, dob, place_of_birth, citizenship, 
+        batch_id, user_id, surname, firstname, middlename, gsis_beneficiary, id_image_paths, spes_documents_path, dob, place_of_birth, citizenship, 
         contact, email, social_media, civil_status, sex, student_type, parent_status, present_address, permanent_address, 
         father_name_contact, mother_name_contact, father_occupation, mother_occupation, 
         elem_school, elem_degree, elem_year, elem_attendance, 
@@ -281,13 +293,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
         ter_school, ter_degree, ter_year, ter_attendance, 
         tech_school, tech_degree, tech_year, tech_attendance, 
         special_skills, availment_history, year_history, spes_id_history
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
     // Bind Param (MODIFIED: The type string now has 43 characters)
     $stmt->bind_param(
-        "issssssssssssssssssssssssssssssssssssssssss",
-        $userId, $surname, $firstname, $middlename, $gsis_beneficiary, $id_images_json, $spes_documents_path, $dob, $place_of_birth, $citizenship,
+        "isssssssssssssssssssssssssssssssssssssssssss",
+        $batch_id, $userId, $surname, $firstname, $middlename, $gsis_beneficiary, $id_images_json, $spes_documents_path, $dob, $place_of_birth, $citizenship,
         $contact, $email, $social_media, $civil_status, $sex, $student_type, $parent_status, $present_address, $permanent_address,
         $father_name_contact, $mother_name_contact, $father_occupation, $mother_occupation,
         $elem_school, $elem_degree, $elem_year, $elem_attendance,
@@ -297,9 +309,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
         $special_skills, $availment_history_str, $year_history_str, $spes_id_history_str
     );
 
+    if (!$batch_id) {
+        die("No active SPES batch. Application cannot be submitted. Please contact the admin.");
+    }
+
     if ($stmt->execute()) {
         // --- START: MODIFIED - SET SESSION AND REDIRECT ---
         $_SESSION['spes_application_submitted'] = true;
+        session_write_close(); // Force session to save before redirecting
         header("Location: user_dashboard.php#spes-page");
         exit();
         // --- END: MODIFIED - SET SESSION AND REDIRECT ---
@@ -355,7 +372,7 @@ $approvedGroups = [];
 $approvedSql = "SELECT s.scholarship_id, s.title 
                 FROM scholarships s 
                 JOIN applications a ON s.scholarship_id = a.scholarship_id 
-                WHERE a.user_id = ? AND a.status = 'approved'";
+                WHERE a.user_id = ? AND a.status = 'approved' AND s.status = 'active'";
 $approvedStmt = $conn->prepare($approvedSql);
 $approvedStmt->bind_param("i", $userId);
 $approvedStmt->execute();
@@ -465,8 +482,11 @@ if (isset($_POST['delete_message'])) {
     <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png"/>
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../../../resource/css/user_dashboard.css">
+    <script src="../../../../resource/javascript/user_dashboard.js"></script>
+</head>
 <style>
-body {
+    body {
     font-family: 'Roboto', sans-serif;
     margin: 0;
     padding: 0;
@@ -1489,7 +1509,6 @@ form .label-application + div label {
 
     .container {
         padding-top: 10px;
-        padding-bottom: 70px; /* Added padding to avoid content being hidden by bottom nav */
     }
     
     .main-content {
@@ -1551,7 +1570,7 @@ form .label-application + div label {
         border-right: none;
         border-bottom: 1px solid #eee;
         flex-shrink: 0;
-        max-height: 200px;
+        max-height: 200px; 
         overflow-y: auto;
     }
 
@@ -1567,36 +1586,102 @@ form .label-application + div label {
         flex-grow: 1;
         overflow: hidden;
         width: 100%;
-        min-width: 0;
+        min-width: 410px;
     }
 
     .chat-container {
         height: 100%;
-        margin: 0;
-        width: 100%;
-        min-width: 0;
-    }
-
-    .chat-messages {
+        margin-bottom: 10px;
         width: 100%;
         min-width: 0;
     }
 
     .message {
-        max-width: 80%;
+        max-width: 75% !important; /* Reduce max width on mobile */
+        min-width: 60px; /* Ensure minimum width for very short messages */
+        width: fit-content !important; /* Make width fit the content */
+        word-wrap: break-word;
         word-break: break-word;
+        hyphens: auto;
+    }
+
+    .user-message {
+        align-self: flex-end;
+        background-color: #090549;
+        color: white;
+        margin-left: auto; /* Push to right */
+        margin-right: 0;
+    }
+
+    .admin-message {
+        align-self: flex-start;
+        background-color: #e9ecef;
+        color: #333;
+        margin-left: 0; /* Keep on left */
+        margin-right: auto;
+    }
+
+    .message-content {
+        margin-bottom: 5px;
+        max-width: 100%;
         overflow-wrap: break-word;
     }
 
-    .chat-input {
-        width: 100%;
-        min-width: 0;
+    .chat-messages {
+        padding: 15px 10px; /* Reduce padding on mobile */
+        gap: 8px; /* Reduce gap between messages */
     }
-    
-        .chat-input textarea {
-        height: 35px;
-        min-width: 0;
-        flex: 1;
+
+    .message {
+        padding: 8px 12px; /* Slightly reduce padding */
+        margin: 3px 0; /* Reduce margin */
+        font-size: 14px; /* Ensure readable font size */
+        line-height: 1.4;
+    }
+
+    .message-timestamp {
+        font-size: 0.65em; /* Slightly smaller timestamp */
+        opacity: 0.7;
+        text-align: right;
+        margin-top: 2px;
+    }
+
+    .message-attachment {
+        margin-top: 6px;
+        padding: 6px 10px;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .message-attachment a {
+        font-size: 0.85em;
+        word-break: break-all; /* Break long filenames */
+    }
+
+    .chat-input {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .chat-input textarea {
+        font-size: 14px;
+        padding: 8px 12px;
+        min-height: 36px;
+        max-height: 80px; /* Limit height on mobile */
+    }
+
+    .chat-input button {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+        flex-shrink: 0; /* Prevent button from shrinking */
+    }
+
+    .chat-input .upload-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        flex-shrink: 0;
     }
 
     .history-table {
@@ -1702,6 +1787,7 @@ form .label-application + div label {
         font-size: 9px;
     }
 }
+
 
 .chevron-icon {
     transition: transform 0.3s cubic-bezier(.4,0,.2,1);
@@ -1974,12 +2060,14 @@ form .label-application + div label {
 }
 /* --- NEW STYLES FOR SCHOLARSHIP TABS --- */
 .scholarship-tabs-container {
-    overflow: hidden;
-    border: 1px solid #ccc;
-    background-color: #f1f1f1;
-    border-radius: 8px 8px 0 0;
-    display: flex;
-    flex-wrap: wrap;
+    display: none !important;
+}
+
+.scholarship-dropdown-container {
+    position: relative;
+    margin-bottom: 20px;
+    /* ADJUSTED: Reduced the max-width for a more compact look on desktop */
+    max-width: 500px; 
 }
 
 .scholarship-tab-link {
@@ -2007,12 +2095,18 @@ form .label-application + div label {
 }
 
 .scholarship-tab-content {
+    display: none; /* All content is hidden by default */
     padding: 20px;
     border: 1px solid #ccc;
-    border-top: none;
     background-color: #fff;
-    border-radius: 0 0 8px 8px;
+    border-radius: 8px;
     animation: fadeIn 0.5s;
+}
+
+@media (max-width: 768px) {
+    .scholarship-dropdown-container {
+        max-width: 100%;
+    }
 }
 
 .scholarship-tab-content h3 {
@@ -2079,13 +2173,183 @@ form .label-application + div label {
     z-index: 2; /* Ensure it's above the input field */
 }
 /* END: Styles for File Input Clear Button */
+
+
+    .scholarship-dropdown-mobile {
+        display: none;
+        margin-bottom: 20px;
+    }
+
+    .scholarship-dropdown-btn {
+        background-color: #090549;
+        color: white;
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.3s;
+    }
+
+    .scholarship-dropdown-btn:hover {
+        background-color: #10087c;
+    }
+
+    .scholarship-dropdown-btn .chevron-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .scholarship-dropdown-btn.open .chevron-icon {
+        transform: rotate(180deg);
+    }
+
+    .scholarship-dropdown-content {
+        display: none; /* Hidden by default, shown with JS */
+        position: absolute;
+        background-color: #f9f9f9;
+        width: 100%;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 100;
+        border-radius: 0 0 8px 8px;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    .scholarship-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        border-bottom: 1px solid #ddd;
+        font-size: 13px;
+        word-break: break-word; 
+    }
+
+    .scholarship-dropdown-content a:last-child {
+        border-bottom: none;
+    }
+
+    .scholarship-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    /* Media Query to switch between tabs and dropdown */
+    @media (max-width: 768px) {
+        /* Hide the original desktop tabs */
+        .scholarship-tabs-container {
+            display: none;
+        }
+
+        /* Show our new mobile dropdown */
+        .scholarship-dropdown-mobile {
+            display: block;
+            position: relative; /* Needed for positioning the dropdown content */
+        }
+
+        /* Hide all content sections on mobile initially */
+        .scholarship-tab-content {
+            display: none;
+        }
+    }
+
+        .concerns-dropdown-mobile {
+        display: none;
+    }
+
+    .concerns-dropdown-btn {
+        background-color: #f7f7fa;
+        color: #333;
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: bold;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .concerns-dropdown-content {
+        display: none; /* Hidden by default, shown with JS */
+        position: absolute;
+        background-color: #f9f9f9;
+        /* Adjust width to account for parent padding on mobile */
+        width: calc(100% - 20px); 
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 100;
+        border-radius: 0 0 8px 8px;
+        max-height: 250px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-top: none;
+    }
+
+    .concerns-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        font-size: 13px;
+        border-bottom: 1px solid #eee;
+    }
+    .concerns-dropdown-content a:last-child {
+        border-bottom: none;
+    }
+    .concerns-dropdown-content a:hover {
+        background-color: #e9ecef;
+    }
+
+    /* Find your existing @media (max-width: 768px) rule and add these styles */
+    @media (max-width: 768px) {
+        /* ... other mobile styles ... */
+
+        /* Hide the original desktop chat sidebar */
+        .concerns-list {
+            display: none;
+        }
+
+        /* Show the new mobile dropdown */
+        .concerns-dropdown-mobile {
+            display: block;
+            position: relative; /* Needed for positioning the dropdown content */
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+    }
+
+    
 </style>
-</head>
 <body>
     <div id="toast-message">
         <span id="toast-text"></span>
         <i id="toast-icon"></i>
     </div>
+
+            
+    <?php if (isset($_SESSION['spes_application_submitted'])): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        showToast('SPES application submitted successfully!', 'success');
+    });
+    </script>
+    <?php unset($_SESSION['spes_application_submitted']); endif; ?>
+    <?php if (isset($_SESSION['application_submitted'])): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        showToast('Application submitted successfully!', 'success');
+    });
+    </script>
+    <?php unset($_SESSION['application_submitted']); endif; ?>
+
     <div class="navbar">
         <div class="logo-container">
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
@@ -2140,22 +2404,6 @@ form .label-application + div label {
             </div>
         </div>
 
-        
-        <?php if (isset($_SESSION['spes_application_submitted'])): ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            showToast('SPES application submitted successfully!', 'success');
-        });
-        </script>
-        <?php unset($_SESSION['spes_application_submitted']); endif; ?>
-
-        <?php if (isset($_SESSION['application_submitted'])): ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            showToast('Application submitted successfully!', 'success');
-        });
-        </script>
-        <?php unset($_SESSION['application_submitted']); endif; ?>
 
         <div class="main-content">
             <div id="home-page" class="page active">
@@ -2184,81 +2432,85 @@ form .label-application + div label {
             </div>
 
             <div id="scholarships-page" class="page">
-                <div class="scholarship-list">
-                    <h2>Available Scholarships</h2>
-                    <p>Browse and apply for available scholarship programs by selecting a tab below.</p>
+    <div class="scholarship-list">
+        <h2>Available Scholarships</h2>
+        <p>Select a scholarship from the dropdown below to see details and apply.</p>
 
-                    <?php if (count($scholarships) > 0): ?>
-                        <div class="scholarship-tabs-container">
-                            <?php foreach ($scholarships as $index => $scholarship): ?>
-                                <button 
-                                    class="scholarship-tab-link <?php if ($index === 0) echo 'active'; ?>" 
-                                    onclick="openScholarshipTab(event, '<?php echo $scholarship['scholarship_id']; ?>')">
-                                    <?php echo htmlspecialchars($scholarship['title']); ?>
-                                </button>
-                            <?php endforeach; ?>
-                        </div>
-
-                        <?php foreach ($scholarships as $index => $scholarship): 
-                            // Calculate remaining slots
-                            $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
-
-                            // --- Button Logic ---
-                            $hasPendingOrApprovedForThis = false;
-                            $applicationStatusForThis = '';
-                            $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
-                            $checkStmt = $conn->prepare($checkSql);
-                            $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
-                            $checkStmt->execute();
-                            $checkResult = $checkStmt->get_result();
-                            if ($checkResult->num_rows > 0) {
-                                $app = $checkResult->fetch_assoc();
-                                $applicationStatusForThis = $app['status'];
-                                $hasPendingOrApprovedForThis = true;
-                            }
-                            $isDisabled = false;
-                            $buttonText = 'Apply Now';
-                            if ($isApprovedForAnyScholarship) {
-                                $isDisabled = true;
-                                $buttonText = ($applicationStatusForThis === 'approved') ? 'Approved' : 'Cannot Apply Anymore';
-                            } elseif ($hasPendingOrApprovedForThis) {
-                                $isDisabled = true;
-                                $buttonText = 'Pending';
-                            } elseif ($remainingSlots <= 0) {
-                                $isDisabled = true;
-                                $buttonText = 'Fully Booked';
-                            }
-                        ?>
-                            <div id="scholarship-content-<?php echo $scholarship['scholarship_id']; ?>" class="scholarship-tab-content" style="<?php if ($index !== 0) echo 'display:none;'; ?>">
-                                <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
-                                <p><strong>Description:</strong> <?php echo htmlspecialchars($scholarship['description']); ?></p>
-                                <p><strong>Slots:</strong> <?php echo max(0, $remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining</p>
-                                <hr>
-                                <h4>Requirements:</h4>
-                                <p><?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
-                                <h4>Benefits:</h4>
-                                <p><?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
-                                <h4>Eligibility Criteria:</h4>
-                                <p><?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
-                                
-                                <div class="scholarship-actions">
-                                    <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?> 
-                                        onclick="showApplicationForm('<?php echo htmlspecialchars($scholarship['title']); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
-                                        <i class="fas fa-pen-alt"></i> <?php echo $buttonText; ?>
-                                    </button>
-                                    <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="btn btn-outline">
-                                        <i class="fas fa-download"></i> Download File
-                                    </a>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <p>There are currently no active scholarship programs. Please check back later.</p>
-                    <?php endif; ?>
+        <?php if (count($scholarships) > 0): ?>
+            <div class="scholarship-dropdown-container">
+                <button id="scholarship-dropdown-btn" class="scholarship-dropdown-btn">
+                    <span>Select a Scholarship...</span> <i class="fas fa-chevron-down chevron-icon"></i>
+                </button>
+                <div id="scholarship-dropdown-content" class="scholarship-dropdown-content">
+                    <?php foreach ($scholarships as $scholarship): ?>
+                        <a href="#" data-scholarship-id="<?php echo $scholarship['scholarship_id']; ?>">
+                            <?php echo htmlspecialchars($scholarship['title']); ?>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
             </div>
 
-                        <div id="application-form-page" class="page">
+            <?php foreach ($scholarships as $index => $scholarship):
+                // Calculate remaining slots
+                $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
+
+                // --- Button Logic ---
+                $hasPendingOrApprovedForThis = false;
+                $applicationStatusForThis = '';
+                $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
+                $checkStmt = $conn->prepare($checkSql);
+                $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
+                $checkStmt->execute();
+                $checkResult = $checkStmt->get_result();
+                if ($checkResult->num_rows > 0) {
+                    $app = $checkResult->fetch_assoc();
+                    $applicationStatusForThis = $app['status'];
+                    $hasPendingOrApprovedForThis = true;
+                }
+                $isDisabled = false;
+                $buttonText = 'Apply Now';
+                if ($isApprovedForAnyScholarship) {
+                    $isDisabled = true;
+                    $buttonText = ($applicationStatusForThis === 'approved') ? 'Approved' : 'Cannot Apply Anymore';
+                } elseif ($hasPendingOrApprovedForThis) {
+                    $isDisabled = true;
+                    $buttonText = 'Pending';
+                } elseif ($remainingSlots <= 0) {
+                    $isDisabled = true;
+                    $buttonText = 'Fully Booked';
+                }
+            ?>
+                <div id="scholarship-content-<?php echo $scholarship['scholarship_id']; ?>" class="scholarship-tab-content" style="display:none;">
+                    <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
+                    <p><strong>Description:</strong> <?php echo htmlspecialchars($scholarship['description']); ?></p>
+                    <p><strong>Slots:</strong> <?php echo max(0, $remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining</p>
+                    <hr>
+                    <h4>Requirements:</h4>
+                    <p><?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
+                    <h4>Benefits:</h4>
+                    <p><?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
+                    <h4>Eligibility Criteria:</h4>
+                    <p><?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
+                    
+                    <div class="scholarship-actions">
+                        <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?>
+                                onclick="showApplicationForm('<?php echo htmlspecialchars(addslashes($scholarship['title'])); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
+                            <i class="fas fa-pen-alt"></i> <?php echo $buttonText; ?>
+                        </button>
+                        <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="btn btn-outline">
+                            <i class="fas fa-download"></i> Download File
+                        </a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+
+        <?php else: ?>
+            <p>There are currently no active scholarship programs. Please check back later.</p>
+        <?php endif; ?>
+    </div>
+</div>
+
+            <div id="application-form-page" class="page">
                 <div class="form-container-application">
                     <button class="back-btn" onclick="showScholarshipsPage()">Back to Scholarships</button>
                     <h2 id="application-form-title">SCHOLARSHIP FORM</h2>
@@ -2446,6 +2698,7 @@ form .label-application + div label {
                         </thead>
                         <tbody>
                         <?php
+                        // FIX: The SPES part of the query now fetches the rejection_message.
                         $combinedHistorySql = "
                             (SELECT
                                 a.application_id AS id,
@@ -2466,7 +2719,7 @@ form .label-application + div label {
                                 'SPES' AS application_type,
                                 sa.created_at AS date_applied,
                                 sa.status AS status,
-                                NULL AS rejection_message -- Add a NULL column to match the structure
+                                sa.rejection_message AS rejection_message
                             FROM spes_applications sa
                             WHERE sa.user_id = ?)
                             
@@ -2474,11 +2727,9 @@ form .label-application + div label {
                         ";
 
                         $applicationsStmt = $conn->prepare($combinedHistorySql);
-                        // Bind the user ID twice, once for each part of the UNION query
                         $applicationsStmt->bind_param("ii", $userId, $userId);
                         $applicationsStmt->execute();
                         $applicationsResult = $applicationsStmt->get_result();
-                        // --- END: MODIFIED QUERY ---
                         
                         if ($applicationsResult->num_rows > 0):
                             while ($application = $applicationsResult->fetch_assoc()):
@@ -2498,8 +2749,8 @@ form .label-application + div label {
                                     </span>
                                 </td>
                                 <td>
-                                    <?php if ($application['application_type'] === 'Scholarship' && $application['status'] === 'rejected' && !empty($application['rejection_message'])): ?>
-                                        <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>)'>See Why...</button>
+                                    <?php if ($application['status'] === 'rejected' && !empty($application['rejection_message'])): ?>
+                                        <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>)'>See why...</button>
                                     <?php else: ?>
                                         N/A
                                     <?php endif; ?>
@@ -2856,6 +3107,21 @@ form .label-application + div label {
 
 <div id="communication-page" class="page">
     <div class="concerns-layout">
+        <div class="concerns-dropdown-mobile">
+            <button id="concerns-dropdown-btn" class="concerns-dropdown-btn">
+                <span><?php echo $chatTitle; ?></span> <i class="fas fa-chevron-down"></i>
+            </button>
+            <div id="concerns-dropdown-content" class="concerns-dropdown-content">
+                <a href="user_dashboard.php#communication-page">
+                   <i class="fas fa-user"></i>&nbsp; Chat with Admin
+                </a>
+                <?php foreach ($approvedGroups as $group): ?>
+                    <a href="user_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#communication-page">
+                        <i class="fas fa-users"></i>&nbsp; <?php echo htmlspecialchars($group['title']); ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
         <div class="concerns-list">
             <ul>
                 <li class="<?php if(!$selectedGroupId) echo 'active'; ?>">
@@ -3012,8 +3278,43 @@ form .label-application + div label {
             </div>
         </div>
     </div>
-    
 <script>
+    // START: ADDED THIS FUNCTION TO FIX THE TOAST NOTIFICATION
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast-message');
+        const toastText = document.getElementById('toast-text');
+        const toastIcon = document.getElementById('toast-icon');
+
+        if (!toast || !toastText || !toastIcon) {
+            console.error('Toast elements not found!');
+            return;
+        }
+
+        toastText.textContent = message;
+        toastIcon.className = ''; // Reset classes
+
+        if (type === 'success') {
+            toastIcon.classList.add('fas', 'fa-check-circle');
+            toast.style.backgroundColor = 'rgb(13, 160, 8)'; // Green
+        } else if (type === 'error') {
+            toastIcon.classList.add('fas', 'fa-times-circle');
+            toast.style.backgroundColor = '#dc3545'; // Red
+        } else {
+            // Default/info style
+            toastIcon.classList.add('fas', 'fa-info-circle');
+            toast.style.backgroundColor = '#090549'; // Default blue
+        }
+
+        // Show the toast
+        toast.classList.add('show');
+
+        // Hide the toast after 5 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 5000); // 5000ms = 5 seconds
+    }
+    // END: ADDED FUNCTION
+
     function toggleMenu() {
         var menu = document.getElementById("dropdownMenu");
         var chevron = document.getElementById("chevronIcon");
@@ -3204,11 +3505,15 @@ form .label-application + div label {
         // END: Logic for file input clear buttons
     });
 
+    // --- Find and replace this function ---
     function showApplicationForm(scholarshipTitle, scholarshipId) {
         document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
         document.getElementById('application-form-page').classList.add('active');
         document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
         document.getElementById('scholarship_id_field').value = scholarshipId;
+        
+        // FIX: This new line scrolls the user to the top of the page
+        window.scrollTo(0, 0); 
     }
 
     function showScholarshipsPage() {
@@ -3321,25 +3626,110 @@ form .label-application + div label {
         if (event.target.id === 'deleteMessageModal') closeDeleteModal();
     };
 
-    function openScholarshipTab(evt, scholarshipId) {
-    // Hide all tab content
-    document.querySelectorAll('.scholarship-tab-content').forEach(tabContent => {
-        tabContent.style.display = 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- (Keep your other scripts like the notification handler, sidebar toggle, etc.) ---
+
+        // --- NEW UNIVERSAL SCRIPT FOR SCHOLARSHIP DROPDOWN ---
+        const dropdownBtn = document.getElementById('scholarship-dropdown-btn');
+        const dropdownContent = document.getElementById('scholarship-dropdown-content');
+
+        if (dropdownBtn && dropdownContent) {
+            const dropdownLinks = dropdownContent.querySelectorAll('a');
+            const btnText = dropdownBtn.querySelector('span');
+            
+            // Function to show the selected scholarship content
+            function showScholarship(scholarshipId) {
+                document.querySelectorAll('.scholarship-tab-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                const activeContent = document.getElementById('scholarship-content-' + scholarshipId);
+                if (activeContent) {
+                    activeContent.style.display = 'block';
+                }
+            }
+
+            // Toggle dropdown visibility when the button is clicked
+            dropdownBtn.addEventListener('click', function(event) {
+                event.stopPropagation();
+                const isVisible = dropdownContent.style.display === 'block';
+                dropdownContent.style.display = isVisible ? 'none' : 'block';
+                dropdownBtn.classList.toggle('open', !isVisible);
+            });
+
+            // Handle clicks on each scholarship link
+            dropdownLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const selectedId = this.dataset.scholarshipId;
+                    const selectedTitle = this.textContent.trim();
+                    
+                    btnText.textContent = selectedTitle;
+                    showScholarship(selectedId);
+
+                    // Close the dropdown after selection
+                    dropdownContent.style.display = 'none';
+                    dropdownBtn.classList.remove('open');
+                });
+            });
+            
+            // On page load, automatically select and show the first scholarship
+            if (dropdownLinks.length > 0) {
+                const firstId = dropdownLinks[0].dataset.scholarshipId;
+                const firstTitle = dropdownLinks[0].textContent.trim();
+                btnText.textContent = firstTitle;
+                showScholarship(firstId);
+            }
+        }
     });
 
-    // Deactivate all tab links
-    document.querySelectorAll('.scholarship-tab-link').forEach(tabLink => {
-        tabLink.classList.remove('active');
-    });
-
-    // Show the current tab content and activate the link
-    document.getElementById('scholarship-content-' + scholarshipId).style.display = 'block';
-    if (evt && evt.currentTarget) {
-        evt.currentTarget.classList.add('active');
-    }
-}
-
-        </script>
+    // Find your existing window.addEventListener('click', ...) and add this logic to it
+    // to ensure the dropdown closes when clicking elsewhere.
+    window.addEventListener('click', function(event) {
+        // ... (Your other logic for closing modals, etc.)
         
+        const scholarshipDropdownContent = document.getElementById('scholarship-dropdown-content');
+        if (scholarshipDropdownContent && scholarshipDropdownContent.style.display === 'block') {
+            if (!event.target.closest('.scholarship-dropdown-container')) {
+                scholarshipDropdownContent.style.display = 'none';
+                const scholarshipBtn = document.getElementById('scholarship-dropdown-btn');
+                if(scholarshipBtn) scholarshipBtn.classList.remove('open');
+            }
+        }
+    });
+
+        document.addEventListener('DOMContentLoaded', function() {
+        // ... all your existing JavaScript ...
+
+        // --- NEW SCRIPT FOR MOBILE CONCERNS DROPDOWN ---
+        const concernsDropdownBtn = document.getElementById('concerns-dropdown-btn');
+        const concernsDropdownContent = document.getElementById('concerns-dropdown-content');
+
+        if (concernsDropdownBtn && concernsDropdownContent) {
+            // Open/close the dropdown when the button is clicked
+            concernsDropdownBtn.addEventListener('click', function(event) {
+                event.stopPropagation();
+                // Close the other dropdown if it's open
+                const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
+                if(scholarshipDropdown) scholarshipDropdown.style.display = 'none';
+
+                concernsDropdownContent.style.display = concernsDropdownContent.style.display === 'block' ? 'none' : 'block';
+            });
+        }
+    });
+
+    // --- UPDATE THE EXISTING WINDOW CLICK LISTENER ---
+    // This function closes any open dropdown when you click elsewhere on the page.
+    window.addEventListener('click', function() {
+        const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
+        const concernsDropdown = document.getElementById('concerns-dropdown-content');
+        
+        if (scholarshipDropdown && scholarshipDropdown.style.display === 'block') {
+            scholarshipDropdown.style.display = 'none';
+        }
+        if (concernsDropdown && concernsDropdown.style.display === 'block') {
+            concernsDropdown.style.display = 'none';
+        }
+    });
+</script>
     </body>
 </html>

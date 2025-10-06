@@ -1,0 +1,234 @@
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: linear-gradient(155deg, #090549 23.3%, #aa0505 50%,rgb(165, 137, 0) 50%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 50px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+        }
+
+        .logo {
+            height: 50px;
+            margin-right: 10px;
+        }
+
+        .san-julian-logo {
+            height: 58px;
+            margin-right: 10px;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .navbar .right-nav a {
+            color: white;
+            text-decoration: none;
+            margin-right: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .auth-code-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 70px);
+            padding: 20px;
+        }
+
+        .auth-code-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            margin-top: 70px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .auth-code-header img {
+            width: 100px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        .auth-code-header h2 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 0 10px;
+        }
+
+        .auth-code-header p {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .auth-code-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .auth-code-form label {
+            font-size: 12px;
+            color: #34495e;
+            text-align: left;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .code-input-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .code-box {
+            width: 35px;
+            height: 35px;
+            text-align: center;
+            border: 1px solid #dfe6e9;
+            border-radius: 5px;
+            font-size: 18px;
+            padding: 0;
+            outline: none;
+        }
+
+        .code-box:focus {
+            outline: none;
+            border-color: #090549;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .auth-code-form button {
+            background-color: #090549;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .auth-code-form button:hover {
+            background-color: #090549;
+        }
+
+        .back-to-forgot {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #090549;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-to-forgot:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .resend-link {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #090549;
+            text-decoration: underline;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .resend-link:hover {
+            color: #aa0505;
+        }
+
+@media (max-width: 768px) {
+    .main-content {
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        min-height: 100vh;
+        margin-top: 0;
+        padding: 0;
+    }
+    .auth-code-container, .container {
+        margin: 0 auto;
+        width: 100%;
+        max-width: 370px;
+        min-width: 0;
+        padding: 24px 16px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .auth-code-form, .form {
+        width: 100%;
+    }
+    .navbar {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        height: 45px;
+        padding: 5px 10px;
+    }
+    .logo-container {
+        flex-direction: row;
+        align-items: center;
+        margin-left: 0;
+        gap: 5px;
+    }
+    .navbar .logo-container .logo {
+        height: 33px !important;
+        margin-right: 2px !important;
+    }
+    .logo, .san-julian-logo {
+        height: 38px !important;
+        margin-right: 2px !important;
+    }
+    .navbar .title {
+        font-size: 10px !important;
+        margin-left: 0 !important;
+    }
+    .navbar .right-nav a,
+    .navbar a {
+        font-size: 8px !important;
+        margin: 0 6px !important;
+    }
+    .right-nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+}

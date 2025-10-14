@@ -13,7 +13,6 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// FETCH USER FIRST!
 $userId = $_SESSION['user_id'];
 $sql = "SELECT * FROM user WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
@@ -27,8 +26,6 @@ if ($result->num_rows > 0) {
     exit();
 }
 
-
-// --- START: FETCH SPES FORM IMAGES & DOCS ---
 $spes_form_files = [
     'employment_contract' => [
         'image' => '../../../../images/Employment-contract.jpg', 
@@ -51,12 +48,9 @@ if ($spesFilesResultUser) {
         }
     }
 }
-// --- END: FETCH SPES FORM IMAGES & DOCS ---
 
-// --- START: NEW SCHOLARSHIP APPROVAL STATUS CHECK ---
 $isApprovedForAnyScholarship = false;
-// FIX: This query now joins with the scholarships table to ensure we only check for 
-// approved status on scholarships that are currently 'active'.
+
 $checkApprovalSql = "
     SELECT 1 
     FROM applications a
@@ -71,18 +65,14 @@ $checkApprovalResult = $checkApprovalStmt->get_result();
 if ($checkApprovalResult->num_rows > 0) {
     $isApprovedForAnyScholarship = true;
 }
-// --- END: NEW SCHOLARSHIP APPROVAL STATUS CHECK ---
 
-// --- START: NEW CHECK FOR ACTIVE SPES BATCH ---
 $isSpesActive = false;
 $checkSpesBatchSql = "SELECT 1 FROM spes_batches WHERE status = 'active' LIMIT 1";
 $checkSpesBatchResult = $conn->query($checkSpesBatchSql);
 if ($checkSpesBatchResult->num_rows > 0) {
     $isSpesActive = true;
 }
-// --- END: NEW CHECK FOR ACTIVE SPES BATCH ---
 
-// --- START: CHECK IF USER HAS EVER BEEN APPROVED FOR SPES ---
 $hasBeenApprovedForSpes = false;
 $checkSpesApprovalSql = "SELECT 1 FROM spes_applications WHERE user_id = ? AND status = 'approved' LIMIT 1";
 $checkSpesApprovalStmt = $conn->prepare($checkSpesApprovalSql);
@@ -92,19 +82,16 @@ $checkSpesApprovalResult = $checkSpesApprovalStmt->get_result();
 if ($checkSpesApprovalResult->num_rows > 0) {
     $hasBeenApprovedForSpes = true;
 }
-// --- END: CHECK IF USER HAS EVER BEEN APPROVED FOR SPES ---
 
-// --- START: Scholarship FORM SUBMISSION LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
     $scholarshipId = $_POST['scholarship_id'];
     $fullname = trim($_POST['lname'] . ', ' . $_POST['fname'] . ' ' . $_POST['mname']);
     $birthdate = $_POST['dob'];
     $address = $_POST['address'];
     $contact = $_POST['contact'];
-    // Email is no longer collected from the form
     $school = $_POST['college_school'];
     $course = $_POST['college_course'];
-    $year_level = ''; // This field seems unused but kept for structure
+    $year_level = '';
     $family_income = $_POST['family_income'];
     $facebook = $_POST['facebook'];
     $civil_status = $_POST['civil_status'];
@@ -142,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     }
     $documents_json = json_encode($documents);
 
-    // SQL statement updated to remove the 'email' column
     $sql = "INSERT INTO applications (
         user_id, scholarship_id, fullname, birthdate, address, contact, school, course, year_level, family_income, documents, status,
         facebook, civil_status, gender, place_of_birth, mother_name, mother_occupation, father_name, father_occupation, dependents,
@@ -152,8 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )";
     $stmt = $conn->prepare($sql);
-    // Bind parameters updated to remove the email variable and its type 's'
-    // FIXED: The type definition string now has 33 characters (ii + 31 s's) to match the 33 variables.
     $stmt->bind_param(
         "iisssssssssssssssssssssssssssssss",
         $userId, $scholarshipId, $fullname, $birthdate, $address, $contact, $school, $course, $year_level, $family_income, $documents_json,
@@ -163,19 +147,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     if (!$stmt->execute()) {
         die("Error: " . $stmt->error);
     } else {
-        // --- START: MODIFIED - SET SESSION AND REDIRECT ---
         $_SESSION['application_submitted'] = true;
-        session_write_close(); // Force session to save before redirecting
+        session_write_close();
         header("Location: user_dashboard.php#scholarships-page");
         exit();
-        // --- END: MODIFIED - SET SESSION AND REDIRECT ---
     }
 }
-// --- END: Scholarship FORM SUBMISSION LOGIC ---
 
-// --- START: NEW SPES APPLICATION SUBMISSION LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_application'])) {
-    // Personal Information
     $surname = $_POST['surname'] ?? null;
     $firstname = $_POST['firstname'] ?? null;
     $middlename = $_POST['middlename'] ?? null;
@@ -186,13 +165,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     $contact = $_POST['contact'] ?? null;
     $email = $_POST['email'] ?? null;
     $social_media = $_POST['social_media'] ?? null;
-    $civil_status = $_POST['civil_status'] ?? null; // Renamed from 'status' in form to avoid conflict
+    $civil_status = $_POST['civil_status'] ?? null;
     $sex = $_POST['sex'] ?? null;
     $student_type = $_POST['student_type'] ?? null;
     $present_address = $_POST['present_address'] ?? null;
     $permanent_address = $_POST['permanent_address'] ?? null;
 
-    // Handle Parent Status (combining radio and checkboxes)
     $parent_status_parts = [];
     if (!empty($_POST['parent_status'])) {
         $parent_status_parts[] = $_POST['parent_status'];
@@ -208,22 +186,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     }
     $parent_status = implode(', ', $parent_status_parts);
 
-    // Parental Information
     $father_name_contact = $_POST['father_name_contact'] ?? null;
     $mother_name_contact = $_POST['mother_name_contact'] ?? null;
     $father_occupation = $_POST['father_occupation'] ?? null;
     $mother_occupation = $_POST['mother_occupation'] ?? null;
 
-    // Educational Background
     $elem_school = $_POST['elem_school'] ?? null; $elem_degree = $_POST['elem_degree'] ?? null; $elem_year = $_POST['elem_year'] ?? null; $elem_attendance = $_POST['elem_attendance'] ?? null;
     $sec_school = $_POST['sec_school'] ?? null; $sec_degree = $_POST['sec_degree'] ?? null; $sec_year = $_POST['sec_year'] ?? null; $sec_attendance = $_POST['sec_attendance'] ?? null;
     $ter_school = $_POST['ter_school'] ?? null; $ter_degree = $_POST['ter_degree'] ?? null; $ter_year = $_POST['ter_year'] ?? null; $ter_attendance = $_POST['ter_attendance'] ?? null;
     $tech_school = $_POST['tech_school'] ?? null; $tech_degree = $_POST['tech_degree'] ?? null; $tech_year = $_POST['tech_year'] ?? null; $tech_attendance = $_POST['tech_attendance'] ?? null;
 
-    // Skills & History
     $special_skills = $_POST['special_skills'] ?? null;
     
-    // Process Availment History
     $availment_history = [];
     $year_history = [];
     $spes_id_history = [];
@@ -236,7 +210,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     $year_history_str = implode(', ', $year_history);
     $spes_id_history_str = implode(', ', $spes_id_history);
 
-    // --- START: MODIFIED CODE FOR MULTIPLE ID UPLOAD ---
     $id_image_paths = [];
     if (!empty($_FILES['id_images']['name'][0])) {
         $target_dir = "../../../../uploads/spes_ids/";
@@ -244,7 +217,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
             mkdir($target_dir, 0755, true);
         }
         foreach ($_FILES['id_images']['tmp_name'] as $key => $tmp_name) {
-            // Check for upload errors
             if ($_FILES['id_images']['error'][$key] == 0) {
                 $file_name = basename($_FILES['id_images']['name'][$key]);
                 $target_file = $target_dir . uniqid() . "_" . $file_name;
@@ -255,9 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
         }
     }
     $id_images_json = json_encode($id_image_paths);
-    // --- END: MODIFIED CODE FOR MULTIPLE ID UPLOAD ---
-    
-    // --- START: NEW CODE FOR SPES DOCUMENT UPLOAD ---
+
     $spes_documents_path = null;
     if (isset($_FILES['spes_documents']) && $_FILES['spes_documents']['error'] == 0) {
         $target_dir_docs = "../../../../uploads/spes_docs/";
@@ -270,9 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
             $spes_documents_path = $target_file_docs;
         }
     }
-    // --- END: NEW CODE FOR SPES DOCUMENT UPLOAD ---
 
-    // Fetch current active SPES batch
     $batch_id = null;
     $activeBatchStmt = $conn->prepare("SELECT batch_id FROM spes_batches WHERE status = 'active' LIMIT 1");
     $activeBatchStmt->execute();
@@ -282,8 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
         $batch_id = $activeBatchRow['batch_id'];
     }
 
-
-    // Prepare SQL Statement (MODIFIED)
     $sql = "INSERT INTO spes_applications (
         batch_id, user_id, surname, firstname, middlename, gsis_beneficiary, id_image_paths, spes_documents_path, dob, place_of_birth, citizenship, 
         contact, email, social_media, civil_status, sex, student_type, parent_status, present_address, permanent_address, 
@@ -296,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
-    // Bind Param (MODIFIED: The type string now has 43 characters)
+
     $stmt->bind_param(
         "isssssssssssssssssssssssssssssssssssssssssss",
         $batch_id, $userId, $surname, $firstname, $middlename, $gsis_beneficiary, $id_images_json, $spes_documents_path, $dob, $place_of_birth, $citizenship,
@@ -314,17 +280,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     }
 
     if ($stmt->execute()) {
-        // --- START: MODIFIED - SET SESSION AND REDIRECT ---
         $_SESSION['spes_application_submitted'] = true;
-        session_write_close(); // Force session to save before redirecting
+        session_write_close();
         header("Location: user_dashboard.php#spes-page");
         exit();
-        // --- END: MODIFIED - SET SESSION AND REDIRECT ---
     } else {
         die("Error submitting SPES application: " . $stmt->error);
     }
 }
-// --- END: NEW SPES APPLICATION SUBMISSION LOGIC ---
 
 
 $notificationSql = "SELECT * FROM notifications WHERE user_id IS NULL OR user_id = ? ORDER BY created_at DESC";
@@ -353,7 +316,6 @@ $scholarships = $scholarshipResult->fetch_all(MYSQLI_ASSOC);
 
 $totalScholarships = count($scholarships);
 
-// --- START: MODIFIED - Count total applications from both Scholarship and SPES tables ---
 $countCombinedSql = "
     SELECT 
         (SELECT COUNT(*) FROM applications WHERE user_id = ?) + 
@@ -365,9 +327,7 @@ $countStmt->bind_param("ii", $userId, $userId);
 $countStmt->execute();
 $countResult = $countStmt->get_result()->fetch_assoc();
 $totalApplications = $countResult['total_applications'];
-// --- END: MODIFIED ---
 
-// Fetch scholarship groups the user is APPROVED for
 $approvedGroups = [];
 $approvedSql = "SELECT s.scholarship_id, s.title 
                 FROM scholarships s 
@@ -381,7 +341,6 @@ while ($row = $approvedResult->fetch_assoc()) {
     $approvedGroups[] = $row;
 }
 
-// --- START: NEW SPES APPLICATION STATUS CHECK ---
 $spesApplicationStatus = null;
 $checkSpesSql = "SELECT status FROM spes_applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1";
 $checkSpesStmt = $conn->prepare($checkSpesSql);
@@ -390,20 +349,16 @@ $checkSpesStmt->execute();
 $checkSpesResult = $checkSpesStmt->get_result();
 if ($checkSpesResult->num_rows > 0) {
     $spesApp = $checkSpesResult->fetch_assoc();
-    // Only consider 'pending' or 'approved' status as a blocker
     if ($spesApp['status'] === 'pending' || $spesApp['status'] === 'approved') {
         $spesApplicationStatus = $spesApp['status'];
     }
 }
-// --- END: NEW SPES APPLICATION STATUS CHECK ---
 
-// Handle chat logic
 $selectedGroupId = isset($_GET['chat_group']) ? intval($_GET['chat_group']) : null;
 $messages = [];
-$chatTitle = 'Chat with Admin'; // Default title
+$chatTitle = 'Chat with Admin';
 
 if ($selectedGroupId) {
-    // Security check: Make sure the user is a member of the group they're trying to view.
     $isMember = false;
     foreach ($approvedGroups as $group) {
         if ($group['scholarship_id'] == $selectedGroupId) {
@@ -414,17 +369,14 @@ if ($selectedGroupId) {
     }
 
     if ($isMember) {
-        // Fetch group messages (admin posts)
         $stmt = $conn->prepare("SELECT * FROM concerns WHERE scholarship_id = ? ORDER BY created_at ASC");
         $stmt->bind_param("i", $selectedGroupId);
     }
 } else {
-    // Fetch personal messages
     $stmt = $conn->prepare("SELECT * FROM concerns WHERE user_id = ? AND scholarship_id IS NULL ORDER BY created_at ASC");
     $stmt->bind_param("i", $userId);
 }
 
-// Execute the prepared statement if it was set
 if (isset($stmt)) {
     $stmt->execute();
     $result = $stmt->get_result();
@@ -438,7 +390,6 @@ if (isset($_POST['send_concern'])) {
     $message = trim($_POST['concern_message']);
     $attachmentPath = null;
 
-    // Handle file upload
     if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == 0) {
         $target_dir = "../../../../uploads/chat_attachments/";
         if (!is_dir($target_dir)) {
@@ -451,8 +402,6 @@ if (isset($_POST['send_concern'])) {
         }
     }
 
-    // Proceed only if there is a message or an attachment
-    // Assumption: `concerns` table has been altered to include `attachment_path` VARCHAR(255) NULL
     if (!empty($message) || $attachmentPath) {
         $stmt = $conn->prepare("INSERT INTO concerns (user_id, sender, message, attachment_path) VALUES (?, 'user', ?, ?)");
         $stmt->bind_param("iss", $userId, $message, $attachmentPath);
@@ -826,12 +775,10 @@ if (isset($_POST['delete_message'])) {
     margin-top: 10px;
 }
 
-/* --- NEW: Added transition to all action buttons --- */
 .btn, .get-started, .submit-btn, .back-btn {
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-/* --- NEW: Added hover effect for buttons --- */
 .btn:hover, .get-started:hover, .submit-btn:hover, .back-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
@@ -916,7 +863,6 @@ if (isset($_POST['delete_message'])) {
     display: none;
 }
 
-/* --- MODIFIED: Removed hover transition from .box --- */
 .box {
     background-color: #fff;
     border-radius: 15px;
@@ -968,7 +914,7 @@ if (isset($_POST['delete_message'])) {
 }
 
 .get-started:hover {
-    background-color: #10087c; /* Darker shade on hover */
+    background-color: #10087c;
 }
 
 
@@ -1561,7 +1507,7 @@ form .label-application + div label {
 
     .concerns-layout {
         flex-direction: column;
-        height: calc(100vh - 140px); /* Adjust for navbars */
+        height: calc(100vh - 140px);
         width: 100%;
     }
 
@@ -1597,9 +1543,9 @@ form .label-application + div label {
     }
 
     .message {
-        max-width: 75% !important; /* Reduce max width on mobile */
-        min-width: 60px; /* Ensure minimum width for very short messages */
-        width: fit-content !important; /* Make width fit the content */
+        max-width: 75% !important;
+        min-width: 60px;
+        width: fit-content !important;
         word-wrap: break-word;
         word-break: break-word;
         hyphens: auto;
@@ -1609,7 +1555,7 @@ form .label-application + div label {
         align-self: flex-end;
         background-color: #090549;
         color: white;
-        margin-left: auto; /* Push to right */
+        margin-left: auto;
         margin-right: 0;
     }
 
@@ -1617,7 +1563,7 @@ form .label-application + div label {
         align-self: flex-start;
         background-color: #e9ecef;
         color: #333;
-        margin-left: 0; /* Keep on left */
+        margin-left: 0;
         margin-right: auto;
     }
 
@@ -1628,19 +1574,19 @@ form .label-application + div label {
     }
 
     .chat-messages {
-        padding: 15px 10px; /* Reduce padding on mobile */
-        gap: 8px; /* Reduce gap between messages */
+        padding: 15px 10px;
+        gap: 8px;
     }
 
     .message {
-        padding: 8px 12px; /* Slightly reduce padding */
-        margin: 3px 0; /* Reduce margin */
-        font-size: 14px; /* Ensure readable font size */
+        padding: 8px 12px; 
+        margin: 3px 0;
+        font-size: 14px;
         line-height: 1.4;
     }
 
     .message-timestamp {
-        font-size: 0.65em; /* Slightly smaller timestamp */
+        font-size: 0.65em;
         opacity: 0.7;
         text-align: right;
         margin-top: 2px;
@@ -1655,7 +1601,7 @@ form .label-application + div label {
 
     .message-attachment a {
         font-size: 0.85em;
-        word-break: break-all; /* Break long filenames */
+        word-break: break-all;
     }
 
     .chat-input {
@@ -1667,14 +1613,14 @@ form .label-application + div label {
         font-size: 14px;
         padding: 8px 12px;
         min-height: 36px;
-        max-height: 80px; /* Limit height on mobile */
+        max-height: 80px;
     }
 
     .chat-input button {
         width: 36px;
         height: 36px;
         font-size: 14px;
-        flex-shrink: 0; /* Prevent button from shrinking */
+        flex-shrink: 0;
     }
 
     .chat-input .upload-btn {
@@ -1819,7 +1765,6 @@ form .label-application + div label {
     font-weight: bold;
 }
 
-/* New Chat Layout Styles */
 .concerns-layout {
     display: flex;
     height: calc(100vh - 120px);
@@ -1864,7 +1809,6 @@ form .label-application + div label {
     flex-direction: column;
 }
 
-/* --- Styles converted from inline --- */
 .welcome-screen {
     margin-top: 100px;
 }
@@ -2058,7 +2002,6 @@ form .label-application + div label {
     font-size: 16px;
     vertical-align: middle;
 }
-/* --- NEW STYLES FOR SCHOLARSHIP TABS --- */
 .scholarship-tabs-container {
     display: none !important;
 }
@@ -2066,7 +2009,6 @@ form .label-application + div label {
 .scholarship-dropdown-container {
     position: relative;
     margin-bottom: 20px;
-    /* ADJUSTED: Reduced the max-width for a more compact look on desktop */
     max-width: 500px; 
 }
 
@@ -2095,7 +2037,7 @@ form .label-application + div label {
 }
 
 .scholarship-tab-content {
-    display: none; /* All content is hidden by default */
+    display: none;
     padding: 20px;
     border: 1px solid #ccc;
     background-color: #fff;
@@ -2143,36 +2085,35 @@ form .label-application + div label {
     to {opacity: 1;}
 }
 
-/* START: Styles for File Input Clear Button */
-.file-input-wrapper {
-    position: relative;
-    width: 100%;
-}
 
-.file-input-wrapper input.file-field {
-    width: 100%;
-    padding-right: 35px; /* Make space for the clear button */
-    box-sizing: border-box;
-}
+    .file-input-wrapper {
+        position: relative;
+        width: 100%;
+    }
 
-.file-input-clear-button {
-    display: none; /* Hidden by default */
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: white;
-    background-color: #f44336;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 12px;
-    text-align: center;
-    line-height: 20px;
-    z-index: 2; /* Ensure it's above the input field */
-}
-/* END: Styles for File Input Clear Button */
+    .file-input-wrapper input.file-field {
+        width: 100%;
+        padding-right: 35px;
+        box-sizing: border-box;
+    }
+
+    .file-input-clear-button {
+        display: none;
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: white;
+        background-color: #f44336;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        text-align: center;
+        line-height: 20px;
+        z-index: 2;
+    }
 
 
     .scholarship-dropdown-mobile {
@@ -2210,7 +2151,7 @@ form .label-application + div label {
     }
 
     .scholarship-dropdown-content {
-        display: none; /* Hidden by default, shown with JS */
+        display: none;
         position: absolute;
         background-color: #f9f9f9;
         width: 100%;
@@ -2239,20 +2180,16 @@ form .label-application + div label {
         background-color: #f1f1f1;
     }
 
-    /* Media Query to switch between tabs and dropdown */
     @media (max-width: 768px) {
-        /* Hide the original desktop tabs */
         .scholarship-tabs-container {
             display: none;
         }
 
-        /* Show our new mobile dropdown */
         .scholarship-dropdown-mobile {
             display: block;
-            position: relative; /* Needed for positioning the dropdown content */
+            position: relative;
         }
 
-        /* Hide all content sections on mobile initially */
         .scholarship-tab-content {
             display: none;
         }
@@ -2279,10 +2216,9 @@ form .label-application + div label {
     }
 
     .concerns-dropdown-content {
-        display: none; /* Hidden by default, shown with JS */
+        display: none;
         position: absolute;
         background-color: #f9f9f9;
-        /* Adjust width to account for parent padding on mobile */
         width: calc(100% - 20px); 
         box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
         z-index: 100;
@@ -2308,19 +2244,14 @@ form .label-application + div label {
         background-color: #e9ecef;
     }
 
-    /* Find your existing @media (max-width: 768px) rule and add these styles */
     @media (max-width: 768px) {
-        /* ... other mobile styles ... */
-
-        /* Hide the original desktop chat sidebar */
         .concerns-list {
             display: none;
         }
 
-        /* Show the new mobile dropdown */
         .concerns-dropdown-mobile {
             display: block;
-            position: relative; /* Needed for positioning the dropdown content */
+            position: relative;
             padding: 10px;
             border-bottom: 1px solid #eee;
         }
@@ -2451,10 +2382,8 @@ form .label-application + div label {
             </div>
 
             <?php foreach ($scholarships as $index => $scholarship):
-                // Calculate remaining slots
                 $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
 
-                // --- Button Logic ---
                 $hasPendingOrApprovedForThis = false;
                 $applicationStatusForThis = '';
                 $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
@@ -2698,7 +2627,6 @@ form .label-application + div label {
                         </thead>
                         <tbody>
                         <?php
-                        // FIX: The SPES part of the query now fetches the rejection_message.
                         $combinedHistorySql = "
                             (SELECT
                                 a.application_id AS id,
@@ -2733,7 +2661,6 @@ form .label-application + div label {
                         
                         if ($applicationsResult->num_rows > 0):
                             while ($application = $applicationsResult->fetch_assoc()):
-                                // Determine status class for styling
                                 $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
                         ?>
                             <tr>
@@ -2786,8 +2713,7 @@ form .label-application + div label {
                         <div class="box-title">Application Form</div>
                         <div class="box-description">Apply for the SPES program here.</div>
                         
-                        <?php 
-                        // UPDATED LOGIC: Determine button text and disabled state
+                        <?php
                         $spesButtonText = 'Open Form';
                         $isSpesDisabled = false;
 
@@ -3186,7 +3112,7 @@ form .label-application + div label {
                     <?php endif; ?>
                 </div>
                 
-                <?php if (!$selectedGroupId): // Only show input form for personal chat ?>
+                <?php if (!$selectedGroupId):?>
                 <form class="chat-input" method="POST" autocomplete="off" enctype="multipart/form-data">
                     <input type="file" name="attachment" id="chatAttachment" style="display: none;" onchange="updatePlaceholder()">
                     <button type="button" class="upload-btn" onclick="document.getElementById('chatAttachment').click();" title="Attach file">
@@ -3279,7 +3205,6 @@ form .label-application + div label {
         </div>
     </div>
 <script>
-    // START: ADDED THIS FUNCTION TO FIX THE TOAST NOTIFICATION
     function showToast(message, type = 'success') {
         const toast = document.getElementById('toast-message');
         const toastText = document.getElementById('toast-text');
@@ -3291,29 +3216,25 @@ form .label-application + div label {
         }
 
         toastText.textContent = message;
-        toastIcon.className = ''; // Reset classes
+        toastIcon.className = '';
 
         if (type === 'success') {
             toastIcon.classList.add('fas', 'fa-check-circle');
-            toast.style.backgroundColor = 'rgb(13, 160, 8)'; // Green
+            toast.style.backgroundColor = 'rgb(13, 160, 8)';
         } else if (type === 'error') {
             toastIcon.classList.add('fas', 'fa-times-circle');
-            toast.style.backgroundColor = '#dc3545'; // Red
+            toast.style.backgroundColor = '#dc3545';
         } else {
-            // Default/info style
             toastIcon.classList.add('fas', 'fa-info-circle');
-            toast.style.backgroundColor = '#090549'; // Default blue
+            toast.style.backgroundColor = '#090549';
         }
 
-        // Show the toast
         toast.classList.add('show');
 
-        // Hide the toast after 5 seconds
         setTimeout(() => {
             toast.classList.remove('show');
-        }, 5000); // 5000ms = 5 seconds
+        }, 5000);
     }
-    // END: ADDED FUNCTION
 
     function toggleMenu() {
         var menu = document.getElementById("dropdownMenu");
@@ -3446,7 +3367,6 @@ form .label-application + div label {
             }
         });
 
-        // Number Animation Logic
         const animateValue = (obj, start, end, duration) => {
             let startTimestamp = null;
             const step = (timestamp) => {
@@ -3465,17 +3385,16 @@ form .label-application + div label {
                 if (entry.isIntersecting) {
                     const el = entry.target;
                     const targetValue = parseInt(el.getAttribute('data-target'), 10);
-                    animateValue(el, 0, targetValue, 1500); // Animate over 1.5 seconds
-                    observer.unobserve(el); // Stop observing after animation
+                    animateValue(el, 0, targetValue, 1500);
+                    observer.unobserve(el);
                 }
             });
-        }, { threshold: 0.5 }); // Trigger when 50% of the element is visible
+        }, { threshold: 0.5 });
 
         document.querySelectorAll('.box-value').forEach(el => {
             observer.observe(el);
         });
 
-        // START: Logic for file input clear buttons
         function setupFileInputClear(inputId, clearButtonId) {
             const fileInput = document.getElementById(inputId);
             const clearButton = document.getElementById(clearButtonId);
@@ -3491,28 +3410,23 @@ form .label-application + div label {
             });
 
             clearButton.addEventListener('click', function() {
-                fileInput.value = ''; // This clears the file selection
-                // Create a new 'change' event to trigger the listener above
+                fileInput.value = '';
                 const changeEvent = new Event('change', { bubbles: true });
                 fileInput.dispatchEvent(changeEvent);
             });
         }
 
-        // Apply the logic to all relevant file inputs
         setupFileInputClear('spes_id_images', 'clear-spes-id-images');
         setupFileInputClear('spes_documents', 'clear-spes-documents');
         setupFileInputClear('supporting_documents', 'clear-supporting-documents');
-        // END: Logic for file input clear buttons
     });
 
-    // --- Find and replace this function ---
     function showApplicationForm(scholarshipTitle, scholarshipId) {
         document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
         document.getElementById('application-form-page').classList.add('active');
         document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
         document.getElementById('scholarship_id_field').value = scholarshipId;
         
-        // FIX: This new line scrolls the user to the top of the page
         window.scrollTo(0, 0); 
     }
 
@@ -3627,9 +3541,7 @@ form .label-application + div label {
     };
 
     document.addEventListener('DOMContentLoaded', function() {
-        // --- (Keep your other scripts like the notification handler, sidebar toggle, etc.) ---
 
-        // --- NEW UNIVERSAL SCRIPT FOR SCHOLARSHIP DROPDOWN ---
         const dropdownBtn = document.getElementById('scholarship-dropdown-btn');
         const dropdownContent = document.getElementById('scholarship-dropdown-content');
 
@@ -3637,7 +3549,6 @@ form .label-application + div label {
             const dropdownLinks = dropdownContent.querySelectorAll('a');
             const btnText = dropdownBtn.querySelector('span');
             
-            // Function to show the selected scholarship content
             function showScholarship(scholarshipId) {
                 document.querySelectorAll('.scholarship-tab-content').forEach(content => {
                     content.style.display = 'none';
@@ -3648,7 +3559,6 @@ form .label-application + div label {
                 }
             }
 
-            // Toggle dropdown visibility when the button is clicked
             dropdownBtn.addEventListener('click', function(event) {
                 event.stopPropagation();
                 const isVisible = dropdownContent.style.display === 'block';
@@ -3656,7 +3566,6 @@ form .label-application + div label {
                 dropdownBtn.classList.toggle('open', !isVisible);
             });
 
-            // Handle clicks on each scholarship link
             dropdownLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -3666,13 +3575,11 @@ form .label-application + div label {
                     btnText.textContent = selectedTitle;
                     showScholarship(selectedId);
 
-                    // Close the dropdown after selection
                     dropdownContent.style.display = 'none';
                     dropdownBtn.classList.remove('open');
                 });
             });
             
-            // On page load, automatically select and show the first scholarship
             if (dropdownLinks.length > 0) {
                 const firstId = dropdownLinks[0].dataset.scholarshipId;
                 const firstTitle = dropdownLinks[0].textContent.trim();
@@ -3682,10 +3589,7 @@ form .label-application + div label {
         }
     });
 
-    // Find your existing window.addEventListener('click', ...) and add this logic to it
-    // to ensure the dropdown closes when clicking elsewhere.
     window.addEventListener('click', function(event) {
-        // ... (Your other logic for closing modals, etc.)
         
         const scholarshipDropdownContent = document.getElementById('scholarship-dropdown-content');
         if (scholarshipDropdownContent && scholarshipDropdownContent.style.display === 'block') {
@@ -3698,17 +3602,13 @@ form .label-application + div label {
     });
 
         document.addEventListener('DOMContentLoaded', function() {
-        // ... all your existing JavaScript ...
 
-        // --- NEW SCRIPT FOR MOBILE CONCERNS DROPDOWN ---
         const concernsDropdownBtn = document.getElementById('concerns-dropdown-btn');
         const concernsDropdownContent = document.getElementById('concerns-dropdown-content');
 
         if (concernsDropdownBtn && concernsDropdownContent) {
-            // Open/close the dropdown when the button is clicked
             concernsDropdownBtn.addEventListener('click', function(event) {
                 event.stopPropagation();
-                // Close the other dropdown if it's open
                 const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
                 if(scholarshipDropdown) scholarshipDropdown.style.display = 'none';
 
@@ -3717,8 +3617,6 @@ form .label-application + div label {
         }
     });
 
-    // --- UPDATE THE EXISTING WINDOW CLICK LISTENER ---
-    // This function closes any open dropdown when you click elsewhere on the page.
     window.addEventListener('click', function() {
         const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
         const concernsDropdown = document.getElementById('concerns-dropdown-content');

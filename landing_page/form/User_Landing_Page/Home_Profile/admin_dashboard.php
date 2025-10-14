@@ -28,11 +28,8 @@ if ($result->num_rows > 0) {
     exit();
 }
 
-// Add this PHP code after your existing queries in the home-page section
-// Get current month applicants data
 $currentMonth = date('Y-m');
 
-// Count SPES applicants for current month
 $spesMonthSql = "SELECT COUNT(DISTINCT user_id) as monthly_total 
                  FROM spes_applications 
                  WHERE DATE_FORMAT(created_at, '%Y-%m') = ?";
@@ -41,7 +38,6 @@ $spesMonthStmt->bind_param("s", $currentMonth);
 $spesMonthStmt->execute();
 $spesMonthCount = $spesMonthStmt->get_result()->fetch_assoc()['monthly_total'] ?? 0;
 
-// Count Scholarship applicants for current month
 $scholarshipMonthSql = "SELECT COUNT(DISTINCT a.user_id) as monthly_total 
                         FROM applications a
                         JOIN scholarships s ON a.scholarship_id = s.scholarship_id
@@ -60,10 +56,8 @@ if (isset($_POST['send_message'])) {
 
     $deadline = null;
     if (!empty($deadline_date) && !empty($deadline_time)) {
-        // If both date and time are provided, combine them
         $deadline = $deadline_date . ' ' . $deadline_time;
     } elseif (!empty($deadline_date)) {
-        // If only date is provided, default to the end of that day
         $deadline = $deadline_date . ' 23:59:59';
     }
 
@@ -110,20 +104,51 @@ if (isset($_POST['approve_application']) || isset($_POST['reject_application']))
         $to = $infoResult['Email'];
         $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
         $scholarshipTitle = $infoResult['title'];
+        $dateToday = date("F j, Y");
 
         if ($newStatus == 'approved') {
+            // Delete other pending applications
             $deletePendingSql = "DELETE FROM applications WHERE user_id = ? AND status = 'pending'";
             $deleteStmt = $conn->prepare($deletePendingSql);
             $deleteStmt->bind_param("i", $userId);
             $deleteStmt->execute();
 
-            $subject = "Your Scholarship Application has been Approved";
-            $body = "Hello {$name},\n\nCongratulations! Your application for the '{$scholarshipTitle}' scholarship has been approved.\n\nAs a result, any other pending scholarship applications you had have been withdrawn. Please log in to your account for more details.\n\nThank you,\nPESO San Julian MIS";
+            $subject = "Scholarship Application Approved - PESO San Julian MIS";
+            $body = "
+Date: {$dateToday}
+
+Dear {$name},
+
+We are pleased to inform you that your scholarship application for the '{$scholarshipTitle}' has been approved by the scholarship committee of PESO San Julian. We believe your dedication and commitment to your studies will bring great contribution and inspiration to our community.
+
+As part of the scholarship program, you will be required to submit periodic updates or reports on your academic progress and activities related to the scholarship. You may also receive important updates and notifications regarding your scholarship through the **Concern page** in the system.
+
+Please log in to your account to view further details.
+
+We wish you all the best in your academic journey, and may your achievements bring pride to our institution.
+
+Sincerely,  
+PESO San Julian MIS
+";
         } else {
-            $subject = "Update on your Scholarship Application";
-            $body = "Hello {$name},\n\nWe regret to inform you that your application for the '{$scholarshipTitle}' scholarship has been rejected at this time.\n\nThank you for your interest.\n\nSincerely,\nPESO San Julian MIS";
+            $subject = "Scholarship Application Result - PESO San Julian MIS";
+            $body = "
+Date: {$dateToday}
+
+Dear {$name},
+
+We would like to inform you that after careful evaluation, your scholarship application for the '{$scholarshipTitle}' has unfortunately been rejected at this time. 
+
+You may check your account to view the specific reason provided by the administrator regarding your application status. We encourage you to review the feedback, as it may help improve your future applications.
+
+We truly appreciate your effort and interest in applying for this scholarship. Continue striving for excellence, and we hope you will apply again in the future.
+
+Sincerely,  
+PESO San Julian MIS
+";
         }
-        
+
+        // Send Email
         require '../../../../vendor/autoload.php';
         $mail = new PHPMailer\PHPMailer\PHPMailer();
         try {
@@ -134,12 +159,15 @@ if (isset($_POST['approve_application']) || isset($_POST['reject_application']))
             $mail->Password   = 'nfsv eqpj sfur sjsw';
             $mail->SMTPSecure = 'tls';
             $mail->Port       = 587;
+
             $mail->setFrom('edlexus59@gmail.com', 'PESO San Julian MIS');
             $mail->addAddress($to, $name);
             $mail->Subject = $subject;
             $mail->Body    = $body;
+
             $mail->send();
         } catch (Exception $e) {
+            // Optionally log $e->getMessage() for debugging
         }
     }
 
@@ -147,7 +175,9 @@ if (isset($_POST['approve_application']) || isset($_POST['reject_application']))
     exit();
 }
 
-    // --- START: FETCH SPES FORM IMAGES ---
+
+
+
 $spes_forms_data = [
     'employment_contract' => ['file_path' => '../../../../images/default-placeholder.png', 'doc_file_path' => null],
     'oath_undertaking' => ['file_path' => '../../../../images/default-placeholder.png', 'doc_file_path' => null]
@@ -162,7 +192,6 @@ if ($spesFilesResult) {
         ];
     }
 }
-// --- END: FETCH SPES FORM IMAGES ---
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_POST['upload_spes_doc_file'])) {
@@ -180,7 +209,6 @@ if (isset($_POST['upload_spes_doc_file'])) {
         $file_extension = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
         if (in_array($file_extension, $allowed_extensions)) {
-            // Delete any old source file for this doc_type
             $old_files = glob($target_dir . $doc_type . '.*');
             foreach($old_files as $old_file){
                 if(is_file($old_file)){
@@ -188,19 +216,16 @@ if (isset($_POST['upload_spes_doc_file'])) {
                 }
             }
 
-            // Create the new filename
             $target_file = $target_dir . $doc_type . '.' . $file_extension;
 
             if (move_uploaded_file($_FILES['spes_doc_source_file']['tmp_name'], $target_file)) {
-                // Update the database with the new path
                 $sql = "INSERT INTO spes_files (doc_type, doc_file_path) VALUES (?, ?) 
                         ON DUPLICATE KEY UPDATE doc_file_path = VALUES(doc_file_path)";
                 $stmt = $conn->prepare($sql);
                 $stmt->bind_param("ss", $doc_type, $target_file);
                 if ($stmt->execute()) {
                     $_SESSION['spes_form_upload_success'] = ucfirst(str_replace('_', ' ', $doc_type)) . " source file has been updated.";
-                    
-                    // Update the in-memory array to reflect the change
+
                     $spes_forms_data[$doc_type]['doc_file_path'] = $target_file;
                 } else {
                     $_SESSION['spes_form_upload_error'] = "Database error while updating the source file.";
@@ -218,12 +243,11 @@ if (isset($_POST['upload_spes_doc_file'])) {
     exit();
 }
     
-// --- UPDATED BLOCK: For adding a new batch ---
+
 if (isset($_POST['add_spes_batch'])) {
     $batch_year = $_POST['batch_year'];
     $batch_name = "SPES Batch " . $batch_year;
 
-    // 1. CHECK FOR DUPLICATES: Check if a batch with this name already exists
     $checkDuplicateSql = "SELECT batch_id FROM spes_batches WHERE batch_name = ?";
     $checkStmt = $conn->prepare($checkDuplicateSql);
     $checkStmt->bind_param("s", $batch_name);
@@ -233,7 +257,6 @@ if (isset($_POST['add_spes_batch'])) {
     if ($checkResult->num_rows > 0) {
         $_SESSION['spes_batch_error'] = "A SPES batch for the year {$batch_year} already exists.";
     } else {
-        // 2. SAVE AS PENDING: Insert the new batch with 'pending' status and the current timestamp
         $insertBatchSql = "INSERT INTO spes_batches (batch_name, start_date, status) VALUES (?, NOW(), 'pending')";
         $batchStmt = $conn->prepare($insertBatchSql);
         $batchStmt->bind_param("s", $batch_name);
@@ -245,17 +268,14 @@ if (isset($_POST['add_spes_batch'])) {
     exit();
 }
 
-// --- NEW BLOCK: For confirming a pending batch ---
 if (isset($_POST['confirm_spes_batch'])) {
     $batch_id = $_POST['batch_id'];
 
-    // First, check if there's already an active batch
     $checkActiveSql = "SELECT batch_id FROM spes_batches WHERE status = 'active'";
     $activeResult = $conn->query($checkActiveSql);
     if ($activeResult->num_rows > 0) {
         $_SESSION['spes_batch_error'] = "An active SPES batch already exists. Please end it before confirming a new one.";
     } else {
-        // If no other batch is active, proceed to activate this one
         $confirmSql = "UPDATE spes_batches SET status = 'active' WHERE batch_id = ?";
         $confirmStmt = $conn->prepare($confirmSql);
         $confirmStmt->bind_param("i", $batch_id);
@@ -267,7 +287,6 @@ if (isset($_POST['confirm_spes_batch'])) {
     exit();
 }
 
-// --- NEW BLOCK: For deleting a pending batch ---
 if (isset($_POST['delete_pending_spes_batch'])) {
     $batch_id = $_POST['batch_id'];
     $deleteSql = "DELETE FROM spes_batches WHERE batch_id = ? AND status = 'pending'";
@@ -283,7 +302,6 @@ if (isset($_POST['delete_pending_spes_batch'])) {
 if (isset($_POST['end_spes_batch'])) {
     $batch_id = $_POST['batch_id'];
 
-    // Update the batch to 'ended' and set the end_date to the current timestamp
     $endBatchSql = "UPDATE spes_batches SET status = 'ended', end_date = NOW() WHERE batch_id = ?";
     $endStmt = $conn->prepare($endBatchSql);
     $endStmt->bind_param("i", $batch_id);
@@ -306,12 +324,10 @@ if (isset($_POST['end_spes_batch'])) {
 
                 $file_name = basename($_FILES['spes_doc_image']['name']);
                 $imageFileType = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-                // Create a more predictable filename based on type
                 $target_file = $target_dir . $doc_type . '.' . $imageFileType;
                 $check = getimagesize($_FILES['spes_doc_image']['tmp_name']);
 
                 if ($check !== false) {
-                    // Before uploading, delete the old file if it exists with a different extension
                     $old_files = glob($target_dir . $doc_type . '.*');
                     foreach($old_files as $old_file){
                         if(is_file($old_file)){
@@ -320,7 +336,6 @@ if (isset($_POST['end_spes_batch'])) {
                     }
 
                     if (move_uploaded_file($_FILES['spes_doc_image']['tmp_name'], $target_file)) {
-                        // Use REPLACE INTO to either insert a new row or update an existing one
                         $sql = "REPLACE INTO spes_files (doc_type, file_path) VALUES (?, ?)";
                         $stmt = $conn->prepare($sql);
                         $stmt->bind_param("ss", $doc_type, $target_file);
@@ -339,17 +354,14 @@ if (isset($_POST['end_spes_batch'])) {
                 $_SESSION['spes_form_upload_error'] = "Invalid request or no file uploaded.";
             }
 
-            // Redirect back to the SPES management tab
         header("Location: admin_dashboard.php#scholarship-page");
         exit();
     }
 
-    // FIX: Changed "elseif" to "if" to ensure this block is reachable and added a specific session message.
 if (isset($_POST['reject_spes_application_with_message'])) {
     $spesApplicationId = $_POST['spes_application_id'];
     $rejectionMessage = $_POST['rejection_message'];
 
-    // 1. Get user information for the email
     $infoSql = "SELECT u.Email, u.Fname, u.Lname 
                 FROM spes_applications sa
                 JOIN user u ON sa.user_id = u.user_id
@@ -360,13 +372,11 @@ if (isset($_POST['reject_spes_application_with_message'])) {
     $infoResult = $infoStmt->get_result()->fetch_assoc();
 
     if ($infoResult) {
-        // 2. Update the application status and add the rejection message
         $updateSql = "UPDATE spes_applications SET status = 'rejected', rejection_message = ? WHERE spes_application_id = ?";
         $stmt = $conn->prepare($updateSql);
         $stmt->bind_param("si", $rejectionMessage, $spesApplicationId);
         $stmt->execute();
 
-        // 3. Prepare and send email with the reason
         $to = $infoResult['Email'];
         $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
         $subject = "Update on your SPES Application";
@@ -388,10 +398,8 @@ if (isset($_POST['reject_spes_application_with_message'])) {
             $mail->Body    = $body;
             $mail->send();
         } catch (Exception $e) {
-            // Optional: Log email error
         }
     }
-    // Set a specific success message for the toast notification
     $_SESSION['spes_application_rejected'] = true;
     header("Location: admin_dashboard.php#total-applicants-spes");
     exit();
@@ -414,16 +422,14 @@ if (isset($_POST['reject_spes_application_with_message'])) {
         
         header("Location: admin_dashboard.php#scholarship-page");
         exit();
-    } elseif (isset($_POST['hard_delete_scholarship'])) { // ADD THIS NEW BLOCK
+    } elseif (isset($_POST['hard_delete_scholarship'])) {
             $id = $_POST['id'];
 
-            // Optional but recommended: Delete any applications associated with this scholarship first
             $deleteAppsSql = "DELETE FROM applications WHERE scholarship_id = ?";
             $deleteAppsStmt = $conn->prepare($deleteAppsSql);
             $deleteAppsStmt->bind_param("i", $id);
             $deleteAppsStmt->execute();
 
-            // Now, permanently delete the scholarship
             $deleteScholarshipSql = "DELETE FROM scholarships WHERE scholarship_id = ? AND status = 'pending'";
             $deleteScholarshipStmt = $conn->prepare($deleteScholarshipSql);
             $deleteScholarshipStmt->bind_param("i", $id);
@@ -444,7 +450,6 @@ if (isset($_POST['reject_spes_application_with_message'])) {
     } elseif (isset($_POST['publish_message'])) {
         $messageId = $_POST['message_id'];
         
-        // This query updates the draft message to 'published'
         $updateSql = "UPDATE notifications SET status = 'published' WHERE notification_id = ? AND user_id IS NULL";
         $updateStmt = $conn->prepare($updateSql);
         $updateStmt->bind_param("i", $messageId);
@@ -477,8 +482,6 @@ if (isset($_POST['reject_spes_application_with_message'])) {
         $spesApplicationId = $_POST['spes_application_id'];
         $newStatus = isset($_POST['approve_spes_application']) ? 'approved' : 'rejected';
 
-        // --- START: MODIFICATION - ADD EMAIL NOTIFICATION ---
-        // 1. Get user information for the email
         $infoSql = "SELECT u.Email, u.Fname, u.Lname 
                     FROM spes_applications sa
                     JOIN user u ON sa.user_id = u.user_id
@@ -489,13 +492,11 @@ if (isset($_POST['reject_spes_application_with_message'])) {
         $infoResult = $infoStmt->get_result()->fetch_assoc();
 
         if ($infoResult) {
-            // 2. Update the application status in the database
             $updateSql = "UPDATE spes_applications SET status = ? WHERE spes_application_id = ?";
             $stmt = $conn->prepare($updateSql);
             $stmt->bind_param("si", $newStatus, $spesApplicationId);
             $stmt->execute();
 
-            // 3. Prepare email content
             $to = $infoResult['Email'];
             $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
 
@@ -504,7 +505,6 @@ if (isset($_POST['reject_spes_application_with_message'])) {
                 $body = "Hello {$name},\n\nCongratulations! Your application for the SPES Program has been approved.\n\nPlease log in to your account for more details.\n\nThank you,\nPESO San Julian MIS";
             }
             
-            // 4. Send the email using PHPMailer
             require '../../../../vendor/autoload.php';
             $mail = new PHPMailer\PHPMailer\PHPMailer();
             try {
@@ -521,11 +521,8 @@ if (isset($_POST['reject_spes_application_with_message'])) {
                 $mail->Body    = $body;
                 $mail->send();
             } catch (Exception $e) {
-                // Email sending failed, but the application status is still updated.
-                // You could add logging here if needed.
             }
         }
-        // --- END: MODIFICATION ---
         
         $_SESSION['spes_status_updated'] = true;
         header("Location: admin_dashboard.php#total-applicants-spes");
@@ -560,7 +557,6 @@ $totalListedScholarshipsSql = "SELECT COUNT(scholarship_id) as total FROM schola
 $totalListedScholarshipsResult = $conn->query($totalListedScholarshipsSql);
 $totalListedScholarshipsCount = $totalListedScholarshipsResult->fetch_assoc()['total'] ?? 0;
 
-// FIX: Changed to count distinct users to ensure each SPES applicant is counted only once.
 $totalSpesApplicantsSql = "SELECT COUNT(DISTINCT user_id) as total FROM spes_applications";
 $totalSpesApplicantsResult = $conn->query($totalSpesApplicantsSql);
 $totalSpesApplicantsCount = $totalSpesApplicantsResult->fetch_assoc()['total'] ?? 0;
@@ -673,7 +669,6 @@ if (isset($_POST['delete_admin_message']) && isset($_POST['message_id'])) {
 function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
     $attachmentPath = '';
 
-    // 1. Get the attachment path from the message
     $pathStmt = $conn->prepare("SELECT attachment_path FROM concerns WHERE id = ? AND user_id = ?");
     $pathStmt->bind_param("ii", $messageId, $userId);
     $pathStmt->execute();
@@ -687,11 +682,9 @@ function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
         return;
     }
 
-    // CORRECTED: Normalize the new attachment's path to use forward slashes
     $normalizedAttachmentPath = str_replace('\\', '/', $attachmentPath);
 
     if ($type === 'scholarship') {
-        // 2. Find the user's latest APPROVED scholarship application
         $appStmt = $conn->prepare("SELECT application_id, documents FROM applications WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1");
         $appStmt->bind_param("i", $userId);
         $appStmt->execute();
@@ -701,7 +694,6 @@ function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
             $applicationId = $appRow['application_id'];
             $currentDocsRaw = json_decode($appRow['documents'], true) ?: [];
             
-            // CORRECTED: Normalize all existing paths to prevent duplicates and formatting issues
             $currentDocs = array_map(function($path) {
                 return str_replace('\\', '/', $path);
             }, $currentDocsRaw);
@@ -719,7 +711,6 @@ function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
             $_SESSION['document_saved_error'] = "Failed: User is not an approved Scholarship applicant.";
         }
     } elseif ($type === 'spes') {
-        // 2. Find the user's latest APPROVED SPES application
         $appStmt = $conn->prepare("SELECT spes_application_id, spes_documents_path FROM spes_applications WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1");
         $appStmt->bind_param("i", $userId);
         $appStmt->execute();
@@ -729,7 +720,6 @@ function saveAttachmentToDocuments($conn, $messageId, $userId, $type) {
             $applicationId = $appRow['spes_application_id'];
             $currentDocsPath = $appRow['spes_documents_path'];
             
-            // CORRECTED: This block now robustly handles both single paths and existing JSON arrays
             $currentDocsRaw = json_decode($currentDocsPath, true);
             if (!is_array($currentDocsRaw)) {
                 $currentDocsRaw = !empty($currentDocsPath) ? [$currentDocsPath] : [];
@@ -779,14 +769,12 @@ if (isset($_POST['approve_user'])) {
 
     $to = $user['Email'];
 
-    // 1. Validate email format
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['user_request_error'] = "Error: The user's email address ({$to}) has an invalid format. Approval failed.";
         header("Location: admin_dashboard.php#user-request-page");
         exit();
     }
     
-    // 2. Validate email domain's mail server record
     $domain = substr($to, strpos($to, '@') + 1);
     if (!checkdnsrr($domain, "MX")) {
         $_SESSION['user_request_error'] = "Error: The user's email domain ({$domain}) does not have a valid mail server. Approval failed.";
@@ -794,12 +782,10 @@ if (isset($_POST['approve_user'])) {
         exit();
     }
 
-    // 3. Update status in database
     $conn->query("UPDATE user SET status='approved' WHERE user_id=$uid");
 
     $name = $user['Fname'] . ' ' . $user['Lname'];
 
-    // 4. Send notification email
     require '../../../../vendor/autoload.php';
     $mail = new PHPMailer\PHPMailer\PHPMailer();
     try {
@@ -807,7 +793,7 @@ if (isset($_POST['approve_user'])) {
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'edlexus59@gmail.com';
-        $mail->Password = 'nfsv eqpj sfur sjsw'; // Note: It's better to use environment variables for credentials
+        $mail->Password = 'nfsv eqpj sfur sjsw';
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
         $mail->setFrom('edlexus59@gmail.com', 'PESO San Julian MIS');
@@ -817,7 +803,6 @@ if (isset($_POST['approve_user'])) {
         $mail->send();
         $_SESSION['user_request_success'] = "User '{$name}' has been approved.";
     } catch (Exception $e) {
-        // The user is approved, but the email failed. Inform the admin.
         $_SESSION['user_request_error'] = "User was approved, but the notification email failed to send. Error: {$mail->ErrorInfo}";
     }
 
@@ -968,10 +953,8 @@ if ($viewScholarshipId) {
     }
 }
 
-// --- START: MODIFIED SCHOLARSHIP REPORT DATA FETCHING ---
 $scholarshipDocsSearch = isset($_GET['search_scholarship_docs']) ? trim($_GET['search_scholarship_docs']) : '';
 
-// This query now fetches the scholarship_id and title to be used for tabbing
 $scholarshipDocsSql = "
     SELECT u.user_id, u.Fname, u.Lname, u.valid_id, a.documents, s.scholarship_id, s.title 
     FROM user u 
@@ -993,7 +976,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 $scholarship_docs_users = $result->fetch_all(MYSQLI_ASSOC);
 
-// New array to hold users grouped by their scholarship
 $scholarshipReportsData = [];
 foreach ($scholarship_docs_users as $user) {
     $sch_id = $user['scholarship_id'];
@@ -1005,9 +987,6 @@ foreach ($scholarship_docs_users as $user) {
     }
     $scholarshipReportsData[$sch_id]['users'][] = $user;
 }
-// --- END: MODIFIED SCHOLARSHIP REPORT DATA FETCHING ---
-// --- START: MODIFICATION - Only show reports for ACTIVE SPES batch ---
-// 1. Find the start date of the currently active SPES batch
 $activeBatchStartDate = null;
 $activeBatchSql = "SELECT start_date FROM spes_batches WHERE status = 'active' LIMIT 1";
 $activeBatchResult = $conn->query($activeBatchSql);
@@ -1015,7 +994,6 @@ if ($activeBatchResult && $activeBatchRow = $activeBatchResult->fetch_assoc()) {
     $activeBatchStartDate = $activeBatchRow['start_date'];
 }
 
-// 2. Build the query based on the active batch
 $spesDocsSearch = isset($_GET['search_spes_docs']) ? trim($_GET['search_spes_docs']) : '';
 $spesDocsSql = "
     SELECT u.user_id, u.Fname, u.Lname, sa.id_image_paths, sa.spes_documents_path 
@@ -1023,15 +1001,11 @@ $spesDocsSql = "
     WHERE sa.status = 'approved'
 ";
 
-// Only include applicants from the currently active batch
 if ($activeBatchStartDate) {
-    // Note the use of quotes around the date string for proper SQL syntax
     $spesDocsSql .= " AND sa.created_at >= '" . $conn->real_escape_string($activeBatchStartDate) . "'";
 } else {
-    // If no batch is active, the report should be empty. This condition ensures that.
     $spesDocsSql .= " AND 1=0"; 
 }
-// --- END: MODIFICATION ---
 
 if (!empty($spesDocsSearch)) {
     $spesDocsSql .= " AND CONCAT(u.Fname, ' ', u.Lname) LIKE ?";
@@ -1059,7 +1033,6 @@ $endedScholarshipsSql = "SELECT * FROM scholarships WHERE status = 'ended' ORDER
 $endedScholarshipsResult = $conn->query($endedScholarshipsSql);
 $endedScholarships = $endedScholarshipsResult->fetch_all(MYSQLI_ASSOC);
 
-// MODIFICATION: Sort by active status first, then by the most recent start date
 $spesHistorySql = "SELECT * FROM spes_batches ORDER BY status = 'active' DESC, start_date DESC";
 $spesHistoryResult = $conn->query($spesHistorySql);
 $spesHistory = $spesHistoryResult->fetch_all(MYSQLI_ASSOC);
@@ -1098,12 +1071,10 @@ if($viewEndedMembersId) {
     $endedMembers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-// --- START: MODIFIED SPES MEMBER FETCHING LOGIC ---
 $viewSpesMembersId = isset($_GET['view_spes_members']) ? intval($_GET['view_spes_members']) : null;
 $spesMembers = [];
 $spesBatchName = '';
 if ($viewSpesMembersId) {
-    // 1. Fetch the selected batch's information (name, start date, end date)
     $batchInfoSql = "SELECT batch_name, start_date, end_date FROM spes_batches WHERE batch_id = ?";
     $stmt = $conn->prepare($batchInfoSql);
     $stmt->bind_param("i", $viewSpesMembersId);
@@ -1113,9 +1084,8 @@ if ($viewSpesMembersId) {
     if ($batchInfo) {
         $spesBatchName = $batchInfo['batch_name'];
         $startDate = $batchInfo['start_date'];
-        $endDate = $batchInfo['end_date']; // This will be NULL if the batch is still active
+        $endDate = $batchInfo['end_date'];
 
-        // 2. Build the query to find members whose application date falls within the batch's active period
         $membersSql = "SELECT u.Fname, u.Lname, sa.created_at as application_date
                        FROM spes_applications sa
                        JOIN user u ON sa.user_id = u.user_id
@@ -1124,28 +1094,20 @@ if ($viewSpesMembersId) {
         $params = [$startDate];
         $types = "s";
 
-        // 3. If the batch has an end date, it means it's an "ended" batch. We add the end date to the
-        //    query to create a specific time window for that batch.
         if ($endDate) {
             $membersSql .= " AND sa.created_at <= ?";
-            // We append the time to include the entire day of the end date
             $params[] = $endDate . ' 23:59:59';
             $types .= "s";
         }
         
-        // For active batches, the end date is NULL, so the query correctly fetches all members
-        // from the start date up to the present moment.
-
         $membersSql .= " ORDER BY u.Lname, u.Fname";
 
-        // 4. Execute the dynamically built query to get the correct members for the selected batch
         $stmt = $conn->prepare($membersSql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $spesMembers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 }
-// --- END: MODIFIED SPES MEMBER FETCHING LOGIC ---
 
 $spesBatchesSql = "SELECT * FROM spes_batches ORDER BY start_date DESC";
 $spesBatchesResult = $conn->query($spesBatchesSql);
@@ -1434,15 +1396,15 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
     background-color: #090549;
     color: white;
     border: none;
-    padding: 10px 15px; /* Adjusted padding for a better fit */
+    padding: 10px 15px;
     border-radius: 15px;
     cursor: pointer;
     margin-top: 10px;
     font-size: 10px;
-    text-decoration: none; /* Removes the underline */
-    display: inline-flex;  /* Aligns icon and text */
-    align-items: center;   /* Vertically centers icon and text */
-    gap: 8px;              /* Adds space between the icon and text */
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .view-details:hover {
@@ -1660,7 +1622,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
     display: block;
 }
 
-/* ADD THIS RULE TO APPLY THE FADE-IN ANIMATION */
 .page.active {
     animation: fadeIn 0.5s;
 }
@@ -2501,27 +2462,25 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
 }
 
 .tabs {
-    display: flex; /* Use flexbox for alignment */
+    display: flex;
     border-bottom: 1px solid #ccc;
     margin-bottom: 10px;
-    /* Key properties for horizontal scrolling */
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
 }
-/* Style the scrollbar for the tabs container */
 .tabs::-webkit-scrollbar {
     display: none;
 }
 .tabs::-webkit-scrollbar-track {
-    background: #f1f1f1; /* Light grey track */
+    background: #f1f1f1;
 }
 .tabs::-webkit-scrollbar-thumb {
-    background: #888; /* Darker grey handle */
+    background: #888;
     border-radius: 3px;
 }
 .tabs::-webkit-scrollbar-thumb:hover {
-    background: #555; /* Even darker handle on hover */
+    background: #555;
 }
 
 #scholarship-document-page .tab-link {
@@ -2529,8 +2488,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
     font-size: 12px;
 } 
 
-
-/* --- STYLES FOR REPORT PAGE DROPDOWN --- */
 .report-dropdown-container {
     position: relative;
     margin-bottom: 10px;
@@ -2595,7 +2552,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
     margin-top: 10px;
 }
 
-/* --- NEW STYLES FOR SCHOLARSHIP ACCORDION --- */
 .scholarship-accordion {
     margin-bottom: 10px;
 }
@@ -2648,7 +2604,7 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
 }
 
 .scholarship-accordion-content .scholarship-details {
-    padding-top: 20px; /* Add padding to the inner container */
+    padding-top: 20px;
 }
 </style>
 <body>
@@ -2680,10 +2636,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                 <div class="nav-icon"><i class="fas fa-home"></i></div>
                 <div class="nav-text">Home</div>
             </div>
-            <div class="nav-item" id="history-nav" onclick="showPage('application-page')">
-                <div class="nav-icon"><i class="fas fa-user-check"></i></div>
-                <div class="nav-text">Approved Applicants</div>
-            </div>
            <div class="nav-item" id="scholarships-nav" onclick="showPage('scholarship-page')">
                 <div class="nav-icon"><i class="fas fa-tasks"></i></div>
                 <div class="nav-text">Manage Scholarship/SPES</div>
@@ -2695,6 +2647,10 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
             <div class="nav-item" id="communication-nav" onclick="showPage('send-updates-page')">
                 <div class="nav-icon"><i class="fas fa-bullhorn"></i></div>
                 <div class="nav-text">Send Updates</div>
+            </div>
+            <div class="nav-item" id="history-nav" onclick="showPage('application-page')">
+                <div class="nav-icon"><i class="fas fa-user-check"></i></div>
+                <div class="nav-text">Approved Applicants</div>
             </div>
             <div class="nav-item" id="total-applicants-nav" onclick="showPage('total-applicants-page')">
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
@@ -2847,8 +2803,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
 
 
         <?php
-            // FIX: This query now counts each unique user only once across both scholarship
-            // and SPES applications to provide an accurate total count of individual applicants.
             $totalApplicantsSql = "
                 SELECT COUNT(DISTINCT user_id) as grand_total FROM (
                     (SELECT a.user_id
@@ -2894,7 +2848,7 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
         <div class="main-content">
 
             <div id="home-page" class="page active">
-            <!-- <h1 class="h1-home-welcome">Welcome, <?php echo htmlspecialchars($admin_name); ?>!</h1> -->
+            <?php echo htmlspecialchars($admin_name); ?>!</h1> -->
             
             <div style="background: white; border-radius: 15px; padding: 30px; margin: 20px 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                 <h2 style="font-size: 20px; color: #333; margin-bottom: 20px; text-align: center;">
@@ -2956,8 +2910,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
         <p class="p-description-appM">This section displays the total number of applicants in the system, grouped by Scholarship and SPES.</p>
         <div class="dashboard-boxes">
             <?php
-            // FIX: This query now counts unique users (DISTINCT user_id) who have applied
-            // to any active scholarship, preventing repeated counts for the same person.
             $totalAllApplicantsSql = "
                 SELECT COUNT(DISTINCT a.user_id) as total_all_applicants
                 FROM applications a
@@ -3017,8 +2969,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                 <p>List of all scholarship programs available in the system:</p>
                 <button class="back-btn" onclick="showPage('total-applicants-page')">Back to Total Applicants</button>
                 <?php
-                // FIX: This query now counts unique applicants (DISTINCT user_id) for each
-                // scholarship program, ensuring users who re-apply are only counted once.
                 $totalApplicantsSql = "
                     SELECT s.scholarship_id, s.title, s.description, s.status, COUNT(DISTINCT a.user_id) as total_applicants 
                     FROM scholarships s 
@@ -3054,74 +3004,76 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                 <?php endif; ?>
             </div>
 
-<?php if ($viewScholarshipId): ?>
-<div id="scholarship-applicants-page" class="page active">
-    <div class="applicants-container">
-        <h2 class="applicants-h2">Applicants for 
-            <?php
-            $schTitle = '';
-            $schQuery = $conn->prepare("SELECT title FROM scholarships WHERE scholarship_id = ?");
-            $schQuery->bind_param("i", $viewScholarshipId);
-            $schQuery->execute();
-            $schResult = $schQuery->get_result();
-            if($schRow = $schResult->fetch_assoc()) {
-                $schTitle = $schRow['title'];
-            }
-            echo htmlspecialchars($schTitle);
-            ?>
-        </h2>
-        <p class="applicants-p">Review, approve, or reject applications for this program.</p>
-        
-        <form id="searchForm" method="GET">
-            <input type="hidden" name="view_scholarship" value="<?php echo htmlspecialchars($viewScholarshipId); ?>">
-            <input type="text" name="search" placeholder="Search by Application ID..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" class="search-input">
-            <button type="submit" class="search-button">Search</button>
-        </form>
-        <button class="back-btn" onclick="window.location.href='admin_dashboard.php#total-applicants-scholarship'">Back to program</button>
+            <?php if ($viewScholarshipId): ?>
+            <div id="scholarship-applicants-page" class="page active">
+                <div class="applicants-container">
+                    <h2 class="applicants-h2">Applicants for 
+                        <?php
+                        $schTitle = '';
+                        $schQuery = $conn->prepare("SELECT title FROM scholarships WHERE scholarship_id = ?");
+                        $schQuery->bind_param("i", $viewScholarshipId);
+                        $schQuery->execute();
+                        $schResult = $schQuery->get_result();
+                        if($schRow = $schResult->fetch_assoc()) {
+                            $schTitle = $schRow['title'];
+                        }
+                        echo htmlspecialchars($schTitle);
+                        ?>
+                    </h2>
+                    <p class="applicants-p">Review, approve, or reject applications for this program.</p>
+                    
+                    <form id="searchForm" method="GET">
+                        <input type="hidden" name="view_scholarship" value="<?php echo htmlspecialchars($viewScholarshipId); ?>">
+                        <input type="text" name="search" placeholder="Search by Application ID..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" class="search-input">
+                        <button type="submit" class="search-button">Search</button>
+                    </form>
+                    <button class="back-btn" onclick="window.location.href='admin_dashboard.php#total-applicants-scholarship'">Back to program</button>
 
-        <table class="applicants-table">
-            <thead>
-                <tr>
-                    <th>Application ID</th>
-                    <th>Name</th>
-                    <th>Application Details</th>
-                    <th>Remarks</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php if (count($applicants) > 0): ?>
-                <?php foreach ($applicants as $app): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($app['application_id']); ?></td>
-                        <td><?php echo htmlspecialchars($app['Fname'] . ' ' . $app['Lname']); ?></td>
-                        <td>
-                            <button class="btn-outline" onclick='showAppFormModal(<?php echo json_encode($app); ?>)'>View Details</button>
-                        </td>
-                        <td>
-                            <?php if ($app['status'] == 'pending'): ?>
-                                <form method="POST" class="inline-form">
-                                    <input type="hidden" name="application_id" value="<?php echo $app['application_id']; ?>">
-                                    <button type="submit" name="approve_application" class="btn-approve">Approve</button>
-                                </form>
-                                <button type="button" class="btn-reject" onclick="showRejectionModal('<?php echo $app['application_id']; ?>')">Reject</button>
-                            <?php else: 
-                                $statusClass = 'status-' . htmlspecialchars($app['status']);
-                            ?>
-                                <span class="status-badge <?php echo $statusClass; ?>">
-                                    <?php echo ucfirst($app['status']); ?>
-                                </span>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr><td colspan="4" class="text-center" style="padding: 20px;">No applicants found for this scholarship or search query.</td></tr>
+                    <table class="applicants-table">
+                        <thead>
+                            <tr>
+                                <th>Application ID</th>
+                                <th>Name</th>
+                                <th>Date Applied</th>
+                                <th>Status</th>
+                                <th>Application Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php if (count($applicants) > 0): ?>
+                            <?php foreach ($applicants as $app): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($app['application_id']); ?></td>
+                                    <td><?php echo htmlspecialchars($app['Fname'] . ' ' . $app['Lname']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
+                                    <td>
+                                        <?php if ($app['status'] == 'pending'): ?>
+                                            <form method="POST" class="inline-form">
+                                                <input type="hidden" name="application_id" value="<?php echo $app['application_id']; ?>">
+                                                <button type="submit" name="approve_application" class="btn-approve">Approve</button>
+                                            </form>
+                                            <button type="button" class="btn-reject" onclick="showRejectionModal('<?php echo $app['application_id']; ?>')">Reject</button>
+                                        <?php else: 
+                                            $statusClass = 'status-' . htmlspecialchars($app['status']);
+                                        ?>
+                                            <span class="status-badge <?php echo $statusClass; ?>">
+                                                <?php echo ucfirst($app['status']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <button class="btn-outline" onclick='showAppFormModal(<?php echo json_encode($app); ?>)'>View Details</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr><td colspan="5" class="text-center" style="padding: 20px;">No applicants found for this scholarship or search query.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                    </div>
+            </div>
             <?php endif; ?>
-            </tbody>
-        </table>
-        </div>
-</div>
-<?php endif; ?>
 
             <div id="appFormModal" class="modal">
                 <div class="modal-content">
@@ -3138,8 +3090,8 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                     <form method="POST">
                         <input type="hidden" name="scholarship_id" id="editSlotsScholarshipId">
                         <p>Current Slots: <span id="currentSlotsText"></span></p>
-                        <p>Remaining Slots: <span id="remainingSlotsText"></span></p>
                         <p>Total Applicants: <span id="totalApplicantsText"></span></p>
+                        <p style="font-size: 11px; color: #555; margin-top: 15px;">The new total slots cannot be set lower than the current number of applicants.</p>
                         <label for="new_slots">Set New Total Slots:</label>
                         <input type="number" id="new_slots" name="new_slots" required class="search-input" style="width:100%; box-sizing: border-box; margin-top:10px;">
                         <button type="submit" name="update_slots" class="search-button" style="margin-top:15px; width:100%;">Update Slots</button>
@@ -3155,7 +3107,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                     <?php
                     $searchSpesIdTerm = isset($_GET['search_spes_id']) ? trim($_GET['search_spes_id']) : '';
                     
-                    // --- MODIFIED: This query now joins with spes_batches to get the batch_name ---
                     $spesListSql = "
                         SELECT 
                             sa.*, 
@@ -3282,8 +3233,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                     $searchSpesTerm = isset($_GET['search_spes_name']) ? trim($_GET['search_spes_name']) : '';
                     $searchSpesSql = '%' . $searchSpesTerm . '%';
 
-                    // FIX: Changed "u.Fname, u.Lname" to "u.*" to fetch all user details
-                    // so the 'View User Info' modal can be fully populated.
                     $approvedSpesListSql = "
                         SELECT sa.*, u.* FROM spes_applications sa
                         JOIN user u ON sa.user_id = u.user_id
@@ -3511,13 +3460,10 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                         <tbody>
                             <?php foreach ($spes_docs_users as $user): ?>
                                 <?php
-                                    // --- START: FIX ---
-                                    // Define both variables to check for documents and IDs
                                     $id_docs = json_decode($user['id_image_paths'], true);
                                     $has_id = is_array($id_docs) && !empty($id_docs);
                                     $has_reqs = !empty($user['spes_documents_path']);
                                     $status = $has_reqs ? 'Complete' : 'INC';
-                                    // --- END: FIX ---
                                 ?>
                                 <tr>
                                     <td>
@@ -3651,7 +3597,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
             <div class="concerns-chat-messages" id="concernChatMessages">
                 <?php if ($selectedGroupId || $selectedUserId): ?>
                     <?php
-                        // Pre-fetch approval statuses for all users in the current chat view
                         $userIdsInChat = array_unique(array_column($chatMessages, 'user_id'));
                         $approvedScholarUsers = [];
                         $approvedSpesUsers = [];
@@ -3804,8 +3749,7 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                         LEFT JOIN applications a ON s.scholarship_id = a.scholarship_id 
                         WHERE s.status != 'ended' 
                         GROUP BY s.scholarship_id 
-                        ORDER BY s.created_at DESC"; // This line pins new scholarships to the top
-                    // --- END: MODIFIED QUERY ---
+                        ORDER BY s.created_at DESC";
 
                     $scholarshipResult_list = $conn->query($scholarshipsSql_list);
                     $scholarships_list = $scholarshipResult_list->fetch_all(MYSQLI_ASSOC);
@@ -3814,7 +3758,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                     <?php foreach ($scholarships_list as $scholarship): 
                         $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
                     ?>
-                        <!-- START: NEW ACCORDION STRUCTURE -->
                         <div class="scholarship-accordion">
                             <button class="scholarship-accordion-header">
                                 <span><?php echo htmlspecialchars($scholarship['title']); ?></span>
@@ -3864,7 +3807,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                                 </div>
                             </div>
                         </div>
-                        <!-- END: NEW ACCORDION STRUCTURE -->
                     <?php endforeach; ?>
                     
                     <?php if (count($scholarships_list) === 0): ?>
@@ -3976,7 +3918,7 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                                             </form>
                                         <?php elseif ($batch['status'] === 'active'): ?>
                                             <button type="button" class="btn-delete-scholarship" onclick="showEndSpesModal('<?php echo $batch['batch_id']; ?>')">End Batch</button>
-                                        <?php else: // 'ended' ?>
+                                        <?php else:?>
                                             <span>N/A</span>
                                         <?php endif; ?>
                                     </td>
@@ -4323,7 +4265,6 @@ Closing/Signature:" rows="5" required></textarea>
 <script>
 const BASE_URL = 'http://localhost/form_prac/';   
 
-// FIX: ADDED A NEW HELPER FUNCTION TO TRUNCATE LONG FILENAMES
 function truncateFilename(filename, maxLength = 50) {
     if (filename.length > maxLength) {
         return filename.substring(0, maxLength - 3) + '...';
@@ -4414,11 +4355,8 @@ function highlightActiveNav(navId) {
     document.getElementById(navId).classList.add('active');
 }
 
-// --- START: CORRECTED SCRIPT INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', function() {
     
-    // --- FIX #2: PAGE PERSISTENCE ON REFRESH ---
-    // This logic now runs correctly to show the right page on load.
     const urlParams = new URLSearchParams(window.location.search);
     let hash = window.location.hash.substr(1);
     
@@ -4436,8 +4374,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showPage('home-page');
     }
     
-    // --- FIX #1: SIDEBAR TOGGLE ---
-    // This logic is now in the correct place and will make the sidebar shrink again.
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.querySelector('.main-content');
     const toggleBtn = document.getElementById('toggleSidebar');
@@ -4456,7 +4392,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize the monthly applicants chart
     const ctx = document.getElementById('monthlyApplicantsChart');
     if (ctx) {
         new Chart(ctx, {
@@ -4467,8 +4402,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     label: 'Number of Applicants',
                     data: [<?php echo $spesMonthCount; ?>, <?php echo $scholarshipMonthCount; ?>],
                     backgroundColor: [
-                        '#aa0505',  // Red for SPES
-                        'rgb(165, 137, 0)'  // Light blue for Scholarship
+                        '#aa0505',
+                        'rgb(165, 137, 0)'
                     ],
                     borderColor: [
                         '#aa0505',
@@ -4558,7 +4493,6 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(el);
     });
 
-    // --- SCRIPT FOR SCHOLARSHIP REPORT DROPDOWN ---
     const reportDropdownBtn = document.getElementById('report-dropdown-btn');
     const reportDropdownContent = document.getElementById('report-dropdown-content');
 
@@ -4605,11 +4539,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // --- NEW SCRIPT FOR SCHOLARSHIP MANAGEMENT ACCORDION ---
     const accordions = document.querySelectorAll('.scholarship-accordion-header');
     accordions.forEach(accordion => {
         accordion.addEventListener('click', function() {
-            // Close other open accordions
             accordions.forEach(otherAccordion => {
                 if (otherAccordion !== this) {
                     otherAccordion.classList.remove('active');
@@ -4617,18 +4549,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Toggle the clicked accordion
             this.classList.toggle('active');
             const content = this.nextElementSibling;
             if (content.style.maxHeight) {
-                content.style.maxHeight = null; // Close it
+                content.style.maxHeight = null;
             } else {
-                content.style.maxHeight = content.scrollHeight + "px"; // Open it
+                content.style.maxHeight = content.scrollHeight + "px";
             }
         });
     });
 });
-// --- END: CORRECTED SCRIPT INITIALIZATION ---
 
 function showToast(message, type = 'success') {
     var toast = document.getElementById('toast-message');
@@ -4714,7 +4644,6 @@ function showAppFormModal(applicantJson) {
             docs.forEach(docPath => {
                 const fullPath = `${BASE_URL}${docPath.replace('../../../../', '')}`;
                 const fileName = docPath.substring(docPath.indexOf('_') + 1);
-                // FIX: Truncate long filenames and add a title attribute for the full name
                 const truncatedFileName = truncateFilename(fileName, 50);
                 html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none;"><i class="fas fa-file-alt"></i> ${truncatedFileName}</a></p>`;
             });
@@ -4732,10 +4661,17 @@ function showAppFormModal(applicantJson) {
     }
 
     function showEditSlotsModal(scholarshipId, totalSlots, totalApplicants) {
+        const applicants = parseInt(totalApplicants, 10);
+        const newSlotsInput = document.getElementById('new_slots');
+
         document.getElementById('editSlotsScholarshipId').value = scholarshipId;
         document.getElementById('currentSlotsText').textContent = totalSlots;
-        document.getElementById('remainingSlotsText').textContent = totalSlots - totalApplicants;
-        document.getElementById('totalApplicantsText').textContent = totalApplicants;
+        document.getElementById('totalApplicantsText').textContent = applicants;
+        
+        newSlotsInput.min = applicants;
+        newSlotsInput.placeholder = `Minimum slots required: ${applicants}`;
+        newSlotsInput.value = ''; 
+        
         document.getElementById('editSlotsModal').style.display = 'flex';
     }
 
@@ -4891,7 +4827,6 @@ function showSpesAppModal(spesAppJson) {
     if (app.spes_documents_path) {
         const docPath = `${BASE_URL}${app.spes_documents_path.replace('../../../../', '')}`;
         const fileName = app.spes_documents_path.substring(app.spes_documents_path.indexOf('_') + 1);
-        // FIX: Truncate long filenames and add a title attribute for the full name
         const truncatedFileName = truncateFilename(fileName, 50);
         html += `<p><a href="${docPath}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none;"><i class="fas fa-file-alt"></i> ${truncatedFileName}</a></p>`;
     } else { html += '<p class="user-details-value">No requirement documents uploaded.</p>'; }
@@ -4955,7 +4890,6 @@ function viewUserDocuments(scholarshipData, userName) {
                 if (docPath) { 
                     const fullPath = `${BASE_URL}${docPath.replace('../../../../', '')}`;
                     const fileName = docPath.substring(docPath.indexOf('_') + 1);
-                    // FIX: Truncate long filenames and add a title attribute for the full name
                     const truncatedFileName = truncateFilename(fileName, 50);
                     html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline">
                     <i class="fas fa-file-alt"></i> ${truncatedFileName}</a></p>`;
@@ -4978,7 +4912,6 @@ function viewUserDocuments(scholarshipData, userName) {
     
     html += '<h4>Uploaded IDs:</h4>';
     try {
-        // FIX: Removed JSON.parse(). The 'spesDocs.ids' is already a JavaScript array.
         const idPaths = spesDocs.ids;
 
         if (Array.isArray(idPaths) && idPaths.length > 0 && idPaths[0]) {
@@ -5016,7 +4949,6 @@ function viewUserDocuments(scholarshipData, userName) {
             if(path) {
                 const fullPath = `${BASE_URL}${path.replace('../../../../', '')}`;
                 const fileName = path.substring(path.indexOf('_') + 1);
-                // FIX: Truncate long filenames and add a title attribute for the full name
                 const truncatedFileName = truncateFilename(fileName, 50);
                 html += `<p><a href="${fullPath}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline">
                 <i class="fas fa-file-alt"></i> ${truncatedFileName}</a></p>`;

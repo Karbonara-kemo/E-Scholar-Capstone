@@ -1,21 +1,14 @@
 <?php
-// Start session
 session_start();
 
-// Include database connection
 include "../../../../connect.php";
 
-// Check if the user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../signin.php"); // Redirect to login page if not logged in
-    exit();
+    header("Location: ../../signin.php");
 }
 
-// Get logged-in user's ID from session
 $userId = $_SESSION['user_id'];
 
-// Fetch user information from the database
-// Corrected: Changed 'Id' to 'user_id'
 $sql = "SELECT * FROM user WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
@@ -29,7 +22,6 @@ if ($result->num_rows > 0) {
     exit();
 }
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $fname = $_POST['fname'];
     $lname = $_POST['lname'];
@@ -41,15 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $contact_number = $_POST['contact_number'];
     $email = $_POST['email'];
 
-    // Update user information in the database
-    // Corrected: Changed 'Id' to 'user_id' and added contact_number
     $updateSql = "UPDATE user SET Fname = ?, Lname = ?, Mname = ?, Age = ?, Gender = ?, Birthdate = ?, Address = ?, contact_number = ?, Email = ? WHERE user_id = ?";
     $updateStmt = $conn->prepare($updateSql);
-    // Corrected: Updated bind_param to include contact_number
     $updateStmt->bind_param("sssisssssi", $fname, $lname, $mname, $age, $gender, $birthdate, $address, $contact_number, $email, $userId);
 
     if ($updateStmt->execute()) {
-        // Refresh user data after successful update
         $stmt->execute();
         $result = $stmt->get_result();
         $user = $result->fetch_assoc();

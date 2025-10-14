@@ -455,7 +455,6 @@
         text-align: center;
     }
     
-    /* START: Styles for File Input Clear Button */
     .file-input-wrapper {
         position: relative;
         width: 100%;
@@ -466,22 +465,21 @@
     }
 
     .file-input-clear-button {
-        display: none; /* Hidden by default */
+        display: none;
         position: absolute;
         top: 50%;
         right: 10px;
         transform: translateY(-50%);
         cursor: pointer;
-        color: white; /* Color of the 'x' icon */
-        background-color: #f44336; /* Red circle */
-        border-radius: 50%; /* Makes it a circle */
+        color: white;
+        background-color: #f44336;
+        border-radius: 50%;
         width: 20px;
         height: 20px;
         font-size: 12px;
         text-align: center;
-        line-height: 20px; /* Vertically centers the icon */
+        line-height: 20px;
     }
-    /* END: Styles for File Input Clear Button */
 
     @media (max-width: 768px) {
         .navbar {

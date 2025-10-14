@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $newPassword = $_POST['new_password'];
     $confirmNewPassword = $_POST['confirm_new_password'];
 
-    // FIX: Changed 'Id' to 'user_id' to match your database table column.
     $sql = "SELECT Password FROM user WHERE user_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $userId);
@@ -34,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 $newHashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
 
-                // FIX: Changed 'Id' to 'user_id' here as well.
                 $updateSql = "UPDATE user SET Password = ? WHERE user_id = ?";
                 $updateStmt = $conn->prepare($updateSql);
                 $updateStmt->bind_param("si", $newHashedPassword, $userId);
@@ -72,12 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .password-container {
             position: relative;
         }
-        /* Adjust input to prevent text from overlapping the icon */
+
         .password-container input {
             width: 100%;
-            padding-right: 45px; /* Make space for icon */
+            padding-right: 45px;
             box-sizing: border-box;
         }
+
         .toggle-password {
             position: absolute;
             top: 50%;
@@ -149,14 +148,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         togglePasswordIcons.forEach(icon => {
             icon.addEventListener('click', function () {
-                // Get the input field next to the icon
                 const passwordInput = this.previousElementSibling;
 
-                // Toggle the input type between 'password' and 'text'
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
                 
-                // Toggle the icon class between 'fa-eye' and 'fa-eye-slash'
                 this.classList.toggle('fa-eye');
                 this.classList.toggle('fa-eye-slash');
             });

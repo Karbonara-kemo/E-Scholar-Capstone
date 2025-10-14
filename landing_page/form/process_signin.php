@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $adminRow = mysqli_fetch_assoc($adminResult);
 
         if (password_verify($password, $adminRow['password'])) {
-            $_SESSION['admin_id'] = $adminRow['admin_id']; // FIXED
+            $_SESSION['admin_id'] = $adminRow['admin_id'];
             $_SESSION['admin_name'] = $adminRow['fname'] . ' ' . $adminRow['lname'];
 
             $redirectUrl = "User_Landing_Page/Home_Profile/admin_dashboard.php";
@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if (password_verify($password, $userRow['Password'])) {
-            $_SESSION['user_id'] = $userRow['user_id']; // FIXED
+            $_SESSION['user_id'] = $userRow['user_id'];
             $_SESSION['user_name'] = $userRow['Fname'] . ' ' . $userRow['Lname'];
 
             $redirectUrl = "User_Landing_Page/Home_Profile/user_dashboard.php";

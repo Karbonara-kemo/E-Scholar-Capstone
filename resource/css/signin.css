@@ -397,14 +397,13 @@
         margin-left: 20px;
     }
 
-    /* --- START: STYLES FOR PASSWORD TOGGLE --- */
     .password-wrapper {
         position: relative;
         width: 100%;
     }
     
     .password-wrapper input {
-        padding-right: 40px; /* Make space for icon */
+        padding-right: 40px;
     }
 
     .password-wrapper .fa-eye,
@@ -416,9 +415,7 @@
         cursor: pointer;
         color: #888;
     }
-    /* --- END: STYLES FOR PASSWORD TOGGLE --- */
 
-    /* --- START: NEW TOAST NOTIFICATION STYLES --- */
     #toast-message {
         display: block;
         position: fixed;
@@ -446,7 +443,6 @@
         font-size: 16px;
         vertical-align: middle;
     }
-    /* --- END: NEW TOAST NOTIFICATION STYLES --- */
 
     @media (max-width: 768px) {
         .main-content {

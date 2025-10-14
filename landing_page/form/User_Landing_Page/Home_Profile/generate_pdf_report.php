@@ -1,16 +1,13 @@
 <?php
-// Include the database connection and FPDF library
 include '../../../../connect.php';
-require('lib/fpdf186/fpdf.php'); // Make sure this path is correct
+require('lib/fpdf186/fpdf.php');
 
 session_start();
 
-// Security check: ensure an admin is logged in
 if (!isset($_SESSION['admin_id'])) {
     die("Access denied. You must be logged in as an admin.");
 }
 
-// Custom PDF class to create a Header
 class PDF extends FPDF
 {
     private $reportTitle = '';
@@ -19,7 +16,6 @@ class PDF extends FPDF
         $this->reportTitle = $title;
     }
 
-    // Page header
     function Header()
     {
         $this->Image('../../../../images/PESO_Logo.png', 10, 6, 20);
@@ -64,7 +60,6 @@ $data = [];
 $title = '';
 $filename = 'report.pdf';
 
-// --- MODIFIED START: Scholarship report now requires a specific ID ---
 if ($reportType === 'scholarship') {
     if (!isset($_GET['id'])) {
         die("Error: Scholarship ID is required.");
@@ -86,19 +81,14 @@ if ($reportType === 'scholarship') {
     $data = $result->fetch_all(MYSQLI_ASSOC);
 
     if (empty($data)) {
-        // Use a generic title if no data is found but still generate a PDF
         $title = 'Scholarship Applicants Documents';
     } else {
-        // Use the title from the first record for the report
         $title = $data[0]['title'] . ' Report';
     }
-    // Sanitize title for filename
     $safeTitle = preg_replace('/[^a-zA-Z0-9-]/', '', $data[0]['title'] ?? 'Scholarship');
     $filename = $safeTitle . '_awardees_report.pdf';
 
-// --- MODIFIED END ---
 } elseif ($reportType === 'spes') {
-    // SPES logic remains unchanged
     $title = 'SPES Applicants Documents';
     $filename = 'spes_awardees_report.pdf';
     $activeBatchStartDate = null;
@@ -124,7 +114,6 @@ if ($reportType === 'scholarship') {
     die("Invalid report type specified.");
 }
 
-// PDF Generation
 $pdf = new PDF();
 $pdf->setReportTitle($title);
 $pdf->AddPage();
@@ -137,7 +126,6 @@ $pdf->Ln();
 $pdf->SetFont('Arial', '', 9);
 
 foreach ($data as $row) {
-    // ... (rest of the PDF generation logic is unchanged)
     $documentFiles = [];
     $status = 'Incomplete';
     if ($reportType === 'scholarship') {

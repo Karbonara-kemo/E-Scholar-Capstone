@@ -30,7 +30,7 @@ include "../../connect.php";
             <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
-            <a href="../../landing_page/index.html" class="home">Home</a>
+            <a href="../../index.html" class="home">Home</a>
         </div>
     </div>
 

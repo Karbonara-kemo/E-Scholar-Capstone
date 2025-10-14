@@ -29,7 +29,7 @@ include "../../connect.php";
             <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
-            <a href="../../landing_page/index.html" class="home">Home</a>
+            <a href="../../index.html" class="home">Home</a>
         </div>
     </div>
     
@@ -118,7 +118,6 @@ include "../../connect.php";
         }
     }
 
-    // --- START: NEW TOAST NOTIFICATION LOGIC ---
     function checkSuccessMessage() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('success')) {
@@ -134,16 +133,14 @@ include "../../connect.php";
             
             toast.classList.add('show');
 
-            // Clean the URL immediately
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
             
-            // Redirect after the toast has been visible
             setTimeout(() => {
                 if (redirectTo) {
                     window.location.href = redirectTo;
                 }
-            }, 2000); // Redirect after 2 seconds
+            }, 2000);
         }
     }
     
@@ -151,7 +148,6 @@ include "../../connect.php";
         checkMessages();
         checkSuccessMessage();
     };
-    // --- END: NEW TOAST NOTIFICATION LOGIC ---
 
     document.addEventListener('DOMContentLoaded', function () {
         const togglePassword = document.querySelector('#togglePassword');

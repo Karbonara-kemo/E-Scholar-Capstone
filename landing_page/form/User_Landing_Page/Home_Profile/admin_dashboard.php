@@ -379,9 +379,24 @@ if (isset($_POST['reject_spes_application_with_message'])) {
 
         $to = $infoResult['Email'];
         $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
-        $subject = "Update on your SPES Application";
-        $body = "Hello {$name},\n\nWe regret to inform you that your application for the SPES Program has been rejected.\n\nReason provided: {$rejectionMessage}\n\nThank you for your interest.\n\nSincerely,\nPESO San Julian MIS";
-        
+        $dateToday = date("F j, Y");
+
+        $subject = "SPES Application Result - PESO San Julian MIS";
+        $body = "
+Date: {$dateToday}
+
+Dear {$name},
+
+We would like to inform you that after careful evaluation, your application for the Special Program for the Employment of Students (SPES) has unfortunately been rejected at this time.
+
+You may check your account to view the specific reason provided by the administrator regarding your application status. We encourage you to review the feedback, as it may help improve your future applications.
+
+We truly appreciate your effort and interest in applying for the SPES Program. Continue striving for excellence, and we hope you will apply again in the future.
+
+Sincerely,  
+PESO San Julian MIS
+";
+
         require '../../../../vendor/autoload.php';
         $mail = new PHPMailer\PHPMailer\PHPMailer();
         try {
@@ -398,6 +413,7 @@ if (isset($_POST['reject_spes_application_with_message'])) {
             $mail->Body    = $body;
             $mail->send();
         } catch (Exception $e) {
+            // optionally log the error
         }
     }
     $_SESSION['spes_application_rejected'] = true;
@@ -480,7 +496,7 @@ if (isset($_POST['reject_spes_application_with_message'])) {
 
     } elseif (isset($_POST['approve_spes_application'])) {
         $spesApplicationId = $_POST['spes_application_id'];
-        $newStatus = isset($_POST['approve_spes_application']) ? 'approved' : 'rejected';
+        $newStatus = 'approved';
 
         $infoSql = "SELECT u.Email, u.Fname, u.Lname 
                     FROM spes_applications sa
@@ -499,12 +515,26 @@ if (isset($_POST['reject_spes_application_with_message'])) {
 
             $to = $infoResult['Email'];
             $name = $infoResult['Fname'] . ' ' . $infoResult['Lname'];
+            $dateToday = date("F j, Y");
 
-            if ($newStatus == 'approved') {
-                $subject = "Your SPES Application has been Approved";
-                $body = "Hello {$name},\n\nCongratulations! Your application for the SPES Program has been approved.\n\nPlease log in to your account for more details.\n\nThank you,\nPESO San Julian MIS";
-            }
-            
+            $subject = "SPES Application Approved - PESO San Julian MIS";
+            $body = "
+    Date: {$dateToday}
+
+    Dear {$name},
+
+    We are pleased to inform you that your application for the Special Program for the Employment of Students (SPES) has been approved by the PESO San Julian committee.
+
+    To proceed, please visit the **Municipality of San Julian** and coordinate with the **PESO San Julian Head** for further instructions and requirements regarding your approved application.
+
+    Please log in to your account for more details and updates about your application.
+
+    We wish you all the best in this opportunity and may your participation contribute positively to the community.
+
+    Sincerely,  
+    PESO San Julian MIS
+    ";
+
             require '../../../../vendor/autoload.php';
             $mail = new PHPMailer\PHPMailer\PHPMailer();
             try {
@@ -521,9 +551,10 @@ if (isset($_POST['reject_spes_application_with_message'])) {
                 $mail->Body    = $body;
                 $mail->send();
             } catch (Exception $e) {
+                // optionally log the error
             }
         }
-        
+
         $_SESSION['spes_status_updated'] = true;
         header("Location: admin_dashboard.php#total-applicants-spes");
         exit();
@@ -756,6 +787,7 @@ if (isset($_POST['save_to_documents_spes'])) {
     header("Location: admin_dashboard.php?chat_user=" . intval($_POST['user_id']) . "#user-concerns-page");
     exit();
 }
+
 if (isset($_POST['approve_user'])) {
     $uid = intval($_POST['user_id']);
 
@@ -785,6 +817,7 @@ if (isset($_POST['approve_user'])) {
     $conn->query("UPDATE user SET status='approved' WHERE user_id=$uid");
 
     $name = $user['Fname'] . ' ' . $user['Lname'];
+    $dateToday = date("F j, Y");
 
     require '../../../../vendor/autoload.php';
     $mail = new PHPMailer\PHPMailer\PHPMailer();
@@ -798,8 +831,21 @@ if (isset($_POST['approve_user'])) {
         $mail->Port = 587;
         $mail->setFrom('edlexus59@gmail.com', 'PESO San Julian MIS');
         $mail->addAddress($to, $name);
-        $mail->Subject = 'Account Approved';
-        $mail->Body = "Hello {$name},\n\nYour account has been approved by the admin. You may now log in and use the system.\n\nThank you!";
+        $mail->Subject = 'Account Approval - PESO San Julian MIS';
+        $mail->Body = "
+Date: {$dateToday}
+
+Dear {$name},
+
+We are pleased to inform you that your account registration with the PESO San Julian Management Information System has been approved by the administrator. 
+
+You may now log in to your account and begin using the system to apply for scholarships, SPES programs, or access other available services.
+
+We look forward to your active participation in the programs and opportunities provided by the PESO San Julian Office.
+
+Sincerely,  
+PESO San Julian MIS
+";
         $mail->send();
         $_SESSION['user_request_success'] = "User '{$name}' has been approved.";
     } catch (Exception $e) {
@@ -810,19 +856,34 @@ if (isset($_POST['approve_user'])) {
     exit();
 }
 
+
 if (isset($_POST['reject_user'])) {
     $uid = intval($_POST['user_id']);
+    $reason = trim($_POST['rejection_reason']);
 
+    // Get user info before deleting
     $userResult = $conn->query("SELECT Email, Fname, Lname FROM user WHERE user_id=$uid");
     $user = $userResult->fetch_assoc();
 
     if ($user) {
-        $conn->query("UPDATE user SET status='rejected' WHERE user_id=$uid");
-
         $to = $user['Email'];
         $name = $user['Fname'] . ' ' . $user['Lname'];
-        $subject = "Update on Your Account Registration";
-        $body = "Hello {$name},\n\nWe regret to inform you that your account registration has been rejected at this time.\n\nIf you believe this is a mistake, please contact our support.\n\nSincerely,\nPESO San Julian MIS";
+        $subject = "Account Registration Update - PESO San Julian MIS";
+        $dateToday = date("F j, Y");
+
+        $body = "
+Date: {$dateToday}
+
+Dear {$name},
+
+We regret to inform you that your account registration for the PESO San Julian Management Information System has been rejected.
+
+You may check your account or email notifications for more details.  
+If you believe this was made in error or wish to clarify, please contact our support or visit the PESO San Julian Office for assistance.
+
+Sincerely,  
+PESO San Julian MIS
+";
 
         require '../../../../vendor/autoload.php';
         $mail = new PHPMailer\PHPMailer\PHPMailer();
@@ -839,15 +900,23 @@ if (isset($_POST['reject_user'])) {
             $mail->Subject = $subject;
             $mail->Body    = $body;
             $mail->send();
-            $_SESSION['user_request_success'] = "User '{$name}' has been rejected.";
         } catch (Exception $e) {
-            $_SESSION['user_request_error'] = "User was rejected, but the notification email could not be sent. Error: {$mail->ErrorInfo}";
+            $_SESSION['user_request_error'] = "User was rejected, but email could not be sent. Error: {$mail->ErrorInfo}";
         }
+
+        // After sending email, delete user data permanently
+        $deleteStmt = $conn->prepare("DELETE FROM user WHERE user_id = ?");
+        $deleteStmt->bind_param("i", $uid);
+        $deleteStmt->execute();
+
+        $_SESSION['user_request_success'] = "User '{$name}' has been rejected.";
     }
 
     header("Location: admin_dashboard.php#user-request-page");
     exit();
 }
+
+
 
 if (isset($_POST['reject_application_with_message'])) {
     $applicationId = $_POST['application_id'];
@@ -4776,7 +4845,7 @@ function showSpesAppModal(spesAppJson) {
     html += createDetailItem('Citizenship', app.citizenship);
     html += createDetailItem('Sex', app.sex);
     html += createDetailItem('Civil Status', app.civil_status);
-    html += createDetailItem('Contact', app.contact);
+    html += createDetailItem('Contact Number', app.contact);
     html += createDetailItem('Email', app.email);
     html += createDetailItem('Social Media', app.social_media);
     html += `</div>`;

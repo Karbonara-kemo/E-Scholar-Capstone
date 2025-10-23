@@ -2257,7 +2257,320 @@ form .label-application + div label {
         }
     }
 
-    
+/* Add these styles to your existing CSS in user_dashboard.php */
+
+/* Application Details Modal */
+#applicationDetailsModal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    justify-content: center;
+    align-items: center;
+}
+
+#applicationDetailsModal .modal-content {
+    background-color: #fefefe;
+    margin: 2% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+#applicationDetailsModal .modal-header {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #090549;
+    flex-shrink: 0;
+}
+
+#applicationDetailsModal .modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    z-index: 11;
+    line-height: 20px;
+}
+
+#applicationDetailsModal .modal-close:hover,
+#applicationDetailsModal .modal-close:focus {
+    color: #000;
+}
+
+#applicationDetailsBody {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 10px;
+}
+
+.user-details-item {
+    margin-bottom: 10px;
+}
+
+.user-details-label {
+    font-weight: bold;
+    color: #555;
+    font-size: 12px;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.user-details-value {
+    color: #666;
+    font-size: 11px;
+}
+
+.user-details-section-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    margin: 20px 0 10px 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.applicants-table {
+    font-size: 11px;
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.applicants-table th,
+.applicants-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.applicants-table thead tr {
+    background-color: #f8f9fa;
+}
+
+/* Modal Action Buttons */
+#rejectionMessageModal .modal-body button {
+    margin-top: 20px;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    #applicationDetailsModal .modal-content {
+        width: 95%;
+        max-width: 95%;
+        margin: 5% auto;
+        max-height: 90vh;
+    }
+
+    #applicationDetailsBody {
+        max-height: 75vh;
+        font-size: 11px;
+    }
+
+    .user-details-section-header {
+        font-size: 13px;
+    }
+
+    .user-details-label {
+        font-size: 11px;
+    }
+
+    .user-details-value {
+        font-size: 10px;
+    }
+
+    .applicants-table {
+        font-size: 9px;
+    }
+
+    .applicants-table th,
+    .applicants-table td {
+        padding: 5px;
+    }
+
+    /* Stack grid columns on mobile */
+    #applicationDetailsBody > div > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Scrollbar styling for modal body */
+#applicationDetailsBody::-webkit-scrollbar {
+    width: 8px;
+}
+
+#applicationDetailsBody::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#applicationDetailsBody::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+#applicationDetailsBody::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Detail Items Styling */
+.user-details-item {
+    margin-bottom: 10px;
+}
+
+.user-details-label {
+    font-weight: bold;
+    color: #555;
+    font-size: 12px;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.user-details-value {
+    color: #666;
+    font-size: 11px;
+}
+
+.user-details-section-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    margin: 20px 0 10px 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+/* Table Styling inside Modal */
+.applicants-table {
+    font-size: 11px;
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.applicants-table th,
+.applicants-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.applicants-table thead tr {
+    background-color: #f8f9fa;
+}
+
+/* Modal Action Buttons */
+#rejectionMessageModal .modal-body button {
+    margin-top: 20px;
+}
+
+/* Button styling inside modals */
+.btn-outline {
+    background: #090549;
+    color: rgb(255, 255, 255);
+    border: 3px solid #090549;
+    border-radius: 14px;
+    padding: 6px 13px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-outline:hover {
+    background: rgb(16, 9, 122);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+    border-radius: 14px;
+    padding: 6px 13px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    #applicationDetailsModal .modal-content {
+        width: 95%;
+        max-width: 95%;
+        margin: 5% auto;
+        max-height: 90vh;
+        padding: 15px;
+    }
+
+    #applicationDetailsModal .modal-header {
+        font-size: 16px;
+        padding-right: 30px;
+    }
+
+    #applicationDetailsModal .modal-close {
+        top: 10px;
+        right: 10px;
+        font-size: 24px;
+    }
+
+    #applicationDetailsBody {
+        font-size: 11px;
+    }
+
+    .user-details-section-header {
+        font-size: 13px;
+    }
+
+    .user-details-label {
+        font-size: 11px;
+    }
+
+    .user-details-value {
+        font-size: 10px;
+    }
+
+    .applicants-table {
+        font-size: 9px;
+    }
+
+    .applicants-table th,
+    .applicants-table td {
+        padding: 5px;
+    }
+
+    #applicationDetailsBody > div > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+}
 </style>
 <body>
     <div id="toast-message">
@@ -2583,7 +2896,16 @@ form .label-application + div label {
                             </div>
                             <div class="flex-item" style="flex: 2;">
                                 <label class="label-application" for="college_average">Average from Previous Semester</label>
-                                <input type="text" id="college_average" name="college_average" class="input-field" />
+                                <input 
+                                    type="text" 
+                                    id="college_average" 
+                                    name="college_average" 
+                                    class="input-field"
+                                    placeholder="0.0 (e.g., 1.5, 2.0, 3.5)"
+                                    pattern="^\d{1}\.\d{1}$"
+                                    title="Please enter a valid grade format (e.g., 1.5, 2.0, 3.5)"
+                                    maxlength="3"
+                                />
                             </div>
                         </div>
                         <label class="label-application" for="college_awards" style="margin-top:10px;">Awards and Recognitions</label>
@@ -2609,95 +2931,145 @@ form .label-application + div label {
                 </div>
             </div>
 
-            <div id="history-page" class="page">
-                <div class="application-history">
-                    <h2 class="history-h2">Application History</h2>
-                    <p class="history-p">Review your previous scholarship applications</p>
-                    <div class="table-container">
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Program Name</th>
-                                <th>Type</th>
-                                <th>Date Applied</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                        $combinedHistorySql = "
-                            (SELECT
-                                a.application_id AS id,
-                                s.title AS program_name,
-                                'Scholarship' AS application_type,
-                                a.created_at AS date_applied,
-                                a.status AS status,
-                                a.rejection_message AS rejection_message
-                            FROM applications a
-                            JOIN scholarships s ON a.scholarship_id = s.scholarship_id
-                            WHERE a.user_id = ?)
-                            
-                            UNION ALL
-                            
-                            (SELECT
-                                sa.spes_application_id AS id,
-                                'SPES Application' AS program_name,
-                                'SPES' AS application_type,
-                                sa.created_at AS date_applied,
-                                sa.status AS status,
-                                sa.rejection_message AS rejection_message
-                            FROM spes_applications sa
-                            WHERE sa.user_id = ?)
-                            
-                            ORDER BY date_applied DESC
-                        ";
+<div id="history-page" class="page">
+    <div class="application-history">
+        <h2 class="history-h2">Application History</h2>
+        <p class="history-p">Review your previous scholarship applications</p>
+        <div class="table-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Program Name</th>
+                        <th>Type</th>
+                        <th>Date Applied</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                $combinedHistorySql = "
+                    (SELECT
+                        a.application_id AS id,
+                        a.user_id,
+                        s.title AS program_name,
+                        'Scholarship' AS application_type,
+                        a.created_at AS date_applied,
+                        a.status AS status,
+                        a.rejection_message AS rejection_message,
+                        a.fullname, a.birthdate, a.address, a.contact, a.school, a.course, 
+                        a.year_level, a.family_income, a.documents, a.facebook, a.civil_status,
+                        a.gender, a.place_of_birth, a.mother_name, a.mother_occupation,
+                        a.father_name, a.father_occupation, a.dependents, a.elem_school,
+                        a.elem_honors, a.elem_grad, a.hs_school, a.hs_honors, a.hs_grad,
+                        a.voc_school, a.voc_honors, a.voc_grad, a.college_school, a.college_course,
+                        a.college_average, a.college_awards,
+                        NULL as surname, NULL as firstname, NULL as middlename, NULL as gsis_beneficiary,
+                        NULL as id_image_paths, NULL as spes_documents_path, NULL as dob, NULL as place_of_birth_spes,
+                        NULL as citizenship, NULL as contact_spes, NULL as email_spes, NULL as social_media,
+                        NULL as civil_status_spes, NULL as sex, NULL as student_type, NULL as parent_status,
+                        NULL as present_address, NULL as permanent_address, NULL as father_name_contact,
+                        NULL as mother_name_contact, NULL as father_occupation_spes, NULL as mother_occupation_spes,
+                        NULL as elem_school_spes, NULL as elem_degree, NULL as elem_year, NULL as elem_attendance,
+                        NULL as sec_school, NULL as sec_degree, NULL as sec_year, NULL as sec_attendance,
+                        NULL as ter_school, NULL as ter_degree, NULL as ter_year, NULL as ter_attendance,
+                        NULL as tech_school, NULL as tech_degree, NULL as tech_year, NULL as tech_attendance,
+                        NULL as special_skills, NULL as availment_history, NULL as year_history, NULL as spes_id_history
+                    FROM applications a
+                    JOIN scholarships s ON a.scholarship_id = s.scholarship_id
+                    WHERE a.user_id = ?)
+                    
+                    UNION ALL
+                    
+                    (SELECT
+                        sa.spes_application_id AS id,
+                        sa.user_id,
+                        'SPES Application' AS program_name,
+                        'SPES' AS application_type,
+                        sa.created_at AS date_applied,
+                        sa.status AS status,
+                        sa.rejection_message AS rejection_message,
+                        NULL as fullname, NULL as birthdate, NULL as address, NULL as contact,
+                        NULL as school, NULL as course, NULL as year_level, NULL as family_income,
+                        NULL as documents, NULL as facebook, NULL as civil_status, NULL as gender,
+                        NULL as place_of_birth, NULL as mother_name, NULL as mother_occupation,
+                        NULL as father_name, NULL as father_occupation, NULL as dependents,
+                        NULL as elem_school, NULL as elem_honors, NULL as elem_grad, NULL as hs_school,
+                        NULL as hs_honors, NULL as hs_grad, NULL as voc_school, NULL as voc_honors,
+                        NULL as voc_grad, NULL as college_school, NULL as college_course,
+                        NULL as college_average, NULL as college_awards,
+                        sa.surname, sa.firstname, sa.middlename, sa.gsis_beneficiary,
+                        sa.id_image_paths, sa.spes_documents_path, sa.dob, sa.place_of_birth as place_of_birth_spes,
+                        sa.citizenship, sa.contact as contact_spes, sa.email as email_spes, sa.social_media,
+                        sa.civil_status as civil_status_spes, sa.sex, sa.student_type, sa.parent_status,
+                        sa.present_address, sa.permanent_address, sa.father_name_contact,
+                        sa.mother_name_contact, sa.father_occupation as father_occupation_spes,
+                        sa.mother_occupation as mother_occupation_spes, sa.elem_school as elem_school_spes,
+                        sa.elem_degree, sa.elem_year, sa.elem_attendance, sa.sec_school, sa.sec_degree,
+                        sa.sec_year, sa.sec_attendance, sa.ter_school, sa.ter_degree, sa.ter_year,
+                        sa.ter_attendance, sa.tech_school, sa.tech_degree, sa.tech_year, sa.tech_attendance,
+                        sa.special_skills, sa.availment_history, sa.year_history, sa.spes_id_history
+                    FROM spes_applications sa
+                    WHERE sa.user_id = ?)
+                    
+                    ORDER BY date_applied DESC
+                ";
 
-                        $applicationsStmt = $conn->prepare($combinedHistorySql);
-                        $applicationsStmt->bind_param("ii", $userId, $userId);
-                        $applicationsStmt->execute();
-                        $applicationsResult = $applicationsStmt->get_result();
-                        
-                        if ($applicationsResult->num_rows > 0):
-                            while ($application = $applicationsResult->fetch_assoc()):
-                                $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
-                        ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($application['id']); ?></td>
-                                <td><?php echo htmlspecialchars($application['program_name']); ?></td>
-                                <td>
-                                    <strong><?php echo htmlspecialchars($application['application_type']); ?></strong>
-                                </td>
-                                <td><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
-                                <td>
-                                    <span class="<?php echo $statusClass; ?>">
-                                        <?php echo ucfirst($application['status']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <?php if ($application['status'] === 'rejected' && !empty($application['rejection_message'])): ?>
-                                        <button class="btn btn-danger" onclick='showRejectionMessageModal(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>)'>See why...</button>
-                                    <?php else: ?>
-                                        N/A
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php
-                            endwhile;
-                        else:
-                        ?>
-                            <tr class="no-history-row">
-                                <td colspan="6">No application history found.</td>
-                            </tr>
-                        <?php
-                        endif;
-                        ?>
-                        </tbody>
-                    </table>
-                    </div>
-                </div>
-            </div>
+                $applicationsStmt = $conn->prepare($combinedHistorySql);
+                $applicationsStmt->bind_param("ii", $userId, $userId);
+                $applicationsStmt->execute();
+                $applicationsResult = $applicationsStmt->get_result();
+
+                if ($applicationsResult->num_rows > 0):
+                    while ($application = $applicationsResult->fetch_assoc()):
+                        $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
+                ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($application['id']); ?></td>
+                        <td><?php echo htmlspecialchars($application['program_name']); ?></td>
+                        <td>
+                            <strong><?php echo htmlspecialchars($application['application_type']); ?></strong>
+                        </td>
+                        <td><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
+                        <td>
+                            <span class="<?php echo $statusClass; ?>">
+                                <?php echo ucfirst($application['status']); ?>
+                            </span>
+                        </td>
+                        <td>
+                            <?php if ($application['status'] === 'approved'): ?>
+                                <button class="btn btn-outline" onclick='showUserApplicationDetails(<?php echo json_encode($application); ?>)'>
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                            <?php elseif ($application['status'] === 'rejected'): ?>
+                                <button class="btn btn-danger" onclick='showRejectionWithDetails(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>, <?php echo json_encode($application); ?>)'>
+                                    See why...
+                                </button>
+                            <?php elseif ($application['status'] === 'pending'): ?>
+                                <button class="btn btn-outline" onclick='showUserApplicationDetails(<?php echo json_encode($application); ?>)'>
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                            <?php else: ?>
+                                N/A
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php
+                    endwhile;
+                else:
+                ?>
+                    <tr class="no-history-row">
+                        <td colspan="6">No application history found.</td>
+                    </tr>
+                <?php
+                endif;
+                ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
             <div id="spes-page" class="page">
                 <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH (SPESOS)</h3>
@@ -3019,15 +3391,22 @@ form .label-application + div label {
                     <div class="modal-header">Rejection Reason</div>
                     <div class="modal-body">
                         <p id="rejectionMessageText"></p>
+                        <div style="margin-top: 20px; text-align: center;">
+                            <button class="btn btn-outline" onclick="showDetailsFromRejection()">
+                                <i class="fas fa-file-alt"></i> View Application Details
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div id="userApplicationFormModal" class="modal">
-                <div class="modal-content" style="max-width:800px;text-align:left;font-size:12px;">
-                    <span class="modal-close" onclick="closeUserApplicationFormModal()">&times;</span>
-                    <div class="modal-header">Your Application Details</div>
-                    <div class="modal-body" id="userApplicationFormBody"></div>
+            <div id="applicationDetailsModal" class="modal">
+                <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow-y: auto;">
+                    <span class="modal-close" onclick="closeApplicationDetailsModal()">&times;</span>
+                    <div class="modal-header" id="applicationDetailsHeader">Application Details</div>
+                    <div class="modal-body" id="applicationDetailsBody" style="max-height: 70vh; overflow-y: auto;">
+                        <!-- Details will be populated by JavaScript -->
+                    </div>
                 </div>
             </div>
 
@@ -3205,6 +3584,7 @@ form .label-application + div label {
         </div>
     </div>
 <script>
+    
     function showToast(message, type = 'success') {
         const toast = document.getElementById('toast-message');
         const toastText = document.getElementById('toast-text');
@@ -3300,7 +3680,7 @@ form .label-application + div label {
                 break;
         }
     }
-
+rejectionMessageModal
     function openNotificationModal() {
         document.getElementById('notificationModal').style.display = "block";
         fetch('mark_notification_read.php', {
@@ -3494,14 +3874,183 @@ form .label-application + div label {
     
     let currentApplicationData = null;
 
-    function showRejectionMessageModal(rejectionMessage) {
+    function showRejectionWithDetails(rejectionMessage, applicationData) {
+        currentApplicationData = applicationData;
         document.getElementById('rejectionMessageText').innerHTML = rejectionMessage;
         document.getElementById('rejectionMessageModal').style.display = "block";
+    }
+
+    function showDetailsFromRejection() {
+        closeRejectionMessageModal();
+        if (currentApplicationData) {
+            showUserApplicationDetails(currentApplicationData);
+        }
     }
 
     function closeRejectionMessageModal() {
         document.getElementById('rejectionMessageModal').style.display = "none";
     }
+
+    function showUserApplicationDetails(appData) {
+        const app = typeof appData === 'string' ? JSON.parse(appData) : appData;
+        let html = '<div style="font-size: 12px; padding: 10px;">';
+
+        if (!app) {
+            document.getElementById('applicationDetailsBody').innerHTML = "<p>No application data found.</p>";
+            document.getElementById('applicationDetailsModal').style.display = 'flex';
+            return;
+        }
+
+        // Check if it's a Scholarship or SPES application
+        if (app.application_type === 'Scholarship') {
+            // SCHOLARSHIP APPLICATION DETAILS
+            document.getElementById('applicationDetailsHeader').textContent = 'Scholarship Application Details';
+            
+            const createDetailItem = (label, value) => `
+                <div class="user-details-item" style="margin-bottom: 10px;">
+                    <span class="user-details-label" style="font-weight: bold; color: #555;">${label}</span>
+                    <div class="user-details-value" style="color: #666; font-size: 11px;">${value || 'N/A'}</div>
+                </div>`;
+
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">1. Personal Information</div>';
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+            html += createDetailItem('Full Name', app.fullname);
+            html += createDetailItem('Date of Birth', app.birthdate);
+            html += createDetailItem('Place of Birth', app.place_of_birth);
+            html += createDetailItem('Gender', app.gender);
+            html += createDetailItem('Civil Status', app.civil_status);
+            html += createDetailItem('Contact Number', app.contact);
+            html += createDetailItem('Facebook Account', app.facebook);
+            html += `</div><div style="margin-top:15px;">${createDetailItem('Address', app.address)}</div>`;
+
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">2. Family Background</div>';
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+            html += createDetailItem("Father's Name & Occupation", `${app.father_name || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i>`);
+            html += createDetailItem("Mother's Name & Occupation", `${app.mother_name || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i>`);
+            html += createDetailItem('Monthly Family Income', app.family_income);
+            html += createDetailItem('Number of Dependents', app.dependents);
+            html += `</div>`;
+
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3. Educational Background</div>';
+            html += `<table class="applicants-table" style="font-size: 11px; width: 100%; border-collapse: collapse;">
+                        <thead><tr style="background-color: #f8f9fa;"><th style="padding: 8px; border: 1px solid #ddd;">Level</th><th style="padding: 8px; border: 1px solid #ddd;">School</th><th style="padding: 8px; border: 1px solid #ddd;">Honors</th><th style="padding: 8px; border: 1px solid #ddd;">Graduated/Level</th></tr></thead>
+                        <tbody>
+                            <tr><td style="padding: 8px; border: 1px solid #ddd;">Elementary</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_school || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_honors || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_grad || 'N/A'}</td></tr>
+                            <tr><td style="padding: 8px; border: 1px solid #ddd;">High School</td><td style="padding: 8px; border: 1px solid #ddd;">${app.hs_school || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.hs_honors || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.hs_grad || 'N/A'}</td></tr>
+                            <tr><td style="padding: 8px; border: 1px solid #ddd;">Vocational</td><td style="padding: 8px; border: 1px solid #ddd;">${app.voc_school || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.voc_honors || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.voc_grad || 'N/A'}</td></tr>
+                        </tbody>
+                    </table>`;
+            
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3-A. College Background</div>';
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+            html += createDetailItem('School', app.college_school);
+            html += createDetailItem('Course & Year', app.college_course);
+            html += createDetailItem('Previous Sem Average', app.college_average);
+            html += createDetailItem('Awards / Recognitions', app.college_awards);
+            html += `</div>`;
+
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">4. Uploaded Documents</div>';
+            try {
+                const docs = JSON.parse(app.documents);
+                if (Array.isArray(docs) && docs.length > 0 && docs[0]) {
+                    docs.forEach(docPath => {
+                        const fileName = docPath.substring(docPath.lastIndexOf('/') + 1);
+                        const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
+                        html += `<p style="margin: 5px 0;"><a href="../../../../${docPath.replace('../../../../', '')}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none; padding: 5px 10px; display: inline-block;"><i class="fas fa-file-alt"></i> ${displayName}</a></p>`;
+                    });
+                } else { 
+                    html += '<p class="user-details-value">No documents were uploaded.</p>'; 
+                }
+            } catch (e) { 
+                html += '<p class="user-details-value">No documents were uploaded.</p>'; 
+            }
+
+        } else if (app.application_type === 'SPES') {
+            // SPES APPLICATION DETAILS
+            document.getElementById('applicationDetailsHeader').textContent = 'SPES Application Details';
+            
+            const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
+            const createDetailItem = (label, value) => `<div class="user-details-item" style="margin-bottom: 10px;"><span class="user-details-label" style="font-weight: bold; color: #555;">${label}</span><div class="user-details-value" style="color: #666; font-size: 11px;">${value || 'N/A'}</div></div>`;
+
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">1. Personal Information</div>';
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+            html += createDetailItem('Full Name', fullName);
+            html += createDetailItem('Date of Birth', app.dob);
+            html += createDetailItem('Place of Birth', app.place_of_birth_spes);
+            html += createDetailItem('Citizenship', app.citizenship);
+            html += createDetailItem('Sex', app.sex);
+            html += createDetailItem('Civil Status', app.civil_status_spes);
+            html += createDetailItem('Contact Number', app.contact_spes);
+            html += createDetailItem('Email', app.email_spes);
+            html += createDetailItem('Social Media', app.social_media);
+            html += `</div>`;
+            html += `<div style="margin-top:15px;">${createDetailItem('Present Address', app.present_address)}</div>`;
+            html += `<div style="margin-top:15px;">${createDetailItem('Permanent Address', app.permanent_address)}</div>`;
+
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">2. Parental & Status Information</div>';
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+            html += createDetailItem('GSIS Beneficiary', app.gsis_beneficiary);
+            html += createDetailItem('Student Type', app.student_type);
+            html += createDetailItem("Father's Info", `${app.father_name_contact || 'N/A'} - <i>${app.father_occupation_spes || 'N/A'}</i>`);
+            html += createDetailItem("Mother's Info", `${app.mother_name_contact || 'N/A'} - <i>${app.mother_occupation_spes || 'N/A'}</i>`);
+            html += `</div>`;
+            html += `<div style="margin-top:15px;">${createDetailItem('Parent Status', app.parent_status)}</div>`;
+
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3. Educational Background</div>';
+            html += `<table class="applicants-table" style="font-size: 11px; width: 100%; border-collapse: collapse;">
+                        <thead><tr style="background-color: #f8f9fa;"><th style="padding: 8px; border: 1px solid #ddd;">Level</th><th style="padding: 8px; border: 1px solid #ddd;">School</th><th style="padding: 8px; border: 1px solid #ddd;">Degree/Course</th><th style="padding: 8px; border: 1px solid #ddd;">Year/Level</th><th style="padding: 8px; border: 1px solid #ddd;">Attendance</th></tr></thead>
+                        <tbody>
+                            <tr><td style="padding: 8px; border: 1px solid #ddd;">Elementary</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_school_spes||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_degree||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_year||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_attendance||'N/A'}</td></tr>
+                            <tr><td style="padding: 8px; border: 1px solid #ddd;">Secondary</td><td style="padding: 8px; border: 1px solid #ddd;">${app.sec_school||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.sec_degree||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.sec_year||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.sec_attendance||'N/A'}</td></tr>
+                            <tr><td style="padding: 8px; border: 1px solid #ddd;">Tertiary</td><td style="padding: 8px; border: 1px solid #ddd;">${app.ter_school||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.ter_degree||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.ter_year||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.ter_attendance||'N/A'}</td></tr>
+                            <tr><td style="padding: 8px; border: 1px solid #ddd;">Tech-Voc</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_school||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_degree||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_year||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_attendance||'N/A'}</td></tr>
+                        </tbody>
+                    </table>`;
+            
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">4. Skills & SPES History</div>';
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+            html += createDetailItem('Special Skills', app.special_skills);
+            html += createDetailItem('Availment History', app.availment_history);
+            html += createDetailItem('Year History', app.year_history);
+            html += createDetailItem('SPES ID History', app.spes_id_history);
+            html += `</div>`;
+            
+            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">5. Uploaded Documents</div>';
+            html += `<h4 style="font-size: 12px; margin-top: 10px;">Uploaded ID(s):</h4>`;
+            try {
+                const idImagePaths = JSON.parse(app.id_image_paths);
+                if (Array.isArray(idImagePaths) && idImagePaths.length > 0 && idImagePaths[0]) {
+                    idImagePaths.forEach(path => {
+                        const fullPath = `../../../../${path.replace('../../../../', '')}`;
+                        html += `<a href="${fullPath}" target="_blank" style="margin-right: 10px;"><img src="${fullPath}" alt="ID" style="max-width: 200px; height: auto; border-radius: 5px; border: 1px solid #ddd; margin: 5px;"></a>`;
+                    });
+                } else { 
+                    html += '<p class="user-details-value">No ID images uploaded.</p>'; 
+                }
+            } catch (e) { 
+                html += '<p class="user-details-value">No ID images uploaded.</p>'; 
+            }
+
+            html += `<h4 style="font-size: 12px; margin-top: 15px;">Requirement Documents:</h4>`;
+            if (app.spes_documents_path) {
+                const docPath = `../../../../${app.spes_documents_path.replace('../../../../', '')}`;
+                const fileName = app.spes_documents_path.substring(app.spes_documents_path.lastIndexOf('/') + 1);
+                const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
+                html += `<p style="margin: 5px 0;"><a href="${docPath}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none; padding: 5px 10px; display: inline-block;"><i class="fas fa-file-alt"></i> ${displayName}</a></p>`;
+            } else { 
+                html += '<p class="user-details-value">No requirement documents uploaded.</p>'; 
+            }
+        }
+
+        html += '</div>';
+        document.getElementById('applicationDetailsBody').innerHTML = html;
+        document.getElementById('applicationDetailsModal').style.display = 'flex';
+    }
+
+    function closeApplicationDetailsModal() {
+        document.getElementById('applicationDetailsModal').style.display = 'none';
+    }
+
 
     function showApplicationDetails(appData) {
         currentApplicationData = appData;
@@ -3534,7 +4083,7 @@ form .label-application + div label {
 
     window.onclick = function(event) {
         if (event.target.id === 'rejectionMessageModal') closeRejectionMessageModal();
-        if (event.target.id === 'userApplicationFormModal') closeUserApplicationFormModal();
+        if (event.target.id === 'applicationDetailsModal') closeApplicationDetailsModal();
         if (event.target.id === 'detailsModal') closeModal();
         if (event.target.id === 'notificationModal') closeNotificationModal();
         if (event.target.id === 'deleteMessageModal') closeDeleteModal();
@@ -3628,6 +4177,46 @@ form .label-application + div label {
             concernsDropdown.style.display = 'none';
         }
     });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const collegeAverageInput = document.getElementById('college_average');
+    
+    if (collegeAverageInput) {
+        collegeAverageInput.addEventListener('input', function(e) {
+            let value = e.target.value;
+            
+            value = value.replace(/[^0-9.]/g, '');
+            
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            if (parts[0] && parts[0].length > 1) {
+                parts[0] = parts[0].slice(0, 1);
+            }
+            if (parts[1] && parts[1].length > 1) {
+                parts[1] = parts[1].slice(0, 1);
+            }
+            
+            value = parts.join('.');
+            e.target.value = value;
+        });
+        
+        collegeAverageInput.addEventListener('blur', function(e) {
+            let value = e.target.value;
+            
+            if (value && value !== '') {
+                const regex = /^\d{1}\.\d{1}$/;
+                if (!regex.test(value)) {
+                    alert('Please enter a valid grade format (e.g., 1.5, 2.0, 3.5)');
+                    e.target.value = '';
+                    e.target.focus();
+                }
+            }
+        });
+    }
+});
 </script>
     </body>
 </html>

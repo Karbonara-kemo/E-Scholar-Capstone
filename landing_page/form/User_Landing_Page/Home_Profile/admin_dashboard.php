@@ -1,5 +1,5 @@
 <?php
-define('BASE_URL', 'http://localhost/form_prac/');
+define('BASE_URL', 'http://localhost/E-Scholarship-SPES/');
 include '../../../../connect.php';
 
 session_start();
@@ -147,8 +147,6 @@ Sincerely,
 PESO San Julian MIS
 ";
         }
-
-        // Send Email
         require '../../../../vendor/autoload.php';
         $mail = new PHPMailer\PHPMailer\PHPMailer();
         try {
@@ -167,7 +165,6 @@ PESO San Julian MIS
 
             $mail->send();
         } catch (Exception $e) {
-            // Optionally log $e->getMessage() for debugging
         }
     }
 
@@ -413,7 +410,6 @@ PESO San Julian MIS
             $mail->Body    = $body;
             $mail->send();
         } catch (Exception $e) {
-            // optionally log the error
         }
     }
     $_SESSION['spes_application_rejected'] = true;
@@ -551,7 +547,6 @@ PESO San Julian MIS
                 $mail->Body    = $body;
                 $mail->send();
             } catch (Exception $e) {
-                // optionally log the error
             }
         }
 
@@ -861,7 +856,6 @@ if (isset($_POST['reject_user'])) {
     $uid = intval($_POST['user_id']);
     $reason = trim($_POST['rejection_reason']);
 
-    // Get user info before deleting
     $userResult = $conn->query("SELECT Email, Fname, Lname FROM user WHERE user_id=$uid");
     $user = $userResult->fetch_assoc();
 
@@ -904,7 +898,6 @@ PESO San Julian MIS
             $_SESSION['user_request_error'] = "User was rejected, but email could not be sent. Error: {$mail->ErrorInfo}";
         }
 
-        // After sending email, delete user data permanently
         $deleteStmt = $conn->prepare("DELETE FROM user WHERE user_id = ?");
         $deleteStmt->bind_param("i", $uid);
         $deleteStmt->execute();
@@ -2917,7 +2910,6 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
         <div class="main-content">
 
             <div id="home-page" class="page active">
-            <?php echo htmlspecialchars($admin_name); ?>!</h1> -->
             
             <div style="background: white; border-radius: 15px; padding: 30px; margin: 20px 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                 <h2 style="font-size: 20px; color: #333; margin-bottom: 20px; text-align: center;">
@@ -3345,7 +3337,7 @@ $spesBatches = $spesBatchesResult->fetch_all(MYSQLI_ASSOC);
                                     <td><?php echo date('M d, Y', strtotime($app['created_at'])); ?></td>
                                     <td><strong>SPES</strong></td>
                                     <td>
-                                        <button class="btn-outline" onclick='showUserDetailsModal(<?php echo json_encode($app); ?>)'>View User Info</button>
+                                        <button class="btn-outline" onclick='showUserDetailsModal(<?php echo json_encode($app); ?>)'>View Info</button>
                                         <button class="btn-primary" onclick="window.location.href='admin_dashboard.php?chat_user=<?php echo $app['user_id']; ?>#user-concerns-page'">
                                             <i class="fas fa-envelope"></i> Message
                                         </button>
@@ -4332,7 +4324,7 @@ Closing/Signature:" rows="5" required></textarea>
         </div> 
     </div>
 <script>
-const BASE_URL = 'http://localhost/form_prac/';   
+const BASE_URL = 'http://localhost/E-Scholarship-SPES/';   
 
 function truncateFilename(filename, maxLength = 50) {
     if (filename.length > maxLength) {
@@ -4425,6 +4417,21 @@ function highlightActiveNav(navId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+
+    const adminFileInput = document.getElementById('adminChatAttachment');
+    
+    if (adminFileInput) {
+        adminFileInput.addEventListener('change', function() {
+            const messageInput = document.getElementById('concernMessageInput');
+            if (messageInput) {
+                if (adminFileInput.files.length > 0) {
+                    messageInput.placeholder = "File selected: " + adminFileInput.files[0].name;
+                } else {
+                    messageInput.placeholder = "Type your reply...";
+                }
+            }
+        });
+    }
     
     const urlParams = new URLSearchParams(window.location.search);
     let hash = window.location.hash.substr(1);
@@ -4926,7 +4933,7 @@ function showValidIdModal(validIdJson) {
             }
 
             if(idFiles[1]) {
-                const backPath = `${BASE_URL}${idFiles[1].replace('../../../../', '').replace('form_prac/', '')}`;
+                const backPath = `${BASE_URL}${idFiles[1].replace('../../../../', '').replace('E-Scholarship-SPES/', '')}`;
                 html += `<h4>Back of ID</h4>
                         <a href="${backPath}" target="_blank">
                             <img src="${backPath}" alt="Back of ID" style="max-width: 100%; height: auto; border-radius: 5px;">
@@ -5147,6 +5154,20 @@ function updateCurrentFileName(inputElement, displayElementId) {
         displayElement.style.color = '';
     }
 }
+
+function updateAdminAttachmentPlaceholder() {
+    const fileInput = document.getElementById('adminChatAttachment');
+    const messageInput = document.getElementById('concernMessageInput');
+    
+    if (fileInput && messageInput) {
+        if (fileInput.files.length > 0) {
+            messageInput.placeholder = "File selected: " + fileInput.files[0].name;
+        } else {
+            messageInput.placeholder = "Type your reply...";
+        }
+    }
+}
+
 </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </body>

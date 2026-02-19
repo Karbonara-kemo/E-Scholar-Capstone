@@ -71,6 +71,7 @@ function validateSignupForm() {
 
     let isValid = true;
 
+    // Clear all previous errors
     requiredFields.forEach(field => {
         const errorElement = document.getElementById(field.errorId);
         if (errorElement) {
@@ -79,6 +80,7 @@ function validateSignupForm() {
     });
     document.getElementById("valid-id-error").style.display = 'none';
 
+    // Check each required field
     requiredFields.forEach(field => {
         const input = document.getElementById(field.id);
         if (!input.value.trim()) {
@@ -127,6 +129,7 @@ function validateSignupForm() {
     const confirmPassword = confirmPasswordField.value;
 
     if (password && confirmPassword) {
+        // MODIFIED: Added the period (.) to the list of special characters
         const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#.])[A-Za-z\d@$!%*?&#.]{8,}$/;
         if (!passwordRegex.test(password)) {
             const passwordError = document.getElementById("password-error");
@@ -157,10 +160,12 @@ function validateSignupForm() {
             
             toast.classList.add('show');
 
+            // Wait 3 seconds, then redirect to the signin page
             setTimeout(function() {
                 window.location.href = 'signin.php';
             }, 3000); 
 
+            // Clean the URL in the meantime
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
         }

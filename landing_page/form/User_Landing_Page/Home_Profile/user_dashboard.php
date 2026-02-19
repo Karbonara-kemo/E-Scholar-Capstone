@@ -28,7 +28,7 @@ if ($result->num_rows > 0) {
 
 $spes_form_files = [
     'employment_contract' => [
-        'image' => '../../../../images/Employment-contract.jpg', 
+        'image' => '../../../../images/Employment-contract.jpg',
         'doc' => '../../../../download_assets/SPES-FORM-4-EMPLOYMENT-CONTRACT-1-1.docx'
     ],
     'oath_undertaking' => [
@@ -39,7 +39,7 @@ $spes_form_files = [
 $spesFilesSqlUser = "SELECT doc_type, file_path, doc_file_path FROM spes_files WHERE doc_type IN ('employment_contract', 'oath_undertaking')";
 $spesFilesResultUser = $conn->query($spesFilesSqlUser);
 if ($spesFilesResultUser) {
-    while($row = $spesFilesResultUser->fetch_assoc()) {
+    while ($row = $spesFilesResultUser->fetch_assoc()) {
         if (!empty($row['file_path'])) {
             $spes_form_files[$row['doc_type']]['image'] = $row['file_path'];
         }
@@ -140,9 +140,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     $stmt = $conn->prepare($sql);
     $stmt->bind_param(
         "iisssssssssssssssssssssssssssssss",
-        $userId, $scholarshipId, $fullname, $birthdate, $address, $contact, $school, $course, $year_level, $family_income, $documents_json,
-        $facebook, $civil_status, $gender, $place_of_birth, $mother_name, $mother_occupation, $father_name, $father_occupation, $dependents,
-        $elem_school, $elem_honors, $elem_grad, $hs_school, $hs_honors, $hs_grad, $voc_school, $voc_honors, $voc_grad, $college_school, $college_course, $college_average, $college_awards
+        $userId,
+        $scholarshipId,
+        $fullname,
+        $birthdate,
+        $address,
+        $contact,
+        $school,
+        $course,
+        $year_level,
+        $family_income,
+        $documents_json,
+        $facebook,
+        $civil_status,
+        $gender,
+        $place_of_birth,
+        $mother_name,
+        $mother_occupation,
+        $father_name,
+        $father_occupation,
+        $dependents,
+        $elem_school,
+        $elem_honors,
+        $elem_grad,
+        $hs_school,
+        $hs_honors,
+        $hs_grad,
+        $voc_school,
+        $voc_honors,
+        $voc_grad,
+        $college_school,
+        $college_course,
+        $college_average,
+        $college_awards
     );
     if (!$stmt->execute()) {
         die("Error: " . $stmt->error);
@@ -191,13 +221,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
     $father_occupation = $_POST['father_occupation'] ?? null;
     $mother_occupation = $_POST['mother_occupation'] ?? null;
 
-    $elem_school = $_POST['elem_school'] ?? null; $elem_degree = $_POST['elem_degree'] ?? null; $elem_year = $_POST['elem_year'] ?? null; $elem_attendance = $_POST['elem_attendance'] ?? null;
-    $sec_school = $_POST['sec_school'] ?? null; $sec_degree = $_POST['sec_degree'] ?? null; $sec_year = $_POST['sec_year'] ?? null; $sec_attendance = $_POST['sec_attendance'] ?? null;
-    $ter_school = $_POST['ter_school'] ?? null; $ter_degree = $_POST['ter_degree'] ?? null; $ter_year = $_POST['ter_year'] ?? null; $ter_attendance = $_POST['ter_attendance'] ?? null;
-    $tech_school = $_POST['tech_school'] ?? null; $tech_degree = $_POST['tech_degree'] ?? null; $tech_year = $_POST['tech_year'] ?? null; $tech_attendance = $_POST['tech_attendance'] ?? null;
+    $elem_school = $_POST['elem_school'] ?? null;
+    $elem_degree = $_POST['elem_degree'] ?? null;
+    $elem_year = $_POST['elem_year'] ?? null;
+    $elem_attendance = $_POST['elem_attendance'] ?? null;
+    $sec_school = $_POST['sec_school'] ?? null;
+    $sec_degree = $_POST['sec_degree'] ?? null;
+    $sec_year = $_POST['sec_year'] ?? null;
+    $sec_attendance = $_POST['sec_attendance'] ?? null;
+    $ter_school = $_POST['ter_school'] ?? null;
+    $ter_degree = $_POST['ter_degree'] ?? null;
+    $ter_year = $_POST['ter_year'] ?? null;
+    $ter_attendance = $_POST['ter_attendance'] ?? null;
+    $tech_school = $_POST['tech_school'] ?? null;
+    $tech_degree = $_POST['tech_degree'] ?? null;
+    $tech_year = $_POST['tech_year'] ?? null;
+    $tech_attendance = $_POST['tech_attendance'] ?? null;
 
     $special_skills = $_POST['special_skills'] ?? null;
-    
+
     $availment_history = [];
     $year_history = [];
     $spes_id_history = [];
@@ -260,19 +302,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_spes_applicati
         tech_school, tech_degree, tech_year, tech_attendance, 
         special_skills, availment_history, year_history, spes_id_history
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    
+
     $stmt = $conn->prepare($sql);
 
     $stmt->bind_param(
         "isssssssssssssssssssssssssssssssssssssssssss",
-        $batch_id, $userId, $surname, $firstname, $middlename, $gsis_beneficiary, $id_images_json, $spes_documents_path, $dob, $place_of_birth, $citizenship,
-        $contact, $email, $social_media, $civil_status, $sex, $student_type, $parent_status, $present_address, $permanent_address,
-        $father_name_contact, $mother_name_contact, $father_occupation, $mother_occupation,
-        $elem_school, $elem_degree, $elem_year, $elem_attendance,
-        $sec_school, $sec_degree, $sec_year, $sec_attendance,
-        $ter_school, $ter_degree, $ter_year, $ter_attendance,
-        $tech_school, $tech_degree, $tech_year, $tech_attendance,
-        $special_skills, $availment_history_str, $year_history_str, $spes_id_history_str
+        $batch_id,
+        $userId,
+        $surname,
+        $firstname,
+        $middlename,
+        $gsis_beneficiary,
+        $id_images_json,
+        $spes_documents_path,
+        $dob,
+        $place_of_birth,
+        $citizenship,
+        $contact,
+        $email,
+        $social_media,
+        $civil_status,
+        $sex,
+        $student_type,
+        $parent_status,
+        $present_address,
+        $permanent_address,
+        $father_name_contact,
+        $mother_name_contact,
+        $father_occupation,
+        $mother_occupation,
+        $elem_school,
+        $elem_degree,
+        $elem_year,
+        $elem_attendance,
+        $sec_school,
+        $sec_degree,
+        $sec_year,
+        $sec_attendance,
+        $ter_school,
+        $ter_degree,
+        $ter_year,
+        $ter_attendance,
+        $tech_school,
+        $tech_degree,
+        $tech_year,
+        $tech_attendance,
+        $special_skills,
+        $availment_history_str,
+        $year_history_str,
+        $spes_id_history_str
     );
 
     if (!$batch_id) {
@@ -406,7 +484,7 @@ if (isset($_POST['send_concern'])) {
         $stmt = $conn->prepare("INSERT INTO concerns (user_id, sender, message, attachment_path) VALUES (?, 'user', ?, ?)");
         $stmt->bind_param("iss", $userId, $message, $attachmentPath);
         $stmt->execute();
-        header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
+        header("Location: " . $_SERVER['PHP_SELF'] . "#communication-page");
         exit();
     }
 }
@@ -416,19 +494,20 @@ if (isset($_POST['delete_message'])) {
     $stmt = $conn->prepare("DELETE FROM concerns WHERE id = ? AND user_id = ? AND sender = 'user'");
     $stmt->bind_param("ii", $messageId, $userId);
     $stmt->execute();
-    header("Location: ".$_SERVER['PHP_SELF']."#communication-page");
+    header("Location: " . $_SERVER['PHP_SELF'] . "#communication-page");
     exit();
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PESO Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png"/>
+    <link rel="icon" type="image/x-icon" href="../../../../assets/PESO Logo Assets.png" />
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../../../resource/css/user_dashboard.css">
@@ -436,1654 +515,1755 @@ if (isset($_POST['delete_message'])) {
 </head>
 <style>
     body {
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background-color: #f4f4f4;
-}
-
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background: linear-gradient(155deg, #090549 23.3%, #aa0505 50%,rgb(165, 137, 0) 50%);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    height: 50px;
-}
-
-.navbar .title {
-    font-size: 20px;
-    font-weight: bold;
-    color: white;
-    margin-left: 0;
-}
-
-.navbar a {
-    color: white;
-    text-decoration: none;
-    margin: 0 15px;
-    font-size: 14px;
-}
-
-.san-julian-logo {
-    height: 58px;
-    margin-right: 10px;
-}
-
-.container {
-    display: flex;
-    flex: 1;
-    padding-top: 50px;
-}
-
-.sidebar {
-    background-color: #090549;
-    color: white;
-    width: 250px;
-    height: 100vh;
-    position: fixed;
-    top: 70px;
-    left: 0;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    z-index: 900;
-    transition: width 0.3s ease;
-}
-
-.sidebar.collapsed {
-    width: 60px;
-}
-
-.nav-item {
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-.nav-item:hover {
-    background-color: #10087c;
-}
-
-.nav-item.active {
-    background-color: #10087c;
-    border-left: 4px solid #ffffff;
-}
-
-.nav-item.active .nav-icon {
-    margin-left: -4px; 
-}
-
-.sidebar.collapsed .nav-item.active {
-    background-color: #10087c;
-    border-left: 4px solid #ffffff;
-}
-
-.sidebar.collapsed .nav-item.active .nav-icon {
-    margin-left: -2px;
-}
-
-.nav-icon {
-    margin-right: 10px;
-    font-size: 14px;
-    min-width: 20px;
-    text-align: center;
-}
-
-.nav-text {
-    color: white;
-    transition: opacity 0.2s ease;
-}
-
-.sidebar.collapsed .nav-text {
-    opacity: 0;
-    display: none;
-}
-
-.toggle-sidebar {
-    background-color: transparent;
-    color: white;
-    border: none;
-    cursor: pointer;
-    padding: 15px;
-    text-align: left;
-    font-size: 14px;
-    display: flex;
-    margin-left: 10px;
-    justify-content: flex-start;
-    align-items: center;
-}
-
-.toggle-sidebar:hover {
-    background-color: #10087c;
-}
-
-.main-content.sidebar-collapsed {
-    margin-left: 60px;
-}
-
-.image-container {
-    flex: 1;
-    padding: 15px;
-    display: flex;
-    justify-content: center;
-    position: relative;
-    height: 400px;
-    overflow: hidden;
-}
-
-.slideshow {
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-
-.slide {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    transition: opacity 1s ease-in-out;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.slide.active {
-    opacity: 1;
-}
-
-.slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 7px;
-}
-
-.content-container {
-    flex: 1;
-    text-align: center;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.main-title {
-    font-size: 30px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 15px;
-}
-
-.description {
-    font-size: 12px;
-    color: #555;
-    margin-bottom: 30px;
-}
-
-
-.logo {
-    height: 50px;
-    margin-right: 10px;
-}
-
-.logo-container {
-    display: flex;
-    align-items: center;
-    margin-left: 20px;
-}
-
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-        margin: 50px auto;
-    }
-    
-    .image-container {
-        height: 300px;
-    }
-}
-
-.main-content {
-    padding: 30px;
-    flex: 1;
-    box-sizing: border-box;
-    margin-left: 250px;
-    transition: margin-left 0.3s ease;
-}
-
-.main-content.sidebar-collapsed {
-    margin-left: 60px;
-}
-
-.user-icon {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid black;
-}
-
-.menu-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.user-name {
-    color: white;
-    font-size: 12px;
-}
-
-.dropdown-menu {
-    opacity: 0;
-    transform: translateY(-10px);
-    pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    display: block;
-    position: absolute;
-    background-color: white;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    padding: 5px 0;
-    right: 0px;
-    top: 45px;
-    z-index: 1000;
-}
-
-.dropdown-menu.show {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-.dropdown-menu a {
-    display: block;
-    text-decoration: none;
-    color: #090549;
-    padding: 8px 8px;
-    font-size: 10px;
-}
-
-.dropdown-menu a:hover {
-    background-color: #f4f4f4;
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-}
-
-.modal-content {
-    background-color: white;
-    margin: 15% auto;
-    padding: 20px;
-    border-radius: 8px;
-    width: 55%;
-    font-size : 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-    font-size: 15px;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.modal-body {
-    max-height: 200px;
-    overflow-y: auto;
-    word-wrap: break-word;
-}
-
-.modal-close {
-    float: right;
-    font-size: 25px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.modal-close:hover {
-    color: red;
-}
-
-.scholarship-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.btn, .get-started, .submit-btn, .back-btn {
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.btn:hover, .get-started:hover, .submit-btn:hover, .back-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-
-.btn {
-    padding: 6px 13px;
-    font-size: 10px;
-    cursor: pointer;
-    border: none;
-    border-radius: 10px;
-}
-
-.btn-outline {
-    background: #090549;
-    color:rgb(255, 255, 255);
-    border: 3px solid #090549;
-    border-radius: 14px;
-}
-
-.btn-outline:hover {
-    background:rgb(16, 9, 122);
-    color: white;
-}
-
-.btn-primary {
-    background:rgb(5, 73, 28);
-    color: white;
-    border-radius: 14px;
-}
-
-.btn-primary:hover {
-    background:rgb(9, 114, 44);
-}
-
-.btn-primary:disabled {
-    background-color: #808080;
-    border-color: #808080;
-}
-
-.notification-bell {
-    position: relative;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    margin-right: 15px;
-}
-
-.notification-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    min-width: 11px;
-    height: 11px;
-    background-color: red;
-    border-radius: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 8px;
-    color: black;
-    font-weight: bold;
-    padding: 0 2px;
-    line-height: 1;
-    z-index: 2;
-}
-.user-menu-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.notification-dot {
-    position: absolute;
-    top: -3px;
-    right: -3px;
-    width: 8px;
-    height: 8px;
-    background-color: red;
-    border-radius: 50%;
-    display: none;
-}
-
-.box {
-    background-color: #fff;
-    border-radius: 15px;
-    padding: 20px;
-    margin: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    flex: 1;
-}
-
-.box-icon {
-    font-size: 28px;
-    color: #090549;
-    margin-bottom: 10px;
-}
-
-.box-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
-}
-
-.box-value {
-    font-size: 35px;
-    font-weight: bold;
-    color: #333;
-}
-
-.box-description {
-    font-size: 12px;
-    color: #555;
-    margin-top: 10px;
-}
-.dashboard-boxes {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    padding: 0 20px;
-}
-.get-started {
-    background-color: #090549;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 14px;
-    cursor: pointer;
-    font-size: 10px;
-    margin-top: 10px;
-}
-
-.get-started:hover {
-    background-color: #10087c;
-}
-
-
-.history-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    font-size: 12px;
-}
-.history-h2 {
-    font-size: 20px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 10px;
-}
-.history-p {
-    font-size: 12px;
-    color: #555;
-    margin-bottom: 20px;
-}
-.scholarship-header {
-    background-color:rgb(221, 221, 221);
-    color: white;
-    padding: 10px;
-    border-radius: 8px 8px 0 0;
-}
-.scholarship-title {
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-}
-.scholarship-info {
-    font-size: 12px;
-    color: #555;
-    margin-top: 10px;
-}
-
-#history-page {
-    background-color: #f4f4f4;
-    border-radius: 12px;
-}
-
-.page {
-    max-width: 1200px;
-    margin: auto;
-    display: none;
-}
-.page.active {
-    display: block;
-    animation: fadeIn 0.5s;
-}
-
-.submit-btn {
-    background-color: #090549;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 14px;
-    cursor: pointer;
-    font-size: 12px;
-    margin-top: 20px;
-}
-
-.submit-btn:hover {
-    background-color: #10087c;
-}
-
-.form-container-application {
-    max-width: 600px;
-    margin: 20px auto;
-    padding: 30px;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-
-.input-field {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 10px;
-    box-sizing: border-box;
-    transition: all 0.3s ease;
-}
-
-.input-field:focus {
-    border-color:rgb(0, 0, 0);
-    box-shadow: 0 0 8px rgba(13, 59, 102, 0.2);
-    outline: none;
-}
-
-.textarea-field {
-    resize: vertical;
-}
-
-.select-field {
-    appearance: none;
-    background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%230d3b66' d='M2 0L0 2h4z'/%3E%3C/svg%3E") no-repeat right 10px center;
-    background-size: 8px 10px;
-}
-
-.file-field {
-    padding: 8px;
-    font-size: 10px;
-}
-
-.back-btn {
-    background:#090549;
-    color:rgb(255, 255, 255);
-    border: 1px solid #090549;
-    padding: 8px 14px;
-    border-radius: 10px;
-    text-align: center;
-    font-size: 10px;
-    cursor: pointer;
-    margin-bottom: 20px;
-    display: inline-block;
-}
-
-.back-btn:hover {
-    background:rgb(9, 7, 122);
-    color: white;
-}
-
-.label-application {
-    font-size: 12px;
-    color: black;
-}
-
-#application-form-title {
-    font-size: 15px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20px;
-}
-
-.label-application {
-    font-size: 13px;
-    color: black;
-    font-weight: bold;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    display: block;
-}
-
-form .label-application + div label,
-form .label-application + div label input {
-    font-size: 10px !important;
-    font-weight: normal;
-}
-
-form .label-application + div label {
-    margin-right: 18px;
-}
-
-.doc-req-section {
-    font-size: 13px;
-}
-.doc-req-section label {
-    font-size: 13px;
-}
-
-.title-description-p{
-    font-size: 12px;
-    color: black;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    text-align: center;
-    margin-left: 70px;
-    margin-right: 70px;
-    font-weight: bold;
-}
-
-#spes-application-form-title {
-    font-size: 17px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20px;
-    text-align: center;
-    text-decoration: underline;
-}
-
-.chat-container {
-    max-width: 1200px;
-    margin: 0;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-}
-
-.chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: #f7f7fa;
-    border-radius: 10px 10px 0 0;
-}
-
-.message {
-    max-width: 70%;
-    padding: 10px 15px;
-    border-radius: 15px;
-    margin: 5px 0;
-    word-break: break-word;
-}
-
-.user-message {
-    align-self: flex-end;
-    background-color: #090549;
-    color: white;
-}
-
-.admin-message {
-    align-self: flex-start;
-    background-color: #e9ecef;
-    color: #333;
-}
-
-.message-content {
-    margin-bottom: 5px;
-}
-
-.message-timestamp {
-    font-size: 0.7em;
-    opacity: 0.7;
-    text-align: right;
-}
-
-.chat-input {
-    display: flex;
-    gap: 10px;
-    padding: 15px;
-    border-top: 1px solid #eee;
-    background: #fff;
-    border-radius: 0 0 10px 10px;
-    align-items: center;
-}
-
-.chat-input textarea {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 20px;
-    resize: none;
-    height: 40px;
-    font-family: inherit;
-    font-size: 13px;
-}
-
-.chat-input button {
-    background: #090549;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.chat-input button:hover {
-    background:rgb(21, 12, 158);
-}
-
-.message {
-    position: relative;
-}
-
-.message-options {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.message:hover .message-options {
-    opacity: 1;
-}
-
-.options-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    color: #666;
-    font-size: 12px;
-}
-
-.options-btn:hover {
-    background-color: rgba(0,0,0,0.1);
-}
-
-.options-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    display: none;
-    min-width: 100px;
-    z-index: 1000;
-}
-
-.options-menu.show {
-    display: block;
-}
-
-.options-menu button {
-    display: block;
-    width: 100%;
-    padding: 8px 12px;
-    border: none;
-    background: none;
-    text-align: left;
-    cursor: pointer;
-    color: #dc3545;
-    font-size: 12px;
-}
-
-.options-menu button:hover {
-    background-color: #f8f9fa;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 20px;
-}
-
-.btn-danger {
-    background-color: #dc3545;
-    color: white;
-    border: 1px solid #dc3545;
-}
-
-.btn-danger:hover {
-    background-color: #c82333;
-}
-
-.chat-input .upload-btn {
-    background: none;
-    border: none;
-    color: #555;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0 10px;
-    border-radius: 50%;
-    height: 40px;
-    width: 40px;
-    transition: background 0.2s, color 0.2s;
-}
-.chat-input .upload-btn:hover {
-    background: #e9ecef;
-    color: #090549;
-}
-.upload-popup {
-    display: none;
-    position: absolute;
-    left: 40px;
-    top: -10px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
-    padding: 15px 20px 15px 15px;
-    z-index: 100;
-    min-width: 180px;
-    font-size: 13px;
-}
-.upload-popup .btn {
-    border-radius: 6px !important;
-    width: 100px;
-    height: 40px;
-    padding: 0;
-    font-size: 13px;
-    background: #090549;
-    color: #fff;
-    font-weight: bold;
-    border: none;
-    display: block;
-    margin: 0 auto;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    transition: background 0.2s;
-}
-.upload-popup .btn:hover {
-    background:rgb(15, 7, 121);
-}
-.upload-popup span {
-    display: block;
-    margin-bottom: 10px;
-}
-.close-upload-popup {
-    background: none;
-    border: none;
-    color: #888;
-    font-size: 18px;
-    position: absolute;
-    top: 5px;
-    right: 10px;
-    cursor: pointer;
-}
-
-.message-attachment {
-    margin-top: 8px;
-    padding: 8px 12px;
-    background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.message-attachment a {
-    color: inherit;
-    text-decoration: none;
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.message-attachment a:hover {
-    text-decoration: underline;
-}
-.admin-message .message-attachment {
-    background-color: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-@media (max-width: 768px) {
-    .navbar {
-        height: auto;
-        padding: 15px 10px;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-    }
-    .logo-container {
-        margin-left: 0;
-        margin-bottom: 0;
-        flex-direction: row;
-        align-items: center;
-        gap: 5px;
-    }
-    .logo, .san-julian-logo {
-        height: 30px;
-    }
-    .navbar .title {
-        font-size: 11px !important;
-        margin-left: 0 !important;
-        padding: 0 !important;
-    }
-    .right-nav {
-        width: auto;
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 10px;
-    }
-    .menu-container {
-        width: auto;
-        justify-content: flex-end;
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
         padding: 0;
-        gap: 10px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #f4f4f4;
     }
-    .user-name {
-        display: none;
+
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: linear-gradient(155deg, #090549 23.3%, #aa0505 50%, rgb(165, 137, 0) 50%);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        height: 50px;
     }
-    .dropdown-menu {
-        top: 40px;
-        right: 5px;
+
+    .navbar .title {
+        font-size: 20px;
+        font-weight: bold;
+        color: white;
+        margin-left: 0;
+    }
+
+    .navbar a {
+        color: white;
+        text-decoration: none;
+        margin: 0 15px;
+        font-size: 14px;
+    }
+
+    .san-julian-logo {
+        height: 58px;
+        margin-right: 10px;
+    }
+
+    .container {
+        display: flex;
+        flex: 1;
+        padding-top: 50px;
     }
 
     .sidebar {
-        width: 100%;
-        height: auto;
+        background-color: #090549;
+        color: white;
+        width: 250px;
+        height: 100vh;
         position: fixed;
-        bottom: 0;
-        top: auto;
-        flex-direction: row;
-        z-index: 1000;
-        padding: 5px 0;
-    }
-    
-    .sidebar.collapsed {
-        width: 100%;
-    }
-    
-    .nav-item {
-        margin: 0;
+        top: 70px;
+        left: 0;
         display: flex;
-        padding: 10px 5px;
-        justify-content: space-between;
         flex-direction: column;
-        text-align: center;
-        min-width: 78px;
-        min-height: 40px;
+        overflow-y: auto;
+        z-index: 900;
+        transition: width 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+        width: 60px;
+    }
+
+    .nav-item {
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    .nav-item:hover {
+        background-color: #10087c;
     }
 
     .nav-item.active {
-        border-left: none;
-        border-bottom: 4px solid #ffffff;
         background-color: #10087c;
-        border-radius: 0;
+        border-left: 4px solid #ffffff;
     }
-    
+
+    .nav-item.active .nav-icon {
+        margin-left: -4px;
+    }
+
+    .sidebar.collapsed .nav-item.active {
+        background-color: #10087c;
+        border-left: 4px solid #ffffff;
+    }
+
+    .sidebar.collapsed .nav-item.active .nav-icon {
+        margin-left: -2px;
+    }
+
     .nav-icon {
-        margin-right: 0;
-        font-size: 16px;
-        margin-bottom: 5px;
+        margin-right: 10px;
+        font-size: 14px;
+        min-width: 20px;
+        text-align: center;
     }
-    
+
     .nav-text {
-        font-size: 10px;
-        display: block !important;
-        opacity: 1 !important;
+        color: white;
+        transition: opacity 0.2s ease;
     }
-    
-    .toggle-sidebar {
+
+    .sidebar.collapsed .nav-text {
+        opacity: 0;
         display: none;
     }
 
-    .container {
-        padding-top: 10px;
-    }
-    
-    .main-content {
-        margin: 0 !important;
-        padding: 10px;
-        flex-direction: column;
+    .toggle-sidebar {
+        background-color: transparent;
+        color: white;
+        border: none;
+        cursor: pointer;
+        padding: 15px;
+        text-align: left;
+        font-size: 14px;
+        display: flex;
+        margin-left: 10px;
+        justify-content: flex-start;
         align-items: center;
-        justify-content: center;
     }
-    .welcome-screen {
-        margin-top: 40px !important;
-        text-align: center;
+
+    .toggle-sidebar:hover {
+        background-color: #10087c;
+    }
+
+    .main-content.sidebar-collapsed {
+        margin-left: 60px;
+    }
+
+    .image-container {
+        flex: 1;
+        padding: 15px;
+        display: flex;
+        justify-content: center;
+        position: relative;
+        height: 400px;
+        overflow: hidden;
+    }
+
+    .slideshow {
         width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .slide.active {
+        opacity: 1;
+    }
+
+    .slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 7px;
+    }
+
+    .content-container {
+        flex: 1;
+        text-align: center;
+        padding: 20px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
     }
-    .dashboard-boxes {
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        padding: 0;
+
+    .main-title {
+        font-size: 30px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
     }
+
+    .description {
+        font-size: 12px;
+        color: #555;
+        margin-bottom: 30px;
+    }
+
+
+    .logo {
+        height: 50px;
+        margin-right: 10px;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        margin-left: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            flex-direction: column;
+            margin: 50px auto;
+        }
+
+        .image-container {
+            height: 300px;
+        }
+    }
+
+    .main-content {
+        padding: 30px;
+        flex: 1;
+        box-sizing: border-box;
+        margin-left: 250px;
+        transition: margin-left 0.3s ease;
+    }
+
+    .main-content.sidebar-collapsed {
+        margin-left: 60px;
+    }
+
+    .user-icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid black;
+    }
+
+    .menu-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .user-name {
+        color: white;
+        font-size: 12px;
+    }
+
+    .dropdown-menu {
+        opacity: 0;
+        transform: translateY(-10px);
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        display: block;
+        position: absolute;
+        background-color: white;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 5px 0;
+        right: 0px;
+        top: 45px;
+        z-index: 1000;
+    }
+
+    .dropdown-menu.show {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .dropdown-menu a {
+        display: block;
+        text-decoration: none;
+        color: #090549;
+        padding: 8px 8px;
+        font-size: 10px;
+    }
+
+    .dropdown-menu a:hover {
+        background-color: #f4f4f4;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 8px;
+        width: 55%;
+        font-size: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .modal-body {
+        max-height: 200px;
+        overflow-y: auto;
+        word-wrap: break-word;
+    }
+
+    .modal-close {
+        float: right;
+        font-size: 25px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .modal-close:hover {
+        color: red;
+    }
+
+    .scholarship-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .btn,
+    .get-started,
+    .submit-btn,
+    .back-btn {
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    .btn:hover,
+    .get-started:hover,
+    .submit-btn:hover,
+    .back-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+
+    .btn {
+        padding: 6px 13px;
+        font-size: 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 10px;
+    }
+
+    .btn-outline {
+        background: #090549;
+        color: rgb(255, 255, 255);
+        border: 3px solid #090549;
+        border-radius: 14px;
+    }
+
+    .btn-outline:hover {
+        background: rgb(16, 9, 122);
+        color: white;
+    }
+
+    .btn-primary {
+        background: rgb(5, 73, 28);
+        color: white;
+        border-radius: 14px;
+    }
+
+    .btn-primary:hover {
+        background: rgb(9, 114, 44);
+    }
+
+    .btn-primary:disabled {
+        background-color: #808080;
+        border-color: #808080;
+    }
+
+    .notification-bell {
+        position: relative;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        margin-right: 15px;
+    }
+
+    .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        min-width: 11px;
+        height: 11px;
+        background-color: red;
+        border-radius: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 8px;
+        color: black;
+        font-weight: bold;
+        padding: 0 2px;
+        line-height: 1;
+        z-index: 2;
+    }
+
+    .user-menu-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .notification-dot {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 8px;
+        height: 8px;
+        background-color: red;
+        border-radius: 50%;
+        display: none;
+    }
+
     .box {
-        width: 90%;
-        margin: 10px 0;
+        background-color: #fff;
+        border-radius: 15px;
+        padding: 20px;
+        margin: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        flex: 1;
+    }
+
+    .box-icon {
+        font-size: 28px;
+        color: #090549;
+        margin-bottom: 10px;
+    }
+
+    .box-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .box-value {
+        font-size: 35px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .box-description {
+        font-size: 12px;
+        color: #555;
+        margin-top: 10px;
     }
 
     .dashboard-boxes {
-        flex-direction: column;
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+        padding: 0 20px;
     }
-    
-    .box {
-        margin: 5px 0;
+
+    .get-started {
+        background-color: #090549;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 14px;
+        cursor: pointer;
+        font-size: 10px;
+        margin-top: 10px;
+    }
+
+    .get-started:hover {
+        background-color: #10087c;
+    }
+
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 12px;
+    }
+
+    .history-h2 {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .history-p {
+        font-size: 12px;
+        color: #555;
+        margin-bottom: 20px;
+    }
+
+    .scholarship-header {
+        background-color: rgb(221, 221, 221);
+        color: white;
+        padding: 10px;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .scholarship-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .scholarship-info {
+        font-size: 12px;
+        color: #555;
+        margin-top: 10px;
+    }
+
+    #history-page {
+        background-color: #f4f4f4;
+        border-radius: 12px;
+    }
+
+    .page {
+        max-width: 1200px;
+        margin: auto;
+        display: none;
+    }
+
+    .page.active {
+        display: block;
+        animation: fadeIn 0.5s;
+    }
+
+    .submit-btn {
+        background-color: #090549;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 14px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-top: 20px;
+    }
+
+    .submit-btn:hover {
+        background-color: #10087c;
     }
 
     .form-container-application {
-        padding: 15px;
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 30px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
-    
-    .input-field, .textarea-field, .select-field {
-        font-size: 14px;
+
+
+    .input-field {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 10px;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+    }
+
+    .input-field:focus {
+        border-color: rgb(0, 0, 0);
+        box-shadow: 0 0 8px rgba(13, 59, 102, 0.2);
+        outline: none;
+    }
+
+    .textarea-field {
+        resize: vertical;
+    }
+
+    .select-field {
+        appearance: none;
+        background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%230d3b66' d='M2 0L0 2h4z'/%3E%3C/svg%3E") no-repeat right 10px center;
+        background-size: 8px 10px;
+    }
+
+    .file-field {
         padding: 8px;
+        font-size: 10px;
     }
 
-    #communication-page {
-        width: 100%;
+    .back-btn {
+        background: #090549;
+        color: rgb(255, 255, 255);
+        border: 1px solid #090549;
+        padding: 8px 14px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 10px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        display: inline-block;
     }
 
-    .concerns-layout {
-        flex-direction: column;
-        height: calc(100vh - 140px);
-        width: 100%;
+    .back-btn:hover {
+        background: rgb(9, 7, 122);
+        color: white;
     }
 
-    .concerns-list {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid #eee;
-        flex-shrink: 0;
-        max-height: 200px; 
-        overflow-y: auto;
+    .label-application {
+        font-size: 12px;
+        color: black;
     }
 
-    .concerns-list li a {
-        font-size: 11px;
-        padding: 10px 15px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    #application-form-title {
+        font-size: 15px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
     }
 
-    .concerns-chat-area {
-        flex-grow: 1;
-        overflow: hidden;
-        width: 100%;
-        min-width: 410px;
+    .label-application {
+        font-size: 13px;
+        color: black;
+        font-weight: bold;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    form .label-application+div label,
+    form .label-application+div label input {
+        font-size: 10px !important;
+        font-weight: normal;
+    }
+
+    form .label-application+div label {
+        margin-right: 18px;
+    }
+
+    .doc-req-section {
+        font-size: 13px;
+    }
+
+    .doc-req-section label {
+        font-size: 13px;
+    }
+
+    .title-description-p {
+        font-size: 12px;
+        color: black;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        margin-left: 70px;
+        margin-right: 70px;
+        font-weight: bold;
+    }
+
+    #spes-application-form-title {
+        font-size: 17px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+        text-align: center;
+        text-decoration: underline;
     }
 
     .chat-container {
+        max-width: 1200px;
+        margin: 0;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
         height: 100%;
-        margin-bottom: 10px;
         width: 100%;
-        min-width: 0;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #f7f7fa;
+        border-radius: 10px 10px 0 0;
     }
 
     .message {
-        max-width: 75% !important;
-        min-width: 60px;
-        width: fit-content !important;
-        word-wrap: break-word;
+        max-width: 70%;
+        padding: 10px 15px;
+        border-radius: 15px;
+        margin: 5px 0;
         word-break: break-word;
-        hyphens: auto;
     }
 
     .user-message {
         align-self: flex-end;
         background-color: #090549;
         color: white;
-        margin-left: auto;
-        margin-right: 0;
     }
 
     .admin-message {
         align-self: flex-start;
         background-color: #e9ecef;
         color: #333;
-        margin-left: 0;
-        margin-right: auto;
     }
 
     .message-content {
         margin-bottom: 5px;
-        max-width: 100%;
-        overflow-wrap: break-word;
-    }
-
-    .chat-messages {
-        padding: 15px 10px;
-        gap: 8px;
-    }
-
-    .message {
-        padding: 8px 12px; 
-        margin: 3px 0;
-        font-size: 14px;
-        line-height: 1.4;
     }
 
     .message-timestamp {
-        font-size: 0.65em;
+        font-size: 0.7em;
         opacity: 0.7;
         text-align: right;
-        margin-top: 2px;
-    }
-
-    .message-attachment {
-        margin-top: 6px;
-        padding: 6px 10px;
-        max-width: 100%;
-        overflow: hidden;
-    }
-
-    .message-attachment a {
-        font-size: 0.85em;
-        word-break: break-all;
     }
 
     .chat-input {
-        padding: 10px;
-        gap: 8px;
+        display: flex;
+        gap: 10px;
+        padding: 15px;
+        border-top: 1px solid #eee;
+        background: #fff;
+        border-radius: 0 0 10px 10px;
+        align-items: center;
     }
 
     .chat-input textarea {
-        font-size: 14px;
-        padding: 8px 12px;
-        min-height: 36px;
-        max-height: 80px;
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        resize: none;
+        height: 40px;
+        font-family: inherit;
+        font-size: 13px;
     }
 
     .chat-input button {
-        width: 36px;
-        height: 36px;
-        font-size: 14px;
-        flex-shrink: 0;
+        background: #090549;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chat-input button:hover {
+        background: rgb(21, 12, 158);
+    }
+
+    .message {
+        position: relative;
+    }
+
+    .message-options {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .message:hover .message-options {
+        opacity: 1;
+    }
+
+    .options-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        color: #666;
+        font-size: 12px;
+    }
+
+    .options-btn:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .options-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        display: none;
+        min-width: 100px;
+        z-index: 1000;
+    }
+
+    .options-menu.show {
+        display: block;
+    }
+
+    .options-menu button {
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        border: none;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .options-menu button:hover {
+        background-color: #f8f9fa;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: 1px solid #dc3545;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
     }
 
     .chat-input .upload-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
-        flex-shrink: 0;
-    }
-
-    .history-table {
-        font-size: 10px;
-    }
-    
-    .history-table th, 
-    .history-table td {
-        padding: 5px;
-    }
-
-    .description {
-        display: none;
-    }
-    
-    #spes-application-form-page .form-container-application {
-        padding: 15px;
-    }
-    
-    #spes-application-form-page img {
-        display: none;
-    }
-    
-    .title-description-p {
-        margin-left: 0;
-        margin-right: 0;
-        font-size: 11px;
-    }
-
-    .modal-content {
-        width: 90%;
-        margin: 30% auto;
-        font-size: 9px;
-    }
-    
-    #application-form-page .form-container-application {
-        padding: 15px;
-    }
-}
-
-@media (max-width: 480px) {
-    .nav-item {
-        padding: 8px 3px;
-    }
-    
-    .nav-text {
-        font-size: 8px;
-    }
-    
-    .main-title {
+        background: none;
+        border: none;
+        color: #555;
         font-size: 20px;
+        cursor: pointer;
+        padding: 0 10px;
+        border-radius: 50%;
+        height: 40px;
+        width: 40px;
+        transition: background 0.2s, color 0.2s;
     }
-    
-    .box-title {
-        font-size: 14px;
-    }
-    
-    .box-value {
-        font-size: 25px;
-    }
-    
-    .history-h2 {
-        font-size: 18px;
-    }
-}
 
-@media screen and (max-width: 768px) {
-    input, select, textarea {
-        font-size: 16px !important;
+    .chat-input .upload-btn:hover {
+        background: #e9ecef;
+        color: #090549;
     }
-}
 
-@media (max-width: 768px) {
-    .dropdown-menu {
-        position: fixed;
-        top: 50px;
-        right: 5px;
-        width: 150px;
+    .upload-popup {
+        display: none;
+        position: absolute;
+        left: 40px;
+        top: -10px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+        padding: 15px 20px 15px 15px;
+        z-index: 100;
+        min-width: 180px;
+        font-size: 13px;
     }
-    
-    .options-menu {
-        position: fixed;
-        top: auto;
-        bottom: 60px;
-        right: 10px;
-    }
-}
 
-@media (max-width: 768px) {
-    #spes-page .dashboard-boxes {
-        flex-direction: column;
+    .upload-popup .btn {
+        border-radius: 6px !important;
+        width: 100px;
+        height: 40px;
+        padding: 0;
+        font-size: 13px;
+        background: #090549;
+        color: #fff;
+        font-weight: bold;
+        border: none;
+        display: block;
+        margin: 0 auto;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        transition: background 0.2s;
     }
-    
-    #spes-page .box {
+
+    .upload-popup .btn:hover {
+        background: rgb(15, 7, 121);
+    }
+
+    .upload-popup span {
+        display: block;
         margin-bottom: 10px;
     }
-}
 
-@media (max-width: 768px) {
-    .modal-content {
-        margin: 50% auto;
-        width: 85%;
-        font-size: 9px;
+    .close-upload-popup {
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 18px;
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        cursor: pointer;
     }
-}
+
+    .message-attachment {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .message-attachment a {
+        color: inherit;
+        text-decoration: none;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .message-attachment a:hover {
+        text-decoration: underline;
+    }
+
+    .admin-message .message-attachment {
+        background-color: rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 768px) {
+        .navbar {
+            height: auto;
+            padding: 15px 10px;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+        }
+
+        .logo-container {
+            margin-left: 0;
+            margin-bottom: 0;
+            flex-direction: row;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logo,
+        .san-julian-logo {
+            height: 30px;
+        }
+
+        .navbar .title {
+            font-size: 11px !important;
+            margin-left: 0 !important;
+            padding: 0 !important;
+        }
+
+        .right-nav {
+            width: auto;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .menu-container {
+            width: auto;
+            justify-content: flex-end;
+            padding: 0;
+            gap: 10px;
+        }
+
+        .user-name {
+            display: none;
+        }
+
+        .dropdown-menu {
+            top: 40px;
+            right: 5px;
+        }
+
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: fixed;
+            bottom: 0;
+            top: auto;
+            flex-direction: row;
+            z-index: 1000;
+            padding: 5px 0;
+        }
+
+        .sidebar.collapsed {
+            width: 100%;
+        }
+
+        .nav-item {
+            margin: 0;
+            display: flex;
+            padding: 10px 5px;
+            justify-content: space-between;
+            flex-direction: column;
+            text-align: center;
+            min-width: 78px;
+            min-height: 40px;
+        }
+
+        .nav-item.active {
+            border-left: none;
+            border-bottom: 4px solid #ffffff;
+            background-color: #10087c;
+            border-radius: 0;
+        }
+
+        .nav-icon {
+            margin-right: 0;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .nav-text {
+            font-size: 10px;
+            display: block !important;
+            opacity: 1 !important;
+        }
+
+        .toggle-sidebar {
+            display: none;
+        }
+
+        .container {
+            padding-top: 10px;
+        }
+
+        .main-content {
+            margin: 0 !important;
+            padding: 10px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .welcome-screen {
+            margin-top: 40px !important;
+            text-align: center;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dashboard-boxes {
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding: 0;
+        }
+
+        .box {
+            width: 90%;
+            margin: 10px 0;
+        }
+
+        .dashboard-boxes {
+            flex-direction: column;
+        }
+
+        .box {
+            margin: 5px 0;
+        }
+
+        .form-container-application {
+            padding: 15px;
+        }
+
+        .input-field,
+        .textarea-field,
+        .select-field {
+            font-size: 14px;
+            padding: 8px;
+        }
+
+        #communication-page {
+            width: 100%;
+        }
+
+        .concerns-layout {
+            flex-direction: column;
+            height: calc(100vh - 140px);
+            width: 100%;
+        }
+
+        .concerns-list {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .concerns-list li a {
+            font-size: 11px;
+            padding: 10px 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .concerns-chat-area {
+            flex-grow: 1;
+            overflow: hidden;
+            width: 100%;
+            min-width: 410px;
+        }
+
+        .chat-container {
+            height: 100%;
+            margin-bottom: 10px;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .message {
+            max-width: 75% !important;
+            min-width: 60px;
+            width: fit-content !important;
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: #090549;
+            color: white;
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .admin-message {
+            align-self: flex-start;
+            background-color: #e9ecef;
+            color: #333;
+            margin-left: 0;
+            margin-right: auto;
+        }
+
+        .message-content {
+            margin-bottom: 5px;
+            max-width: 100%;
+            overflow-wrap: break-word;
+        }
+
+        .chat-messages {
+            padding: 15px 10px;
+            gap: 8px;
+        }
+
+        .message {
+            padding: 8px 12px;
+            margin: 3px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message-timestamp {
+            font-size: 0.65em;
+            opacity: 0.7;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        .message-attachment {
+            margin-top: 6px;
+            padding: 6px 10px;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .message-attachment a {
+            font-size: 0.85em;
+            word-break: break-all;
+        }
+
+        .chat-input {
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .chat-input textarea {
+            font-size: 14px;
+            padding: 8px 12px;
+            min-height: 36px;
+            max-height: 80px;
+        }
+
+        .chat-input button {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .chat-input .upload-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .history-table {
+            font-size: 12px;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 5px;
+        }
+
+        .application-history {
+            position: auto;
+            margin-left: -20px;
+        }
+
+        .description {
+            display: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            
+        }
+
+        #spes-application-form-page .form-container-application {
+            padding: 15px;
+        }
+
+        #spes-application-form-page img {
+            display: none;
+        }
+
+        .title-description-p {
+            margin-left: 0;
+            margin-right: 0;
+            font-size: 11px;
+        }
+
+        .modal-content {
+            width: 90%;
+            margin: 30% auto;
+            font-size: 9px;
+        }
+
+        #application-form-page .form-container-application {
+            padding: 15px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .nav-item {
+            padding: 8px 3px;
+        }
+
+        .nav-text {
+            font-size: 8px;
+        }
+
+        .main-title {
+            font-size: 20px;
+        }
+
+        .box-title {
+            font-size: 14px;
+        }
+
+        .box-value {
+            font-size: 25px;
+        }
+
+        .history-h2 {
+            font-size: 18px;
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+
+        input,
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dropdown-menu {
+            position: fixed;
+            top: 50px;
+            right: 5px;
+            width: 150px;
+        }
+
+        .options-menu {
+            position: fixed;
+            top: auto;
+            bottom: 60px;
+            right: 10px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        #spes-page .dashboard-boxes {
+            flex-direction: column;
+        }
+
+        #spes-page .box {
+            margin-bottom: 10px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .modal-content {
+            margin: 50% auto;
+            width: 85%;
+            font-size: 9px;
+        }
+    }
 
 
-.chevron-icon {
-    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-    transform: rotate(-90deg);
-}
-.chevron-icon.open {
-    transform: rotate(0deg);
-}
+    .chevron-icon {
+        transition: transform 0.3s cubic-bezier(.4, 0, .2, 1);
+        transform: rotate(-90deg);
+    }
 
-.status-pending {
-    background-color: #FFF3CD;
-    color: #856404;
-    padding: 5px 10px;
-    border-radius: 10px;
-    font-weight: bold;
-}
-.status-approved {
-    background-color: #D4EDDA;
-    color: #155724;
-    padding: 5px 10px;
-    border-radius: 10px;
-    font-weight: bold;
-}
-.status-rejected {
-    background-color: #F8D7DA;
-    color: #721C24;
-    padding: 5px 10px;
-    border-radius: 10px;
-    font-weight: bold;
-}
+    .chevron-icon.open {
+        transform: rotate(0deg);
+    }
 
-.concerns-layout {
-    display: flex;
-    height: calc(100vh - 120px);
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-}
-.concerns-list {
-    width: 220px;
-    background: #f4f4f4;
-    border-right: 1px solid #eee;
-    padding: 10px 0;
-    overflow-y: auto;
-}
-.concerns-list ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.concerns-list li a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 20px;
-    cursor: pointer;
-    border-bottom: 1px solid #eee;
-    text-decoration: none;
-    color: #333;
-    font-size: 12px;
-}
-.concerns-list li a:hover {
-    background: #e9ecef;
-}
-.concerns-list li.active a {
-    background: #090549;
-    color: white;
-    font-weight: bold;
-}
-.concerns-chat-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
+    .status-pending {
+        background-color: #FFF3CD;
+        color: #856404;
+        padding: 5px 10px;
+        border-radius: 10px;
+        font-weight: bold;
+    }
 
-.welcome-screen {
-    margin-top: 100px;
-}
-#home-page .box .get-started {
-    margin-top: 20px;
-}
-.get-started:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-#spes-employment-contract-page .form-container-application,
-#spes-oath-of-undertaking-page .form-container-application {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-}
-#spes-employment-contract-page h2,
-#spes-oath-of-undertaking-page h2 {
-    margin-bottom: 20px;
-}
-#spes-employment-contract-page .image,
-#spes-oath-of-undertaking-page .image {
-    max-width: 100%;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    margin-bottom: 30px;
-}
-#spes-employment-contract-page .submit-btn,
-#spes-oath-of-undertaking-page .submit-btn {
-    width: auto;
-    display: inline-block;
-    margin-top: 20px;
-    text-decoration: none;
-}
-#spes-employment-contract-page .back-btn,
-#spes-oath-of-undertaking-page .back-btn {
-    margin-top: 20px;
-}
-#spes-application-form-page {
-    position: relative;
-}
-#spes-application-form-page .form-container-application {
-    position: relative;
-    z-index: 1;
-}
-#spes-form-logo-1 {
-    width: 80px;
-    position: absolute;
-    top: 130px;
-    left: 7%;
-    opacity: 1;
-    pointer-events: none;
-}
-#spes-form-logo-2 {
-    width: 80px;
-    position: absolute;
-    top: 135px;
-    right: 7%;
-    opacity: 1;
-    pointer-events: none;
-}
-#spes-form-logo-bg-1 {
-    width: 550px;
-    position: absolute;
-    top: 10%;
-    left: 50px;
-    opacity: 0.1;
-    pointer-events: none;
-}
-#spes-form-logo-bg-2 {
-    width: 550px;
-    position: absolute;
-    top: 43%;
-    left: 50px;
-    opacity: 0.1;
-    pointer-events: none;
-}
-#spes-form-logo-bg-3 {
-    width: 550px;
-    position: absolute;
-    top: 75%;
-    left: 50px;
-    opacity: 0.1;
-    pointer-events: none;
-}
-#spes-application-form-page a.submit-btn {
-    padding: 8px 20px;
-    width: auto;
-    display: inline-block;
-    margin-bottom: 10px;
-    right: 20px;
-    position: absolute;
-    top: 10px;
-    text-align: center;
-    text-decoration: none;
-}
-.flex-container {
-    display: flex;
-    gap: 10px;
-}
-.flex-item {
-    flex: 1;
-}
-.table-container {
-    overflow-x: auto;
-}
-#spes-application-form-page .doc-req-section div {
-    margin-left: 20px;
-}
-.form-group {
-    margin: 20px 0;
-}
-.form-helper-text {
-    font-size: 10px;
-    color: #555;
-    margin-top: 5px;
-    margin-bottom: 10px;
-}
-.form-section-header {
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-.form-section-header.top-margin {
-    margin-top: 20px;
-}
-.spes-history-input {
-    display: inline-block;
-    width: 22%;
-}
-#history-page .history-table td {
-    padding: 10px;
-}
-#history-page .history-table tr.no-history-row td {
-    text-align: center;
-    padding: 20px;
-}
-.chat-header {
-    padding: 15px 20px;
-    font-weight: bold;
-    border-bottom: 1px solid #eee;
-    background: #f7f7fa;
-}
-.no-messages {
-    text-align: center;
-    color: #888;
-    margin-top: 20px;
-}
-#detailsModal .submit-btn {
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-    margin-top: 20px;
-    width: auto;
-    padding: 10px 20px;
-}
-#notificationModal hr {
-    border: 0;
-    border-top: 1px solid #ccc;
-}
-.notification-message {
-    white-space: pre-wrap;
-}
-.notification-deadline {
-    margin-top: 5px;
-    color: red;
-}
-#toast-message {
-    display: block;
-    position: fixed;
-    top: 0px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgb(13, 160, 8);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 12px;
-    z-index: 2000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.5s, top 0.5s;
-}
-#toast-message.show {
-    opacity: 1;
-    top: 20px;
-    pointer-events: auto;
-}
-#toast-icon {
-    margin-left: 10px;
-    font-size: 16px;
-    vertical-align: middle;
-}
-.scholarship-tabs-container {
-    display: none !important;
-}
+    .status-approved {
+        background-color: #D4EDDA;
+        color: #155724;
+        padding: 5px 10px;
+        border-radius: 10px;
+        font-weight: bold;
+    }
 
-.scholarship-dropdown-container {
-    position: relative;
-    margin-bottom: 20px;
-    max-width: 500px; 
-}
+    .status-rejected {
+        background-color: #F8D7DA;
+        color: #721C24;
+        padding: 5px 10px;
+        border-radius: 10px;
+        font-weight: bold;
+    }
 
-.scholarship-tab-link {
-    background-color: inherit;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    padding: 14px 16px;
-    transition: 0.3s;
-    font-size: 13px;
-    font-weight: 500;
-    color: #555;
-    border-bottom: 3px solid transparent;
-}
+    .concerns-layout {
+        display: flex;
+        height: calc(100vh - 120px);
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
 
-.scholarship-tab-link:hover {
-    background-color: #ddd;
-}
+    .concerns-list {
+        width: 220px;
+        background: #f4f4f4;
+        border-right: 1px solid #eee;
+        padding: 10px 0;
+        overflow-y: auto;
+    }
 
-.scholarship-tab-link.active {
-    background-color: #fff;
-    font-weight: bold;
-    color: #090549;
-    border-bottom: 3px solid #090549;
-}
+    .concerns-list ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
 
-.scholarship-tab-content {
-    display: none;
-    padding: 20px;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    border-radius: 8px;
-    animation: fadeIn 0.5s;
-}
+    .concerns-list li a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        text-decoration: none;
+        color: #333;
+        font-size: 12px;
+    }
 
-@media (max-width: 768px) {
-    .scholarship-dropdown-container {
+    .concerns-list li a:hover {
+        background: #e9ecef;
+    }
+
+    .concerns-list li.active a {
+        background: #090549;
+        color: white;
+        font-weight: bold;
+    }
+
+    .concerns-chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .welcome-screen {
+        margin-top: 100px;
+    }
+
+    #home-page .box .get-started {
+        margin-top: 20px;
+    }
+
+    .get-started:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    #spes-employment-contract-page .form-container-application,
+    #spes-oath-of-undertaking-page .form-container-application {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+    }
+
+    #spes-employment-contract-page h2,
+    #spes-oath-of-undertaking-page h2 {
+        margin-bottom: 20px;
+    }
+
+    #spes-employment-contract-page .image,
+    #spes-oath-of-undertaking-page .image {
         max-width: 100%;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        margin-bottom: 30px;
     }
-}
 
-.scholarship-tab-content h3 {
-    margin-top: 0;
-    color: #090549;
-}
+    #spes-employment-contract-page .submit-btn,
+    #spes-oath-of-undertaking-page .submit-btn {
+        width: auto;
+        display: inline-block;
+        margin-top: 20px;
+        text-decoration: none;
+    }
 
-.scholarship-tab-content h4 {
-    margin-top: 15px;
-    margin-bottom: 5px;
-    color: #333;
-}
+    #spes-employment-contract-page .back-btn,
+    #spes-oath-of-undertaking-page .back-btn {
+        margin-top: 20px;
+    }
 
-.scholarship-tab-content hr {
-    margin: 20px 0;
-    border: 0;
-    border-top: 1px solid #eee;
-}
+    #spes-application-form-page {
+        position: relative;
+    }
 
-.scholarship-tab-content .scholarship-actions a.btn {
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
+    #spes-application-form-page .form-container-application {
+        position: relative;
+        z-index: 1;
+    }
 
-.scholarship-tab-content .scholarship-actions .btn-primary {
-    gap: 8px;
-}
+    #spes-form-logo-1 {
+        width: 80px;
+        position: absolute;
+        top: 130px;
+        left: 7%;
+        opacity: 1;
+        pointer-events: none;
+    }
 
-@keyframes fadeIn {
-    from {opacity: 0;}
-    to {opacity: 1;}
-}
+    #spes-form-logo-2 {
+        width: 80px;
+        position: absolute;
+        top: 135px;
+        right: 7%;
+        opacity: 1;
+        pointer-events: none;
+    }
+
+    #spes-form-logo-bg-1 {
+        width: 550px;
+        position: absolute;
+        top: 10%;
+        left: 50px;
+        opacity: 0.1;
+        pointer-events: none;
+    }
+
+    #spes-form-logo-bg-2 {
+        width: 550px;
+        position: absolute;
+        top: 43%;
+        left: 50px;
+        opacity: 0.1;
+        pointer-events: none;
+    }
+
+    #spes-form-logo-bg-3 {
+        width: 550px;
+        position: absolute;
+        top: 75%;
+        left: 50px;
+        opacity: 0.1;
+        pointer-events: none;
+    }
+
+    #spes-application-form-page a.submit-btn {
+        padding: 8px 20px;
+        width: auto;
+        display: inline-block;
+        margin-bottom: 10px;
+        right: 20px;
+        position: absolute;
+        top: 10px;
+        text-align: center;
+        text-decoration: none;
+    }
+
+    .flex-container {
+        display: flex;
+        gap: 10px;
+    }
+
+    .flex-item {
+        flex: 1;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    #spes-application-form-page .doc-req-section div {
+        margin-left: 20px;
+    }
+
+    .form-group {
+        margin: 20px 0;
+    }
+
+    .form-helper-text {
+        font-size: 10px;
+        color: #555;
+        margin-top: 5px;
+        margin-bottom: 10px;
+    }
+
+    .form-section-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .form-section-header.top-margin {
+        margin-top: 20px;
+    }
+
+    .spes-history-input {
+        display: inline-block;
+        width: 22%;
+    }
+
+    #history-page .history-table td {
+        padding: 10px;
+    }
+
+    #history-page .history-table tr.no-history-row td {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .chat-header {
+        padding: 15px 20px;
+        font-weight: bold;
+        border-bottom: 1px solid #eee;
+        background: #f7f7fa;
+    }
+
+    .no-messages {
+        text-align: center;
+        color: #888;
+        margin-top: 20px;
+    }
+
+    #detailsModal .submit-btn {
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        margin-top: 20px;
+        width: auto;
+        padding: 10px 20px;
+    }
+
+    #notificationModal hr {
+        border: 0;
+        border-top: 1px solid #ccc;
+    }
+
+    .notification-message {
+        white-space: pre-wrap;
+    }
+
+    .notification-deadline {
+        margin-top: 5px;
+        color: red;
+    }
+
+    #toast-message {
+        display: block;
+        position: fixed;
+        top: 0px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgb(13, 160, 8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 12px;
+        z-index: 2000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s, top 0.5s;
+    }
+
+    #toast-message.show {
+        opacity: 1;
+        top: 20px;
+        pointer-events: auto;
+    }
+
+    #toast-icon {
+        margin-left: 10px;
+        font-size: 16px;
+        vertical-align: middle;
+    }
+
+    .scholarship-tabs-container {
+        display: none !important;
+    }
+
+    .scholarship-dropdown-container {
+        position: relative;
+        margin-bottom: 20px;
+        max-width: 500px;
+    }
+
+    .scholarship-tab-link {
+        background-color: inherit;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 14px 16px;
+        transition: 0.3s;
+        font-size: 13px;
+        font-weight: 500;
+        color: #555;
+        border-bottom: 3px solid transparent;
+    }
+
+    .scholarship-tab-link:hover {
+        background-color: #ddd;
+    }
+
+    .scholarship-tab-link.active {
+        background-color: #fff;
+        font-weight: bold;
+        color: #090549;
+        border-bottom: 3px solid #090549;
+    }
+
+    .scholarship-tab-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ccc;
+        background-color: #fff;
+        border-radius: 8px;
+        animation: fadeIn 0.5s;
+    }
+
+    @media (max-width: 768px) {
+        .scholarship-dropdown-container {
+            max-width: 100%;
+        }
+    }
+
+    .scholarship-tab-content h3 {
+        margin-top: 0;
+        color: #090549;
+    }
+
+    .scholarship-tab-content h4 {
+        margin-top: 15px;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .scholarship-tab-content hr {
+        margin: 20px 0;
+        border: 0;
+        border-top: 1px solid #eee;
+    }
+
+    .scholarship-tab-content .scholarship-actions a.btn {
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .scholarship-tab-content .scholarship-actions .btn-primary {
+        gap: 8px;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
 
 
     .file-input-wrapper {
@@ -2155,7 +2335,7 @@ form .label-application + div label {
         position: absolute;
         background-color: #f9f9f9;
         width: 100%;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
         z-index: 100;
         border-radius: 0 0 8px 8px;
         max-height: 250px;
@@ -2169,7 +2349,7 @@ form .label-application + div label {
         display: block;
         border-bottom: 1px solid #ddd;
         font-size: 13px;
-        word-break: break-word; 
+        word-break: break-word;
     }
 
     .scholarship-dropdown-content a:last-child {
@@ -2195,7 +2375,7 @@ form .label-application + div label {
         }
     }
 
-        .concerns-dropdown-mobile {
+    .concerns-dropdown-mobile {
         display: none;
     }
 
@@ -2219,8 +2399,8 @@ form .label-application + div label {
         display: none;
         position: absolute;
         background-color: #f9f9f9;
-        width: calc(100% - 20px); 
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        width: calc(100% - 20px);
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
         z-index: 100;
         border-radius: 0 0 8px 8px;
         max-height: 250px;
@@ -2237,9 +2417,11 @@ form .label-application + div label {
         font-size: 13px;
         border-bottom: 1px solid #eee;
     }
+
     .concerns-dropdown-content a:last-child {
         border-bottom: none;
     }
+
     .concerns-dropdown-content a:hover {
         background-color: #e9ecef;
     }
@@ -2247,6 +2429,10 @@ form .label-application + div label {
     @media (max-width: 768px) {
         .concerns-list {
             display: none;
+        }
+
+        .history-page {
+            padding: 0;
         }
 
         .concerns-dropdown-mobile {
@@ -2257,347 +2443,350 @@ form .label-application + div label {
         }
     }
 
-/* Add these styles to your existing CSS in user_dashboard.php */
+    /* Add these styles to your existing CSS in user_dashboard.php */
 
-/* Application Details Modal */
-#applicationDetailsModal {
-    display: none;
-    position: fixed;
-    z-index: 10000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-    justify-content: center;
-    align-items: center;
-}
+    /* Application Details Modal */
+    #applicationDetailsModal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+        justify-content: center;
+        align-items: center;
+    }
 
-#applicationDetailsModal .modal-content {
-    background-color: #fefefe;
-    margin: 2% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 90%;
-    max-width: 900px;
-    max-height: 90vh;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-}
-
-#applicationDetailsModal .modal-header {
-    font-size: 18px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #090549;
-    flex-shrink: 0;
-}
-
-#applicationDetailsModal .modal-close {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #aaa;
-    cursor: pointer;
-    z-index: 11;
-    line-height: 20px;
-}
-
-#applicationDetailsModal .modal-close:hover,
-#applicationDetailsModal .modal-close:focus {
-    color: #000;
-}
-
-#applicationDetailsBody {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 10px;
-}
-
-.user-details-item {
-    margin-bottom: 10px;
-}
-
-.user-details-label {
-    font-weight: bold;
-    color: #555;
-    font-size: 12px;
-    display: block;
-    margin-bottom: 3px;
-}
-
-.user-details-value {
-    color: #666;
-    font-size: 11px;
-}
-
-.user-details-section-header {
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-    margin: 20px 0 10px 0;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 5px;
-}
-
-.applicants-table {
-    font-size: 11px;
-    width: 100%;
-    border-collapse: collapse;
-    margin: 10px 0;
-}
-
-.applicants-table th,
-.applicants-table td {
-    padding: 8px;
-    border: 1px solid #ddd;
-    text-align: left;
-}
-
-.applicants-table thead tr {
-    background-color: #f8f9fa;
-}
-
-/* Modal Action Buttons */
-#rejectionMessageModal .modal-body button {
-    margin-top: 20px;
-}
-
-/* Responsive design for mobile */
-@media (max-width: 768px) {
     #applicationDetailsModal .modal-content {
-        width: 95%;
-        max-width: 95%;
-        margin: 5% auto;
+        background-color: #fefefe;
+        margin: 2% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 90%;
+        max-width: 900px;
         max-height: 90vh;
-    }
-
-    #applicationDetailsBody {
-        max-height: 75vh;
-        font-size: 11px;
-    }
-
-    .user-details-section-header {
-        font-size: 13px;
-    }
-
-    .user-details-label {
-        font-size: 11px;
-    }
-
-    .user-details-value {
-        font-size: 10px;
-    }
-
-    .applicants-table {
-        font-size: 9px;
-    }
-
-    .applicants-table th,
-    .applicants-table td {
-        padding: 5px;
-    }
-
-    /* Stack grid columns on mobile */
-    #applicationDetailsBody > div > div[style*="grid-template-columns"] {
-        grid-template-columns: 1fr !important;
-    }
-}
-
-/* Scrollbar styling for modal body */
-#applicationDetailsBody::-webkit-scrollbar {
-    width: 8px;
-}
-
-#applicationDetailsBody::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-#applicationDetailsBody::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 10px;
-}
-
-#applicationDetailsBody::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-/* Detail Items Styling */
-.user-details-item {
-    margin-bottom: 10px;
-}
-
-.user-details-label {
-    font-weight: bold;
-    color: #555;
-    font-size: 12px;
-    display: block;
-    margin-bottom: 3px;
-}
-
-.user-details-value {
-    color: #666;
-    font-size: 11px;
-}
-
-.user-details-section-header {
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-    margin: 20px 0 10px 0;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 5px;
-}
-
-/* Table Styling inside Modal */
-.applicants-table {
-    font-size: 11px;
-    width: 100%;
-    border-collapse: collapse;
-    margin: 10px 0;
-}
-
-.applicants-table th,
-.applicants-table td {
-    padding: 8px;
-    border: 1px solid #ddd;
-    text-align: left;
-}
-
-.applicants-table thead tr {
-    background-color: #f8f9fa;
-}
-
-/* Modal Action Buttons */
-#rejectionMessageModal .modal-body button {
-    margin-top: 20px;
-}
-
-/* Button styling inside modals */
-.btn-outline {
-    background: #090549;
-    color: rgb(255, 255, 255);
-    border: 3px solid #090549;
-    border-radius: 14px;
-    padding: 6px 13px;
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.btn-outline:hover {
-    background: rgb(16, 9, 122);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.btn-danger {
-    background-color: #dc3545;
-    color: white;
-    border: 1px solid #dc3545;
-    border-radius: 14px;
-    padding: 6px 13px;
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-danger:hover {
-    background-color: #c82333;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Responsive design for mobile */
-@media (max-width: 768px) {
-    #applicationDetailsModal .modal-content {
-        width: 95%;
-        max-width: 95%;
-        margin: 5% auto;
-        max-height: 90vh;
-        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        position: relative;
+        display: flex;
+        flex-direction: column;
     }
 
     #applicationDetailsModal .modal-header {
-        font-size: 16px;
-        padding-right: 30px;
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #090549;
+        flex-shrink: 0;
     }
 
     #applicationDetailsModal .modal-close {
-        top: 10px;
-        right: 10px;
-        font-size: 24px;
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 28px;
+        font-weight: bold;
+        color: #aaa;
+        cursor: pointer;
+        z-index: 11;
+        line-height: 20px;
+    }
+
+    #applicationDetailsModal .modal-close:hover,
+    #applicationDetailsModal .modal-close:focus {
+        color: #000;
     }
 
     #applicationDetailsBody {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 10px;
+    }
+
+    .user-details-item {
+        margin-bottom: 10px;
+    }
+
+    .user-details-label {
+        font-weight: bold;
+        color: #555;
+        font-size: 12px;
+        display: block;
+        margin-bottom: 3px;
+    }
+
+    .user-details-value {
+        color: #666;
         font-size: 11px;
     }
 
     .user-details-section-header {
-        font-size: 13px;
-    }
-
-    .user-details-label {
-        font-size: 11px;
-    }
-
-    .user-details-value {
-        font-size: 10px;
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        margin: 20px 0 10px 0;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 5px;
     }
 
     .applicants-table {
-        font-size: 9px;
+        font-size: 11px;
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
     }
 
     .applicants-table th,
     .applicants-table td {
-        padding: 5px;
+        padding: 8px;
+        border: 1px solid #ddd;
+        text-align: left;
     }
 
-    #applicationDetailsBody > div > div[style*="grid-template-columns"] {
-        grid-template-columns: 1fr !important;
+    .applicants-table thead tr {
+        background-color: #f8f9fa;
     }
-}
+
+    /* Modal Action Buttons */
+    #rejectionMessageModal .modal-body button {
+        margin-top: 20px;
+    }
+
+    /* Responsive design for mobile */
+    @media (max-width: 768px) {
+        #applicationDetailsModal .modal-content {
+            width: 95%;
+            max-width: 95%;
+            margin: 5% auto;
+            max-height: 90vh;
+        }
+
+        #applicationDetailsBody {
+            max-height: 75vh;
+            font-size: 11px;
+        }
+
+        .user-details-section-header {
+            font-size: 13px;
+        }
+
+        .user-details-label {
+            font-size: 11px;
+        }
+
+        .user-details-value {
+            font-size: 10px;
+        }
+
+        .applicants-table {
+            font-size: 9px;
+        }
+
+        .applicants-table th,
+        .applicants-table td {
+            padding: 5px;
+        }
+
+        /* Stack grid columns on mobile */
+        #applicationDetailsBody>div>div[style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    /* Scrollbar styling for modal body */
+    #applicationDetailsBody::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #applicationDetailsBody::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    #applicationDetailsBody::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+
+    #applicationDetailsBody::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Detail Items Styling */
+    .user-details-item {
+        margin-bottom: 10px;
+    }
+
+    .user-details-label {
+        font-weight: bold;
+        color: #555;
+        font-size: 12px;
+        display: block;
+        margin-bottom: 3px;
+    }
+
+    .user-details-value {
+        color: #666;
+        font-size: 11px;
+    }
+
+    .user-details-section-header {
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        margin: 20px 0 10px 0;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 5px;
+    }
+
+    /* Table Styling inside Modal */
+    .applicants-table {
+        font-size: 11px;
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+    }
+
+    .applicants-table th,
+    .applicants-table td {
+        padding: 8px;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    .applicants-table thead tr {
+        background-color: #f8f9fa;
+    }
+
+    /* Modal Action Buttons */
+    #rejectionMessageModal .modal-body button {
+        margin-top: 20px;
+    }
+
+    /* Button styling inside modals */
+    .btn-outline {
+        background: #090549;
+        color: rgb(255, 255, 255);
+        border: 3px solid #090549;
+        border-radius: 14px;
+        padding: 6px 13px;
+        font-size: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-outline:hover {
+        background: rgb(16, 9, 122);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: 1px solid #dc3545;
+        border-radius: 14px;
+        padding: 6px 13px;
+        font-size: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Responsive design for mobile */
+    @media (max-width: 768px) {
+        #applicationDetailsModal .modal-content {
+            width: 95%;
+            max-width: 95%;
+            margin: 5% auto;
+            max-height: 90vh;
+            padding: 15px;
+        }
+
+        #applicationDetailsModal .modal-header {
+            font-size: 16px;
+            padding-right: 30px;
+        }
+
+        #applicationDetailsModal .modal-close {
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+        }
+
+        #applicationDetailsBody {
+            font-size: 11px;
+        }
+
+        .user-details-section-header {
+            font-size: 13px;
+        }
+
+        .user-details-label {
+            font-size: 11px;
+        }
+
+        .user-details-value {
+            font-size: 10px;
+        }
+
+        .applicants-table {
+            font-size: 9px;
+        }
+
+        .applicants-table th,
+        .applicants-table td {
+            padding: 5px;
+        }
+
+        #applicationDetailsBody>div>div[style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
 </style>
+
 <body>
     <div id="toast-message">
         <span id="toast-text"></span>
         <i id="toast-icon"></i>
     </div>
 
-            
+
     <?php if (isset($_SESSION['spes_application_submitted'])): ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        showToast('SPES application submitted successfully!', 'success');
-    });
-    </script>
-    <?php unset($_SESSION['spes_application_submitted']); endif; ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                showToast('SPES application submitted successfully!', 'success');
+            });
+        </script>
+    <?php unset($_SESSION['spes_application_submitted']);
+    endif; ?>
     <?php if (isset($_SESSION['application_submitted'])): ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        showToast('Application submitted successfully!', 'success');
-    });
-    </script>
-    <?php unset($_SESSION['application_submitted']); endif; ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                showToast('Application submitted successfully!', 'success');
+            });
+        </script>
+    <?php unset($_SESSION['application_submitted']);
+    endif; ?>
 
     <div class="navbar">
         <div class="logo-container">
             <img src="../../../../images/LOGO-Bagong-Pilipinas-Logo-White.png" alt="Bagong Pilipinas Logo" class="logo">
-            <img src="../../../../images/PESO_Logo.png" alt="PESO Logo" class="logo">            
+            <img src="../../../../images/PESO_Logo.png" alt="PESO Logo" class="logo">
             <img src="../../../../images/final-logo-san-julian.png" alt="E-Scholar Logo" class="san-julian-logo">
             <div class="title">PESO SAN JULIAN MIS </div>
         </div>
@@ -2607,20 +2796,20 @@ form .label-application + div label {
                     <i class="fas fa-bell"></i>
                     <span id="notificationBadge" class="notification-badge" style="display: none;"></span>
                 </div>
-                
+
                 <div class="user-menu-container">
                     <img src="../../../../<?php echo htmlspecialchars($user['profile_pic'] ?? 'images/default-user.png'); ?>" alt="User Icon" class="user-icon">
                     <span class="user-name"><?php echo htmlspecialchars($user['Fname'] . " " . $user['Lname']); ?></span>
                     <i class="fas fa-chevron-down chevron-icon" style="color: white; cursor: pointer;" onclick="toggleMenu()" id="chevronIcon"></i>
                     <div class="dropdown-menu" id="dropdownMenu">
-                        <a href="user_profile.php"><i class="fas fa-user"></i>  Profile</a>
-                        <a href="../../signin.php"><i class="fas fa-sign-out-alt"></i>  Logout</a>
+                        <a href="user_profile.php"><i class="fas fa-user"></i> Profile</a>
+                        <a href="../../signin.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="container">
         <div class="sidebar" id="sidebar">
             <button class="toggle-sidebar" id="toggleSidebar">
@@ -2654,8 +2843,8 @@ form .label-application + div label {
                 <div class="welcome-screen">
                     <h1 class="main-title">Welcome to PESO MIS SAN JULIAN</h1>
                     <p class="description">
-                        Connecting Students and Out-of-School Youth in San Julian to Life-Changing Opportunities. Supporting Education,  <br>Building Careers, and Shaping Tomorrow Through Scholarships and SPES Programs.</p>
-                    </div>
+                        Connecting Students and Out-of-School Youth in San Julian to Life-Changing Opportunities. Supporting Education, <br>Building Careers, and Shaping Tomorrow Through Scholarships and SPES Programs.</p>
+                </div>
 
                 <div class="dashboard-boxes">
                     <div class="box">
@@ -2676,87 +2865,87 @@ form .label-application + div label {
             </div>
 
             <div id="scholarships-page" class="page">
-    <div class="scholarship-list">
-        <h2>Available Scholarships</h2>
-        <p>Select a scholarship from the dropdown below to see details and apply.</p>
+                <div class="scholarship-list">
+                    <h2>Available Scholarships</h2>
+                    <p>Select a scholarship from the dropdown below to see details and apply.</p>
 
-        <?php if (count($scholarships) > 0): ?>
-            <div class="scholarship-dropdown-container">
-                <button id="scholarship-dropdown-btn" class="scholarship-dropdown-btn">
-                    <span>Select a Scholarship...</span> <i class="fas fa-chevron-down chevron-icon"></i>
-                </button>
-                <div id="scholarship-dropdown-content" class="scholarship-dropdown-content">
-                    <?php foreach ($scholarships as $scholarship): ?>
-                        <a href="#" data-scholarship-id="<?php echo $scholarship['scholarship_id']; ?>">
-                            <?php echo htmlspecialchars($scholarship['title']); ?>
-                        </a>
-                    <?php endforeach; ?>
+                    <?php if (count($scholarships) > 0): ?>
+                        <div class="scholarship-dropdown-container">
+                            <button id="scholarship-dropdown-btn" class="scholarship-dropdown-btn">
+                                <span>Select a Scholarship...</span> <i class="fas fa-chevron-down chevron-icon"></i>
+                            </button>
+                            <div id="scholarship-dropdown-content" class="scholarship-dropdown-content">
+                                <?php foreach ($scholarships as $scholarship): ?>
+                                    <a href="#" data-scholarship-id="<?php echo $scholarship['scholarship_id']; ?>">
+                                        <?php echo htmlspecialchars($scholarship['title']); ?>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <?php foreach ($scholarships as $index => $scholarship):
+                            $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
+
+                            $hasPendingOrApprovedForThis = false;
+                            $applicationStatusForThis = '';
+                            $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
+                            $checkStmt = $conn->prepare($checkSql);
+                            $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
+                            $checkStmt->execute();
+                            $checkResult = $checkStmt->get_result();
+                            if ($checkResult->num_rows > 0) {
+                                $app = $checkResult->fetch_assoc();
+                                $applicationStatusForThis = $app['status'];
+                                $hasPendingOrApprovedForThis = true;
+                            }
+                            $isDisabled = false;
+                            $buttonText = 'Apply Now';
+                            if ($isApprovedForAnyScholarship) {
+                                $isDisabled = true;
+                                $buttonText = ($applicationStatusForThis === 'approved') ? 'Approved' : 'Cannot Apply Anymore';
+                            } elseif ($hasPendingOrApprovedForThis) {
+                                $isDisabled = true;
+                                $buttonText = 'Pending';
+                            } elseif ($remainingSlots <= 0) {
+                                $isDisabled = true;
+                                $buttonText = 'Fully Booked';
+                            }
+                        ?>
+                            <div id="scholarship-content-<?php echo $scholarship['scholarship_id']; ?>" class="scholarship-tab-content" style="display:none;">
+                                <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
+                                <p><strong>Description:</strong> <?php echo htmlspecialchars($scholarship['description']); ?></p>
+                                <p><strong>Slots:</strong> <?php echo max(0, $remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining</p>
+                                <hr>
+                                <h4>Requirements:</h4>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
+                                <h4>Benefits:</h4>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
+                                <h4>Eligibility Criteria:</h4>
+                                <p><?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
+
+                                <div class="scholarship-actions">
+                                    <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?>
+                                        onclick="showApplicationForm('<?php echo htmlspecialchars(addslashes($scholarship['title'])); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
+                                        <i class="fas fa-pen-alt"></i> <?php echo $buttonText; ?>
+                                    </button>
+                                    <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="btn btn-outline">
+                                        <i class="fas fa-download"></i> Download File
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+
+                    <?php else: ?>
+                        <p>There are currently no active scholarship programs. Please check back later.</p>
+                    <?php endif; ?>
                 </div>
             </div>
-
-            <?php foreach ($scholarships as $index => $scholarship):
-                $remainingSlots = $scholarship['number_of_slots'] - $scholarship['total_applicants'];
-
-                $hasPendingOrApprovedForThis = false;
-                $applicationStatusForThis = '';
-                $checkSql = "SELECT status FROM applications WHERE user_id = ? AND scholarship_id = ? AND status IN ('pending', 'approved') ORDER BY created_at DESC LIMIT 1";
-                $checkStmt = $conn->prepare($checkSql);
-                $checkStmt->bind_param("ii", $userId, $scholarship['scholarship_id']);
-                $checkStmt->execute();
-                $checkResult = $checkStmt->get_result();
-                if ($checkResult->num_rows > 0) {
-                    $app = $checkResult->fetch_assoc();
-                    $applicationStatusForThis = $app['status'];
-                    $hasPendingOrApprovedForThis = true;
-                }
-                $isDisabled = false;
-                $buttonText = 'Apply Now';
-                if ($isApprovedForAnyScholarship) {
-                    $isDisabled = true;
-                    $buttonText = ($applicationStatusForThis === 'approved') ? 'Approved' : 'Cannot Apply Anymore';
-                } elseif ($hasPendingOrApprovedForThis) {
-                    $isDisabled = true;
-                    $buttonText = 'Pending';
-                } elseif ($remainingSlots <= 0) {
-                    $isDisabled = true;
-                    $buttonText = 'Fully Booked';
-                }
-            ?>
-                <div id="scholarship-content-<?php echo $scholarship['scholarship_id']; ?>" class="scholarship-tab-content" style="display:none;">
-                    <h3><?php echo htmlspecialchars($scholarship['title']); ?></h3>
-                    <p><strong>Description:</strong> <?php echo htmlspecialchars($scholarship['description']); ?></p>
-                    <p><strong>Slots:</strong> <?php echo max(0, $remainingSlots); ?> of <?php echo htmlspecialchars($scholarship['number_of_slots']); ?> remaining</p>
-                    <hr>
-                    <h4>Requirements:</h4>
-                    <p><?php echo nl2br(htmlspecialchars($scholarship['requirements'])); ?></p>
-                    <h4>Benefits:</h4>
-                    <p><?php echo nl2br(htmlspecialchars($scholarship['benefits'])); ?></p>
-                    <h4>Eligibility Criteria:</h4>
-                    <p><?php echo nl2br(htmlspecialchars($scholarship['eligibility'])); ?></p>
-                    
-                    <div class="scholarship-actions">
-                        <button class="btn btn-primary" <?php echo $isDisabled ? 'disabled' : ''; ?>
-                                onclick="showApplicationForm('<?php echo htmlspecialchars(addslashes($scholarship['title'])); ?>', '<?php echo $scholarship['scholarship_id']; ?>')">
-                            <i class="fas fa-pen-alt"></i> <?php echo $buttonText; ?>
-                        </button>
-                        <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="btn btn-outline">
-                            <i class="fas fa-download"></i> Download File
-                        </a>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-
-        <?php else: ?>
-            <p>There are currently no active scholarship programs. Please check back later.</p>
-        <?php endif; ?>
-    </div>
-</div>
 
             <div id="application-form-page" class="page">
                 <div class="form-container-application">
                     <button class="back-btn" onclick="showScholarshipsPage()">Back to Scholarships</button>
                     <h2 id="application-form-title">SCHOLARSHIP FORM</h2>
-                     <form enctype="multipart/form-data" method="POST">
+                    <form enctype="multipart/form-data" method="POST">
                         <input type="hidden" name="scholarship_id" id="scholarship_id_field" value="">
                         <p class="form-section-header">Section 1. Student Applicant’s Information.</p>
                         <p class="form-section-header">1. Personal Information</p>
@@ -2777,13 +2966,13 @@ form .label-application + div label {
                         <div class="flex-container">
                             <div class="flex-item">
                                 <label class="label-application" for="gender">Gender</label>
-                                    <select name="gender" class="input-field" required>
-                                        <option value="">Select gender</option>
-                                        <option value="male" <?php if(strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
-                                        <option value="female" <?php if(strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
-                                        <option value="other" <?php if(strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
-                                        <option value="prefer-not-to-say" <?php if(strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
-                                    </select>
+                                <select name="gender" class="input-field" required>
+                                    <option value="">Select gender</option>
+                                    <option value="male" <?php if (strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
+                                    <option value="female" <?php if (strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
+                                    <option value="other" <?php if (strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
+                                    <option value="prefer-not-to-say" <?php if (strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
+                                </select>
                             </div>
                             <div class="flex-item">
                                 <label class="label-application" for="civil_status">Civil Status</label>
@@ -2852,36 +3041,36 @@ form .label-application + div label {
 
                         <p class="form-section-header top-margin">3. Educational Background</p>
                         <div class="table-container">
-                        <table class="history-table">
-                            <thead>
-                                <tr>
-                                    <th>Level</th>
-                                    <th>Name of School</th>
-                                    <th>Honors Received</th>
-                                    <th>Date Graduated/Current Level</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Elementary</td>
-                                    <td><input type="text" name="elem_school" class="input-field"></td>
-                                    <td><input type="text" name="elem_honors" class="input-field"></td>
-                                    <td><input type="text" name="elem_grad" class="input-field"></td>
-                                </tr>
-                                <tr>
-                                    <td>High School</td>
-                                    <td><input type="text" name="hs_school" class="input-field"></td>
-                                    <td><input type="text" name="hs_honors" class="input-field"></td>
-                                    <td><input type="text" name="hs_grad" class="input-field"></td>
-                                </tr>
-                                <tr>
-                                    <td>Vocational</td>
-                                    <td><input type="text" name="voc_school" class="input-field"></td>
-                                    <td><input type="text" name="voc_honors" class="input-field"></td>
-                                    <td><input type="text" name="voc_grad" class="input-field"></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Level</th>
+                                        <th>Name of School</th>
+                                        <th>Honors Received</th>
+                                        <th>Date Graduated/Current Level</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Elementary</td>
+                                        <td><input type="text" name="elem_school" class="input-field"></td>
+                                        <td><input type="text" name="elem_honors" class="input-field"></td>
+                                        <td><input type="text" name="elem_grad" class="input-field"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>High School</td>
+                                        <td><input type="text" name="hs_school" class="input-field"></td>
+                                        <td><input type="text" name="hs_honors" class="input-field"></td>
+                                        <td><input type="text" name="hs_grad" class="input-field"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Vocational</td>
+                                        <td><input type="text" name="voc_school" class="input-field"></td>
+                                        <td><input type="text" name="voc_honors" class="input-field"></td>
+                                        <td><input type="text" name="voc_grad" class="input-field"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
 
                         <p class="form-section-header top-margin">3-A. College Background</p>
@@ -2896,16 +3085,15 @@ form .label-application + div label {
                             </div>
                             <div class="flex-item" style="flex: 2;">
                                 <label class="label-application" for="college_average">Average from Previous Semester</label>
-                                <input 
-                                    type="text" 
-                                    id="college_average" 
-                                    name="college_average" 
+                                <input
+                                    type="text"
+                                    id="college_average"
+                                    name="college_average"
                                     class="input-field"
                                     placeholder="0.0 (e.g., 1.5, 2.0, 3.5)"
                                     pattern="^\d{1}\.\d{1}$"
                                     title="Please enter a valid grade format (e.g., 1.5, 2.0, 3.5)"
-                                    maxlength="3"
-                                />
+                                    maxlength="3" />
                             </div>
                         </div>
                         <label class="label-application" for="college_awards" style="margin-top:10px;">Awards and Recognitions</label>
@@ -2914,7 +3102,7 @@ form .label-application + div label {
                         <div class="form-group">
                             <label class="label-application" for="supporting_documents">Upload Supporting Documents (Documents Requirements.)</label>
                             <p class="form-helper-text">Please compile your documents (e.g., COG, COI) into PDF or DOCX format before uploading. You can paste images into a Word document and save it as a PDF.</p>
-                            
+
                             <p class="form-helper-text" style="color: #c0392b; font-weight: bold;">
                                 Important: Please rename your file to your full name (e.g., LastName_FirstName_MI.pdf) for easy identification.
                             </p>
@@ -2925,31 +3113,31 @@ form .label-application + div label {
                                     <i class="fas fa-times"></i>
                                 </span>
                             </div>
-                        </div> 
-                       <button type="submit" name="submit_application" class="submit-btn">Submit Application</button>
-                    </form> 
+                        </div>
+                        <button type="submit" name="submit_application" class="submit-btn">Submit Application</button>
+                    </form>
                 </div>
             </div>
 
-<div id="history-page" class="page">
-    <div class="application-history">
-        <h2 class="history-h2">Application History</h2>
-        <p class="history-p">Review your previous scholarship applications</p>
-        <div class="table-container">
-            <table class="history-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Program Name</th>
-                        <th>Type</th>
-                        <th>Date Applied</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php
-                $combinedHistorySql = "
+            <div id="history-page" class="page">
+                <div class="application-history">
+                    <h2 class="history-h2">Application History</h2>
+                    <p class="history-p">Review your previous scholarship applications</p>
+                    <div class="table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Program Name</th>
+                                    <th>Type</th>
+                                    <th>Date Applied</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $combinedHistorySql = "
                     (SELECT
                         a.application_id AS id,
                         a.user_id,
@@ -3016,60 +3204,60 @@ form .label-application + div label {
                     ORDER BY date_applied DESC
                 ";
 
-                $applicationsStmt = $conn->prepare($combinedHistorySql);
-                $applicationsStmt->bind_param("ii", $userId, $userId);
-                $applicationsStmt->execute();
-                $applicationsResult = $applicationsStmt->get_result();
+                                $applicationsStmt = $conn->prepare($combinedHistorySql);
+                                $applicationsStmt->bind_param("ii", $userId, $userId);
+                                $applicationsStmt->execute();
+                                $applicationsResult = $applicationsStmt->get_result();
 
-                if ($applicationsResult->num_rows > 0):
-                    while ($application = $applicationsResult->fetch_assoc()):
-                        $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
-                ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($application['id']); ?></td>
-                        <td><?php echo htmlspecialchars($application['program_name']); ?></td>
-                        <td>
-                            <strong><?php echo htmlspecialchars($application['application_type']); ?></strong>
-                        </td>
-                        <td><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
-                        <td>
-                            <span class="<?php echo $statusClass; ?>">
-                                <?php echo ucfirst($application['status']); ?>
-                            </span>
-                        </td>
-                        <td>
-                            <?php if ($application['status'] === 'approved'): ?>
-                                <button class="btn btn-outline" onclick='showUserApplicationDetails(<?php echo json_encode($application); ?>)'>
-                                    <i class="fas fa-eye"></i> View Details
-                                </button>
-                            <?php elseif ($application['status'] === 'rejected'): ?>
-                                <button class="btn btn-danger" onclick='showRejectionWithDetails(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>, <?php echo json_encode($application); ?>)'>
-                                    See why...
-                                </button>
-                            <?php elseif ($application['status'] === 'pending'): ?>
-                                <button class="btn btn-outline" onclick='showUserApplicationDetails(<?php echo json_encode($application); ?>)'>
-                                    <i class="fas fa-eye"></i> View Details
-                                </button>
-                            <?php else: ?>
-                                N/A
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php
-                    endwhile;
-                else:
-                ?>
-                    <tr class="no-history-row">
-                        <td colspan="6">No application history found.</td>
-                    </tr>
-                <?php
-                endif;
-                ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+                                if ($applicationsResult->num_rows > 0):
+                                    while ($application = $applicationsResult->fetch_assoc()):
+                                        $statusClass = 'status-' . strtolower(htmlspecialchars($application['status']));
+                                ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($application['id']); ?></td>
+                                            <td><?php echo htmlspecialchars($application['program_name']); ?></td>
+                                            <td>
+                                                <strong><?php echo htmlspecialchars($application['application_type']); ?></strong>
+                                            </td>
+                                            <td><?php echo date('M d, Y', strtotime($application['date_applied'])); ?></td>
+                                            <td>
+                                                <span class="<?php echo $statusClass; ?>">
+                                                    <?php echo ucfirst($application['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <?php if ($application['status'] === 'approved'): ?>
+                                                    <button class="btn btn-outline" onclick='showUserApplicationDetails(<?php echo json_encode($application); ?>)'>
+                                                        <i class="fas fa-eye"></i> View Details
+                                                    </button>
+                                                <?php elseif ($application['status'] === 'rejected'): ?>
+                                                    <button class="btn btn-danger" onclick='showRejectionWithDetails(<?php echo json_encode(htmlspecialchars($application["rejection_message"])); ?>, <?php echo json_encode($application); ?>)'>
+                                                        See why...
+                                                    </button>
+                                                <?php elseif ($application['status'] === 'pending'): ?>
+                                                    <button class="btn btn-outline" onclick='showUserApplicationDetails(<?php echo json_encode($application); ?>)'>
+                                                        <i class="fas fa-eye"></i> View Details
+                                                    </button>
+                                                <?php else: ?>
+                                                    N/A
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php
+                                    endwhile;
+                                else:
+                                    ?>
+                                    <tr class="no-history-row">
+                                        <td colspan="6">No application history found.</td>
+                                    </tr>
+                                <?php
+                                endif;
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <div id="spes-page" class="page">
                 <h3>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS AND OUT-OF-SCHOOL YOUTH (SPESOS)</h3>
@@ -3084,7 +3272,7 @@ form .label-application + div label {
                         <div class="box-icon"><i class="fas fa-clipboard-list"></i></div>
                         <div class="box-title">Application Form</div>
                         <div class="box-description">Apply for the SPES program here.</div>
-                        
+
                         <?php
                         $spesButtonText = 'Open Form';
                         $isSpesDisabled = false;
@@ -3100,10 +3288,10 @@ form .label-application + div label {
                             $spesButtonText = 'Application is ' . ucfirst($spesApplicationStatus);
                         }
                         ?>
-                        
-                        <button class="get-started" 
-                                <?php echo $isSpesDisabled ? 'disabled' : ''; ?> 
-                                onclick="showPage('spes-application-form-page')">
+
+                        <button class="get-started"
+                            <?php echo $isSpesDisabled ? 'disabled' : ''; ?>
+                            onclick="showPage('spes-application-form-page')">
                             <?php echo $spesButtonText; ?>
                         </button>
                     </div>
@@ -3143,181 +3331,181 @@ form .label-application + div label {
             </div>
 
             <div id="spes-application-form-page" class="page">
-            <div class="form-container-application">
-                <img src="../../../../images/Peso_logo1.gif"  alt="SPES_Logo1" id="spes-form-logo-1">
-                <img src="../../../../images/PESO_Logo.png"  alt="PESO_Logo" id="spes-form-logo-2">
-                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" id="spes-form-logo-bg-1">
-                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" id="spes-form-logo-bg-2">
-                <img src="../../../../images/SPES_Logo.png"  alt="SPES_Logo" id="spes-form-logo-bg-3">
-                <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
-                <a href="../../../../download_assets/SPES-FORM-2-APPLICATION-FORM-1-1.docx" download class="submit-btn">
-                    Download SPES Application Form
-                </a>
-                <p class="title-description-p">REPUBLIC OF THE PHILIPPINES<br>DEPARTMENT OF LABOR AND EMPLOYMENT<br>Regional Office No. VIII<br>PUBLIC EMPLOYMENT SERVICE OFFICE<br>SAN JULIAN, EASTERN SAMAR<br>City/Municipality/Province<br>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)<br>(RA 7323, as amended by RAs 9547 and 10917)
-                </p>
-                <h2 id="spes-application-form-title">Application Form</h2>
-                
-                <form method="POST" enctype="multipart/form-data">
-                    <h4>Personal Information</h4>
-                    <div class="flex-container">
-                        <div class="flex-item">
-                            <label class="label-application">Surname</label>
-                            <input type="text" name="surname" class="input-field" required value="<?php echo htmlspecialchars($user['Lname']); ?>">
-                        </div>
-                        <div class="flex-item">
-                            <label class="label-application">First Name</label>
-                            <input type="text" name="firstname" class="input-field" required value="<?php echo htmlspecialchars($user['Fname']); ?>">
-                        </div>
-                        <div class="flex-item">
-                            <label class="label-application">Middle Name</label>
-                            <input type="text" name="middlename" class="input-field" value="<?php echo htmlspecialchars($user['Mname']); ?>">
-                        </div>
-                    </div>
-                    <label class="label-application">GSIS Beneficiary/Relationship</label>
-                    <input type="text" name="gsis_beneficiary" class="input-field">
-                    
-                    <label class="label-application">Upload ID (Front, Back, etc.)</label>
-                    <p class="form-helper-text">Select Valid ID front and back.</p>
-                    <div class="file-input-wrapper">
-                        <input type="file" id="spes_id_images" name="id_images[]" class="input-field file-field" accept="image/*" multiple>
-                        <span class="file-input-clear-button" id="clear-spes-id-images">
-                            <i class="fas fa-times"></i>
-                        </span>
-                    </div>
-                    <div class="flex-container">
-                        <div class="flex-item">
-                            <label class="label-application">Date of Birth</label>
-                            <input type="date" name="dob" class="input-field" required value="<?php echo htmlspecialchars($user['Birthdate']); ?>">
-                        </div>
-                        <div class="flex-item">
-                            <label class="label-application">Place of Birth</label>
-                            <input type="text" name="place_of_birth" class="input-field">
-                        </div>
-                        <div class="flex-item">
-                            <label class="label-application">Citizenship</label>
-                            <input type="text" name="citizenship" class="input-field">
-                        </div>
-                    </div>
-                    <div class="flex-container">
-                        <div class="flex-item">
-                            <label class="label-application">Contact Details/Cellphone No.</label>
-                            <input type="text" name="contact" class="input-field" value="<?php echo htmlspecialchars($user['contact_number']); ?>">
-                        </div>
-                        <div class="flex-item">
-                            <label class="label-application">Email Address</label>
-                            <input type="email" name="email" class="input-field" value="<?php echo htmlspecialchars($user['Email']); ?>">
-                        </div>
-                    </div>
-                    <label class="label-application">Social Media Account (Facebook, Twitter, Instagram, etc.)</label>
-                    <input type="text" name="social_media" class="input-field">
+                <div class="form-container-application">
+                    <img src="../../../../images/Peso_logo1.gif" alt="SPES_Logo1" id="spes-form-logo-1">
+                    <img src="../../../../images/PESO_Logo.png" alt="PESO_Logo" id="spes-form-logo-2">
+                    <img src="../../../../images/SPES_Logo.png" alt="SPES_Logo" id="spes-form-logo-bg-1">
+                    <img src="../../../../images/SPES_Logo.png" alt="SPES_Logo" id="spes-form-logo-bg-2">
+                    <img src="../../../../images/SPES_Logo.png" alt="SPES_Logo" id="spes-form-logo-bg-3">
+                    <button class="back-btn" onclick="showPage('spes-page')">Back to SPESOS</button>
+                    <a href="../../../../download_assets/SPES-FORM-2-APPLICATION-FORM-1-1.docx" download class="submit-btn">
+                        Download SPES Application Form
+                    </a>
+                    <p class="title-description-p">REPUBLIC OF THE PHILIPPINES<br>DEPARTMENT OF LABOR AND EMPLOYMENT<br>Regional Office No. VIII<br>PUBLIC EMPLOYMENT SERVICE OFFICE<br>SAN JULIAN, EASTERN SAMAR<br>City/Municipality/Province<br>SPECIAL PROGRAM FOR EMPLOYMENT OF STUDENTS (SPES)<br>(RA 7323, as amended by RAs 9547 and 10917)
+                    </p>
+                    <h2 id="spes-application-form-title">Application Form</h2>
 
-                    <label class="label-application">Civil Status</label>
-                    <div>
-                        <label><input type="radio" name="civil_status" value="Single" required> Single</label>
-                        <label><input type="radio" name="civil_status" value="Married"> Married</label>
-                        <label><input type="radio" name="civil_status" value="Widow/er"> Widow/er</label>
-                        <label><input type="radio" name="civil_status" value="Separated"> Separated</label>
-                    </div>
+                    <form method="POST" enctype="multipart/form-data">
+                        <h4>Personal Information</h4>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application">Surname</label>
+                                <input type="text" name="surname" class="input-field" required value="<?php echo htmlspecialchars($user['Lname']); ?>">
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application">First Name</label>
+                                <input type="text" name="firstname" class="input-field" required value="<?php echo htmlspecialchars($user['Fname']); ?>">
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application">Middle Name</label>
+                                <input type="text" name="middlename" class="input-field" value="<?php echo htmlspecialchars($user['Mname']); ?>">
+                            </div>
+                        </div>
+                        <label class="label-application">GSIS Beneficiary/Relationship</label>
+                        <input type="text" name="gsis_beneficiary" class="input-field">
 
-                    <label class="label-application">Sex</label>
+                        <label class="label-application">Upload ID (Front, Back, etc.)</label>
+                        <p class="form-helper-text">Select Valid ID front and back.</p>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="spes_id_images" name="id_images[]" class="input-field file-field" accept="image/*" multiple>
+                            <span class="file-input-clear-button" id="clear-spes-id-images">
+                                <i class="fas fa-times"></i>
+                            </span>
+                        </div>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application">Date of Birth</label>
+                                <input type="date" name="dob" class="input-field" required value="<?php echo htmlspecialchars($user['Birthdate']); ?>">
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application">Place of Birth</label>
+                                <input type="text" name="place_of_birth" class="input-field">
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application">Citizenship</label>
+                                <input type="text" name="citizenship" class="input-field">
+                            </div>
+                        </div>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application">Contact Details/Cellphone No.</label>
+                                <input type="text" name="contact" class="input-field" value="<?php echo htmlspecialchars($user['contact_number']); ?>">
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application">Email Address</label>
+                                <input type="email" name="email" class="input-field" value="<?php echo htmlspecialchars($user['Email']); ?>">
+                            </div>
+                        </div>
+                        <label class="label-application">Social Media Account (Facebook, Twitter, Instagram, etc.)</label>
+                        <input type="text" name="social_media" class="input-field">
+
+                        <label class="label-application">Civil Status</label>
+                        <div>
+                            <label><input type="radio" name="civil_status" value="Single" required> Single</label>
+                            <label><input type="radio" name="civil_status" value="Married"> Married</label>
+                            <label><input type="radio" name="civil_status" value="Widow/er"> Widow/er</label>
+                            <label><input type="radio" name="civil_status" value="Separated"> Separated</label>
+                        </div>
+
+                        <label class="label-application">Sex</label>
                         <select name="sex" class="input-field" required>
                             <option value="">Select gender</option>
-                            <option value="male" <?php if(strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
-                            <option value="female" <?php if(strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
-                            <option value="other" <?php if(strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
-                            <option value="prefer-not-to-say" <?php if(strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
+                            <option value="male" <?php if (strtolower($user['Gender']) == 'male') echo 'selected'; ?>>Male</option>
+                            <option value="female" <?php if (strtolower($user['Gender']) == 'female') echo 'selected'; ?>>Female</option>
+                            <option value="other" <?php if (strtolower($user['Gender']) == 'other') echo 'selected'; ?>>Other</option>
+                            <option value="prefer-not-to-say" <?php if (strtolower($user['Gender']) == 'prefer-not-to-say') echo 'selected'; ?>>Prefer not to say</option>
                         </select>
 
-                    <label class="label-application">Student Type</label>
-                    <div>
-                        <label><input type="radio" name="student_type" value="Student" required> Student</label>
-                        <label><input type="radio" name="student_type" value="ALS Student"> ALS Student</label>
-                        <label><input type="radio" name="student_type" value="Out-of-school (OSY)"> Out-of-school (OSY)</label>
-                    </div>
+                        <label class="label-application">Student Type</label>
+                        <div>
+                            <label><input type="radio" name="student_type" value="Student" required> Student</label>
+                            <label><input type="radio" name="student_type" value="ALS Student"> ALS Student</label>
+                            <label><input type="radio" name="student_type" value="Out-of-school (OSY)"> Out-of-school (OSY)</label>
+                        </div>
 
-                    <label class="label-application">Current Status of Parents (choose applicable)</label>
-                    <div>
-                        <label><input type="radio" name="parent_status" value="Living together" required> Living together</label>
-                        <label><input type="radio" name="parent_status" value="Solo Parent"> Solo Parent</label>
-                        <label><input type="radio" name="parent_status" value="Separated"> Separated</label>
-                        <label><input type="radio" name="parent_status" value="Person With Disability"> Person With Disability</label>
-                        <label><input type="radio" name="parent_status" value="Senior Citizen"> Senior Citizen</label>
-                        <label><input type="radio" name="parent_status" value="Sugar Plantation Worker"> Sugar Plantation Worker</label>
-                        <label><input type="checkbox" name="parent_status_indigenous"> Indigenous People</label>
-                        <label><input type="checkbox" name="parent_status_displaced_local"> Displaced Worker (Local)</label>
-                        <label><input type="checkbox" name="parent_status_displaced_ofw"> Displaced Worker (OFW)</label>
-                    </div>
+                        <label class="label-application">Current Status of Parents (choose applicable)</label>
+                        <div>
+                            <label><input type="radio" name="parent_status" value="Living together" required> Living together</label>
+                            <label><input type="radio" name="parent_status" value="Solo Parent"> Solo Parent</label>
+                            <label><input type="radio" name="parent_status" value="Separated"> Separated</label>
+                            <label><input type="radio" name="parent_status" value="Person With Disability"> Person With Disability</label>
+                            <label><input type="radio" name="parent_status" value="Senior Citizen"> Senior Citizen</label>
+                            <label><input type="radio" name="parent_status" value="Sugar Plantation Worker"> Sugar Plantation Worker</label>
+                            <label><input type="checkbox" name="parent_status_indigenous"> Indigenous People</label>
+                            <label><input type="checkbox" name="parent_status_displaced_local"> Displaced Worker (Local)</label>
+                            <label><input type="checkbox" name="parent_status_displaced_ofw"> Displaced Worker (OFW)</label>
+                        </div>
 
-                    <label class="label-application">Present Address</label>
-                    <input type="text" name="present_address" class="input-field">
-                    <label class="label-application">Permanent Address</label>
-                    <input type="text" name="permanent_address" class="input-field">
+                        <label class="label-application">Present Address</label>
+                        <input type="text" name="present_address" class="input-field">
+                        <label class="label-application">Permanent Address</label>
+                        <input type="text" name="permanent_address" class="input-field">
 
-                    <h4>Parental Information</h4>
-                    <div class="flex-container">
-                        <div class="flex-item">
-                            <label class="label-application">Father’s Name / Contact No.</label>
-                            <input type="text" name="father_name_contact" class="input-field">
+                        <h4>Parental Information</h4>
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application">Father’s Name / Contact No.</label>
+                                <input type="text" name="father_name_contact" class="input-field">
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application">Mother’s Maiden Name / Contact No.</label>
+                                <input type="text" name="mother_name_contact" class="input-field">
+                            </div>
                         </div>
-                        <div class="flex-item">
-                            <label class="label-application">Mother’s Maiden Name / Contact No.</label>
-                            <input type="text" name="mother_name_contact" class="input-field">
+                        <div class="flex-container">
+                            <div class="flex-item">
+                                <label class="label-application">Father’s Occupation</label>
+                                <input type="text" name="father_occupation" class="input-field">
+                            </div>
+                            <div class="flex-item">
+                                <label class="label-application">Mother’s Occupation</label>
+                                <input type="text" name="mother_occupation" class="input-field">
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex-container">
-                        <div class="flex-item">
-                            <label class="label-application">Father’s Occupation</label>
-                            <input type="text" name="father_occupation" class="input-field">
-                        </div>
-                        <div class="flex-item">
-                            <label class="label-application">Mother’s Occupation</label>
-                            <input type="text" name="mother_occupation" class="input-field">
-                        </div>
-                    </div>
 
                         <h4>Educational Background</h4>
                         <div class="table-container">
-                        <table class="history-table">
-                            <thead>
-                                <tr>
-                                    <th>Level</th>
-                                    <th>Name of School</th>
-                                    <th>Degree Earned / Course</th>
-                                    <th>Year/Level</th>
-                                    <th>Date of Attendance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Elementary</td>
-                                    <td><input type="text" name="elem_school" class="input-field"></td>
-                                    <td><input type="text" name="elem_degree" class="input-field"></td>
-                                    <td><input type="text" name="elem_year" class="input-field"></td>
-                                    <td><input type="text" name="elem_attendance" class="input-field"></td>
-                                </tr>
-                                <tr>
-                                    <td>Secondary</td>
-                                    <td><input type="text" name="sec_school" class="input-field"></td>
-                                    <td><input type="text" name="sec_degree" class="input-field"></td>
-                                    <td><input type="text" name="sec_year" class="input-field"></td>
-                                    <td><input type="text" name="sec_attendance" class="input-field"></td>
-                                </tr>
-                                <tr>
-                                    <td>Tertiary</td>
-                                    <td><input type="text" name="ter_school" class="input-field"></td>
-                                    <td><input type="text" name="ter_degree" class="input-field"></td>
-                                    <td><input type="text" name="ter_year" class="input-field"></td>
-                                    <td><input type="text" name="ter_attendance" class="input-field"></td>
-                                </tr>
-                                <tr>
-                                    <td>Tech-Voc</td>
-                                    <td><input type="text" name="tech_school" class="input-field"></td>
-                                    <td><input type="text" name="tech_degree" class="input-field"></td>
-                                    <td><input type="text" name="tech_year" class="input-field"></td>
-                                    <td><input type="text" name="tech_attendance" class="input-field"></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Level</th>
+                                        <th>Name of School</th>
+                                        <th>Degree Earned / Course</th>
+                                        <th>Year/Level</th>
+                                        <th>Date of Attendance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Elementary</td>
+                                        <td><input type="text" name="elem_school" class="input-field"></td>
+                                        <td><input type="text" name="elem_degree" class="input-field"></td>
+                                        <td><input type="text" name="elem_year" class="input-field"></td>
+                                        <td><input type="text" name="elem_attendance" class="input-field"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Secondary</td>
+                                        <td><input type="text" name="sec_school" class="input-field"></td>
+                                        <td><input type="text" name="sec_degree" class="input-field"></td>
+                                        <td><input type="text" name="sec_year" class="input-field"></td>
+                                        <td><input type="text" name="sec_attendance" class="input-field"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tertiary</td>
+                                        <td><input type="text" name="ter_school" class="input-field"></td>
+                                        <td><input type="text" name="ter_degree" class="input-field"></td>
+                                        <td><input type="text" name="ter_year" class="input-field"></td>
+                                        <td><input type="text" name="ter_attendance" class="input-field"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tech-Voc</td>
+                                        <td><input type="text" name="tech_school" class="input-field"></td>
+                                        <td><input type="text" name="tech_degree" class="input-field"></td>
+                                        <td><input type="text" name="tech_year" class="input-field"></td>
+                                        <td><input type="text" name="tech_attendance" class="input-field"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
 
                         <h4>Documentary Requirements</h4>
@@ -3365,7 +3553,7 @@ form .label-application + div label {
                         <input type="text" name="spesid_2" placeholder="ID 2" class="input-field spes-history-input">
                         <input type="text" name="spesid_3" placeholder="ID 3" class="input-field spes-history-input">
                         <input type="text" name="spesid_4" placeholder="ID 4" class="input-field spes-history-input">
-                        
+
                         <button type="submit" name="submit_spes_application" class="submit-btn">Submit Application</button>
                     </form>
                 </div>
@@ -3410,141 +3598,141 @@ form .label-application + div label {
                 </div>
             </div>
 
-<div id="communication-page" class="page">
-    <div class="concerns-layout">
-        <div class="concerns-dropdown-mobile">
-            <button id="concerns-dropdown-btn" class="concerns-dropdown-btn">
-                <span><?php echo $chatTitle; ?></span> <i class="fas fa-chevron-down"></i>
-            </button>
-            <div id="concerns-dropdown-content" class="concerns-dropdown-content">
-                <a href="user_dashboard.php#communication-page">
-                   <i class="fas fa-user"></i>&nbsp; Chat with Admin
-                </a>
-                <?php foreach ($approvedGroups as $group): ?>
-                    <a href="user_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#communication-page">
-                        <i class="fas fa-users"></i>&nbsp; <?php echo htmlspecialchars($group['title']); ?>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <div class="concerns-list">
-            <ul>
-                <li class="<?php if(!$selectedGroupId) echo 'active'; ?>">
-                    <a href="user_dashboard.php#communication-page">
-                       <i class="fas fa-user"></i>&nbsp; Chat with Admin
-                    </a>
-                </li>
-                <?php foreach ($approvedGroups as $group): ?>
-                    <li class="<?php if($selectedGroupId == $group['scholarship_id']) echo 'active'; ?>">
-                        <a href="user_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#communication-page">
-                            <i class="fas fa-users"></i>&nbsp; <?php echo htmlspecialchars($group['title']); ?>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-        <div class="concerns-chat-area">
-             <div class="chat-container">
-                <div class="chat-header">
-                    <?php echo $chatTitle; ?>
-                </div>
-                <div class="chat-messages" id="chatMessages">
-                    <?php if (!empty($messages)): ?>
-                        <?php foreach ($messages as $message): ?>
-                            <div class="message <?php echo $message['sender'] === 'user' ? 'user-message' : 'admin-message'; ?>">
-                                <div class="message-content">
-                                    <?php if (!empty($message['message'])): ?>
-                                        <?php echo nl2br(htmlspecialchars($message['message'])); ?>
-                                    <?php endif; ?>
+            <div id="communication-page" class="page">
+                <div class="concerns-layout">
+                    <div class="concerns-dropdown-mobile">
+                        <button id="concerns-dropdown-btn" class="concerns-dropdown-btn">
+                            <span><?php echo $chatTitle; ?></span> <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div id="concerns-dropdown-content" class="concerns-dropdown-content">
+                            <a href="user_dashboard.php#communication-page">
+                                <i class="fas fa-user"></i>&nbsp; Chat with Admin
+                            </a>
+                            <?php foreach ($approvedGroups as $group): ?>
+                                <a href="user_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#communication-page">
+                                    <i class="fas fa-users"></i>&nbsp; <?php echo htmlspecialchars($group['title']); ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div class="concerns-list">
+                        <ul>
+                            <li class="<?php if (!$selectedGroupId) echo 'active'; ?>">
+                                <a href="user_dashboard.php#communication-page">
+                                    <i class="fas fa-user"></i>&nbsp; Chat with Admin
+                                </a>
+                            </li>
+                            <?php foreach ($approvedGroups as $group): ?>
+                                <li class="<?php if ($selectedGroupId == $group['scholarship_id']) echo 'active'; ?>">
+                                    <a href="user_dashboard.php?chat_group=<?php echo $group['scholarship_id']; ?>#communication-page">
+                                        <i class="fas fa-users"></i>&nbsp; <?php echo htmlspecialchars($group['title']); ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <div class="concerns-chat-area">
+                        <div class="chat-container">
+                            <div class="chat-header">
+                                <?php echo $chatTitle; ?>
+                            </div>
+                            <div class="chat-messages" id="chatMessages">
+                                <?php if (!empty($messages)): ?>
+                                    <?php foreach ($messages as $message): ?>
+                                        <div class="message <?php echo $message['sender'] === 'user' ? 'user-message' : 'admin-message'; ?>">
+                                            <div class="message-content">
+                                                <?php if (!empty($message['message'])): ?>
+                                                    <?php echo nl2br(htmlspecialchars($message['message'])); ?>
+                                                <?php endif; ?>
 
-                                    <?php if (!empty($message['attachment_path'])): ?>
-                                        <div class="message-attachment">
-                                            <a href="<?php echo htmlspecialchars($message['attachment_path']); ?>" target="_blank" download>
-                                                <i class="fas fa-file-download"></i>
-                                                <span><?php echo htmlspecialchars(preg_replace('/^[a-f0-9]+_/', '', basename($message['attachment_path']))); ?></span>
-                                            </a>
-                                        </div>
-                                    <?php endif; ?>
+                                                <?php if (!empty($message['attachment_path'])): ?>
+                                                    <div class="message-attachment">
+                                                        <a href="<?php echo htmlspecialchars($message['attachment_path']); ?>" target="_blank" download>
+                                                            <i class="fas fa-file-download"></i>
+                                                            <span><?php echo htmlspecialchars(preg_replace('/^[a-f0-9]+_/', '', basename($message['attachment_path']))); ?></span>
+                                                        </a>
+                                                    </div>
+                                                <?php endif; ?>
 
-                                    <?php if ($message['sender'] === 'user'): ?>
-                                        <div class="message-options">
-                                            <button class="options-btn" onclick="toggleMessageOptions(<?php echo $message['id']; ?>)">
-                                                <i class="fas fa-ellipsis-v"></i>
-                                            </button>
-                                            <div class="options-menu" id="options-<?php echo $message['id']; ?>">
-                                                <button onclick="deleteMessage(<?php echo $message['id']; ?>)">
-                                                    <i class="fas fa-trash"></i> Delete
-                                                </button>
+                                                <?php if ($message['sender'] === 'user'): ?>
+                                                    <div class="message-options">
+                                                        <button class="options-btn" onclick="toggleMessageOptions(<?php echo $message['id']; ?>)">
+                                                            <i class="fas fa-ellipsis-v"></i>
+                                                        </button>
+                                                        <div class="options-menu" id="options-<?php echo $message['id']; ?>">
+                                                            <button onclick="deleteMessage(<?php echo $message['id']; ?>)">
+                                                                <i class="fas fa-trash"></i> Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="message-timestamp">
+                                                <?php echo date('M d, Y h:i A', strtotime($message['created_at'])); ?>
                                             </div>
                                         </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="message-timestamp">
-                                    <?php echo date('M d, Y h:i A', strtotime($message['created_at'])); ?>
-                                </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="no-messages">
+                                        <p>No messages in this conversation yet.</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="no-messages">
-                            <p>No messages in this conversation yet.</p>
+
+                            <?php if (!$selectedGroupId): ?>
+                                <form class="chat-input" method="POST" autocomplete="off" enctype="multipart/form-data">
+                                    <input type="file" name="attachment" id="chatAttachment" style="display: none;" onchange="updatePlaceholder()">
+                                    <button type="button" class="upload-btn" onclick="document.getElementById('chatAttachment').click();" title="Attach file">
+                                        <i class="fas fa-paperclip"></i>
+                                    </button>
+                                    <textarea name="concern_message" id="concernMessage" placeholder="Type your message to admin..." rows="1"></textarea>
+                                    <button type="submit" name="send_concern">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
-                
-                <?php if (!$selectedGroupId):?>
-                <form class="chat-input" method="POST" autocomplete="off" enctype="multipart/form-data">
-                    <input type="file" name="attachment" id="chatAttachment" style="display: none;" onchange="updatePlaceholder()">
-                    <button type="button" class="upload-btn" onclick="document.getElementById('chatAttachment').click();" title="Attach file">
-                        <i class="fas fa-paperclip"></i>
-                    </button>
-                    <textarea name="concern_message" id="concernMessage" placeholder="Type your message to admin..." rows="1"></textarea>
-                    <button type="submit" name="send_concern">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </form>
-                <?php endif; ?>
+            </div>
+
+            <div id="deleteMessageModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">Delete Message</div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this message? This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+                        <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+    </div>
+
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <div class="modal-header" id="modalTitle"></div>
+            <div class="modal-body">
+                <h3>Requirements:</h3>
+                <p id="modalRequirements"></p>
+                <h3>Benefits:</h3>
+                <p id="modalBenefits"></p>
+                <h3>Eligibility Criteria:</h3>
+                <p id="modalEligibility"></p>
+
+                <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="submit-btn">
+                    Download Application Form
+                </a>
             </div>
         </div>
     </div>
-</div>
-
-<div id="deleteMessageModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">Delete Message</div>
-        <div class="modal-body">
-            <p>Are you sure you want to delete this message? This action cannot be undone.</p>
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
-            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
-        </div>
-    </div>
-</div>
-
-
-
-
-        </div>
-    </div>
-
-<div id="detailsModal" class="modal">
-    <div class="modal-content">
-        <span class="modal-close" onclick="closeModal()">&times;</span>
-        <div class="modal-header" id="modalTitle"></div>
-        <div class="modal-body">
-            <h3>Requirements:</h3>
-            <p id="modalRequirements"></p>
-            <h3>Benefits:</h3>
-            <p id="modalBenefits"></p>
-            <h3>Eligibility Criteria:</h3>
-            <p id="modalEligibility"></p>
-
-            <a href="../../../../download_assets/SCHOLARSHIP-FORM.docx" download class="submit-btn">
-                Download Application Form
-            </a>
-            </div>
-    </div>
-</div>
 
     <div id="notificationModal" class="modal">
         <div class="modal-content">
@@ -3552,19 +3740,19 @@ form .label-application + div label {
             <div class="modal-header">Notifications</div>
             <div class="modal-body">
                 <?php if (!empty($notifications)): ?>
-                    <?php 
+                    <?php
                     $currentDate = null;
-                    foreach ($notifications as $notification): 
-                        $notificationDate = date('F j, Y', strtotime($notification['created_at'])); 
+                    foreach ($notifications as $notification):
+                        $notificationDate = date('F j, Y', strtotime($notification['created_at']));
                     ?>
                         <?php if ($currentDate !== $notificationDate): ?>
                             <?php if ($currentDate !== null): ?>
                                 <hr />
                             <?php endif; ?>
                             <h4><?php echo $notificationDate; ?></h4>
-                            <?php $currentDate = $notificationDate;?>
+                            <?php $currentDate = $notificationDate; ?>
                         <?php endif; ?>
-                        
+
                         <li>
                             <strong><?php echo date('h:i A', strtotime($notification['created_at'])); ?>:</strong>
                             <div class="notification-message">
@@ -3583,356 +3771,360 @@ form .label-application + div label {
             </div>
         </div>
     </div>
-<script>
-    
-    function showToast(message, type = 'success') {
-        const toast = document.getElementById('toast-message');
-        const toastText = document.getElementById('toast-text');
-        const toastIcon = document.getElementById('toast-icon');
+    <script>
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-message');
+            const toastText = document.getElementById('toast-text');
+            const toastIcon = document.getElementById('toast-icon');
 
-        if (!toast || !toastText || !toastIcon) {
-            console.error('Toast elements not found!');
-            return;
-        }
-
-        toastText.textContent = message;
-        toastIcon.className = '';
-
-        if (type === 'success') {
-            toastIcon.classList.add('fas', 'fa-check-circle');
-            toast.style.backgroundColor = 'rgb(13, 160, 8)';
-        } else if (type === 'error') {
-            toastIcon.classList.add('fas', 'fa-times-circle');
-            toast.style.backgroundColor = '#dc3545';
-        } else {
-            toastIcon.classList.add('fas', 'fa-info-circle');
-            toast.style.backgroundColor = '#090549';
-        }
-
-        toast.classList.add('show');
-
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 5000);
-    }
-
-    function toggleMenu() {
-        var menu = document.getElementById("dropdownMenu");
-        var chevron = document.getElementById("chevronIcon");
-        const isOpen = menu.classList.toggle("show");
-        if (isOpen) {
-            chevron.classList.add("open");
-        } else {
-            chevron.classList.remove("open");
-        }
-    }
-
-    function showDetails(title, requirements, benefits, eligibility) {
-        document.getElementById('modalTitle').textContent = title;
-        document.getElementById('modalRequirements').innerHTML = requirements;
-        document.getElementById('modalBenefits').innerHTML = benefits;
-        document.getElementById('modalEligibility').innerHTML = eligibility;
-        document.getElementById('detailsModal').style.display = "block";
-    }
-
-    function closeModal() {
-        document.getElementById('detailsModal').style.display = "none";
-    }
-
-    function showPage(pageId) {
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.remove('active');
-        });
-
-        const newUrl = new URL(window.location);
-        newUrl.hash = pageId;
-        
-        const params = newUrl.searchParams;
-        if (pageId !== 'communication-page') {
-             params.delete('chat_group');
-        }
-        
-        window.history.pushState({}, '', newUrl);
-
-        document.getElementById(pageId).classList.add('active');
-
-        switch (pageId) {
-            case 'home-page':
-                highlightActiveNav('home-nav');
-                break;
-            case 'history-page':
-                highlightActiveNav('history-nav');
-                break;
-            case 'scholarships-page':
-                highlightActiveNav('scholarships-nav');
-                break;
-            case 'communication-page':
-                highlightActiveNav('communication-nav');
-                setTimeout(() => {
-                    var chatMessages = document.getElementById('chatMessages');
-                    if (chatMessages) {
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }
-                }, 100);
-                break;
-            case 'spes-page':
-                highlightActiveNav('spes-nav');
-                break;
-        }
-    }
-rejectionMessageModal
-    function openNotificationModal() {
-        document.getElementById('notificationModal').style.display = "block";
-        fetch('mark_notification_read.php', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    updateNotificationDot();
-                }
-            })
-            .catch(error => console.error('Error marking notifications as read:', error));
-    }
-
-    function closeNotificationModal() {
-        document.getElementById('notificationModal').style.display = "none";
-    }
-
-    function updateNotificationDot() {
-        fetch('get_unread_count_notifcation.php')
-            .then(response => response.json())
-            .then(data => {
-                const notificationBadge = document.getElementById('notificationBadge');
-                if (data.status === 'success' && data.unread_count > 0) {
-                    notificationBadge.style.display = 'flex';
-                    notificationBadge.textContent = data.unread_count;
-                } else {
-                    notificationBadge.style.display = 'none';
-                    notificationBadge.textContent = '';
-                }
-            })
-            .catch((error) => {
-                console.error('Error fetching unread count:', error);
-                document.getElementById('notificationBadge').style.display = 'none';
-            });
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        updateNotificationDot(); 
-        setInterval(updateNotificationDot, 15000); 
-
-        const hash = window.location.hash.substring(1);
-        const pageId = hash || 'home-page';
-
-        if (document.getElementById(pageId)) {
-            showPage(pageId);
-        } else {
-            showPage('home-page');
-        }
-
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.querySelector('.main-content');
-        const toggleBtn = document.getElementById('toggleSidebar');
-        const toggleIcon = document.getElementById('toggleIcon');
-        toggleBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('sidebar-collapsed');
-            if (sidebar.classList.contains('collapsed')) {
-                toggleIcon.classList.remove('fa-chevron-left');
-                toggleIcon.classList.add('fa-chevron-right');
-            } else {
-                toggleIcon.classList.remove('fa-chevron-right');
-                toggleIcon.classList.add('fa-chevron-left');
+            if (!toast || !toastText || !toastIcon) {
+                console.error('Toast elements not found!');
+                return;
             }
-        });
 
-        const animateValue = (obj, start, end, duration) => {
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                obj.innerHTML = Math.floor(progress * (end - start) + start);
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
-            };
-            window.requestAnimationFrame(step);
-        };
+            toastText.textContent = message;
+            toastIcon.className = '';
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const el = entry.target;
-                    const targetValue = parseInt(el.getAttribute('data-target'), 10);
-                    animateValue(el, 0, targetValue, 1500);
-                    observer.unobserve(el);
-                }
+            if (type === 'success') {
+                toastIcon.classList.add('fas', 'fa-check-circle');
+                toast.style.backgroundColor = 'rgb(13, 160, 8)';
+            } else if (type === 'error') {
+                toastIcon.classList.add('fas', 'fa-times-circle');
+                toast.style.backgroundColor = '#dc3545';
+            } else {
+                toastIcon.classList.add('fas', 'fa-info-circle');
+                toast.style.backgroundColor = '#090549';
+            }
+
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        function toggleMenu() {
+            var menu = document.getElementById("dropdownMenu");
+            var chevron = document.getElementById("chevronIcon");
+            const isOpen = menu.classList.toggle("show");
+            if (isOpen) {
+                chevron.classList.add("open");
+            } else {
+                chevron.classList.remove("open");
+            }
+        }
+
+        function showDetails(title, requirements, benefits, eligibility) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalRequirements').innerHTML = requirements;
+            document.getElementById('modalBenefits').innerHTML = benefits;
+            document.getElementById('modalEligibility').innerHTML = eligibility;
+            document.getElementById('detailsModal').style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById('detailsModal').style.display = "none";
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
             });
-        }, { threshold: 0.5 });
 
-        document.querySelectorAll('.box-value').forEach(el => {
-            observer.observe(el);
-        });
+            const newUrl = new URL(window.location);
+            newUrl.hash = pageId;
 
-        function setupFileInputClear(inputId, clearButtonId) {
-            const fileInput = document.getElementById(inputId);
-            const clearButton = document.getElementById(clearButtonId);
+            const params = newUrl.searchParams;
+            if (pageId !== 'communication-page') {
+                params.delete('chat_group');
+            }
 
-            if (!fileInput || !clearButton) return;
+            window.history.pushState({}, '', newUrl);
 
-            fileInput.addEventListener('change', function() {
-                if (fileInput.files && fileInput.files.length > 0) {
-                    clearButton.style.display = 'block';
+            document.getElementById(pageId).classList.add('active');
+
+            switch (pageId) {
+                case 'home-page':
+                    highlightActiveNav('home-nav');
+                    break;
+                case 'history-page':
+                    highlightActiveNav('history-nav');
+                    break;
+                case 'scholarships-page':
+                    highlightActiveNav('scholarships-nav');
+                    break;
+                case 'communication-page':
+                    highlightActiveNav('communication-nav');
+                    setTimeout(() => {
+                        var chatMessages = document.getElementById('chatMessages');
+                        if (chatMessages) {
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
+                    }, 100);
+                    break;
+                case 'spes-page':
+                    highlightActiveNav('spes-nav');
+                    break;
+            }
+        }
+        rejectionMessageModal
+
+        function openNotificationModal() {
+            document.getElementById('notificationModal').style.display = "block";
+            fetch('mark_notification_read.php', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateNotificationDot();
+                    }
+                })
+                .catch(error => console.error('Error marking notifications as read:', error));
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notificationModal').style.display = "none";
+        }
+
+        function updateNotificationDot() {
+            fetch('get_unread_count_notifcation.php')
+                .then(response => response.json())
+                .then(data => {
+                    const notificationBadge = document.getElementById('notificationBadge');
+                    if (data.status === 'success' && data.unread_count > 0) {
+                        notificationBadge.style.display = 'flex';
+                        notificationBadge.textContent = data.unread_count;
+                    } else {
+                        notificationBadge.style.display = 'none';
+                        notificationBadge.textContent = '';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error fetching unread count:', error);
+                    document.getElementById('notificationBadge').style.display = 'none';
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNotificationDot();
+            setInterval(updateNotificationDot, 15000);
+
+            const hash = window.location.hash.substring(1);
+            const pageId = hash || 'home-page';
+
+            if (document.getElementById(pageId)) {
+                showPage(pageId);
+            } else {
+                showPage('home-page');
+            }
+
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const toggleIcon = document.getElementById('toggleIcon');
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('sidebar-collapsed');
+                if (sidebar.classList.contains('collapsed')) {
+                    toggleIcon.classList.remove('fa-chevron-left');
+                    toggleIcon.classList.add('fa-chevron-right');
                 } else {
-                    clearButton.style.display = 'none';
+                    toggleIcon.classList.remove('fa-chevron-right');
+                    toggleIcon.classList.add('fa-chevron-left');
                 }
             });
 
-            clearButton.addEventListener('click', function() {
-                fileInput.value = '';
-                const changeEvent = new Event('change', { bubbles: true });
-                fileInput.dispatchEvent(changeEvent);
+            const animateValue = (obj, start, end, duration) => {
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    obj.innerHTML = Math.floor(progress * (end - start) + start);
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const el = entry.target;
+                        const targetValue = parseInt(el.getAttribute('data-target'), 10);
+                        animateValue(el, 0, targetValue, 1500);
+                        observer.unobserve(el);
+                    }
+                });
+            }, {
+                threshold: 0.5
             });
-        }
 
-        setupFileInputClear('spes_id_images', 'clear-spes-id-images');
-        setupFileInputClear('spes_documents', 'clear-spes-documents');
-        setupFileInputClear('supporting_documents', 'clear-supporting-documents');
-    });
+            document.querySelectorAll('.box-value').forEach(el => {
+                observer.observe(el);
+            });
 
-    function showApplicationForm(scholarshipTitle, scholarshipId) {
-        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-        document.getElementById('application-form-page').classList.add('active');
-        document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
-        document.getElementById('scholarship_id_field').value = scholarshipId;
-        
-        window.scrollTo(0, 0); 
-    }
+            function setupFileInputClear(inputId, clearButtonId) {
+                const fileInput = document.getElementById(inputId);
+                const clearButton = document.getElementById(clearButtonId);
 
-    function showScholarshipsPage() {
-        showPage('scholarships-page');
-    }
+                if (!fileInput || !clearButton) return;
 
-    function highlightActiveNav(navId) {
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        document.getElementById(navId).classList.add('active');
-    }
+                fileInput.addEventListener('change', function() {
+                    if (fileInput.files && fileInput.files.length > 0) {
+                        clearButton.style.display = 'block';
+                    } else {
+                        clearButton.style.display = 'none';
+                    }
+                });
 
-    let messageToDelete = null;
+                clearButton.addEventListener('click', function() {
+                    fileInput.value = '';
+                    const changeEvent = new Event('change', {
+                        bubbles: true
+                    });
+                    fileInput.dispatchEvent(changeEvent);
+                });
+            }
 
-    function toggleMessageOptions(messageId) {
-        document.querySelectorAll('.options-menu').forEach(menu => {
-            if (menu.id !== `options-${messageId}`) menu.classList.remove('show');
+            setupFileInputClear('spes_id_images', 'clear-spes-id-images');
+            setupFileInputClear('spes_documents', 'clear-spes-documents');
+            setupFileInputClear('supporting_documents', 'clear-supporting-documents');
         });
-        document.getElementById(`options-${messageId}`).classList.toggle('show');
-    }
 
-    function deleteMessage(messageId) {
-        messageToDelete = messageId;
-        document.getElementById('deleteMessageModal').style.display = "block";
-        document.getElementById(`options-${messageId}`).classList.remove('show');
-    }
+        function showApplicationForm(scholarshipTitle, scholarshipId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById('application-form-page').classList.add('active');
+            document.getElementById('application-form-title').textContent = `Apply for ${scholarshipTitle}`;
+            document.getElementById('scholarship_id_field').value = scholarshipId;
 
-    function closeDeleteModal() {
-        document.getElementById('deleteMessageModal').style.display = "none";
-        messageToDelete = null;
-    }
-
-    function confirmDelete() {
-        if (messageToDelete) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-            const messageIdInput = document.createElement('input');
-            messageIdInput.type = 'hidden';
-            messageIdInput.name = 'message_id';
-            messageIdInput.value = messageToDelete;
-            const deleteInput = document.createElement('input');
-            deleteInput.type = 'hidden';
-            deleteInput.name = 'delete_message';
-            deleteInput.value = '1';
-            form.appendChild(messageIdInput);
-            form.appendChild(deleteInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    }
-
-    function showUploadPopup() {
-        document.getElementById('uploadPopup').style.display = 'block';
-    }
-
-    function closeUploadPopup() {
-        document.getElementById('uploadPopup').style.display = 'none';
-    }
-
-    function triggerFileInput() {
-        document.getElementById('chatUpload').click();
-        closeUploadPopup();
-    }
-    
-    let currentApplicationData = null;
-
-    function showRejectionWithDetails(rejectionMessage, applicationData) {
-        currentApplicationData = applicationData;
-        document.getElementById('rejectionMessageText').innerHTML = rejectionMessage;
-        document.getElementById('rejectionMessageModal').style.display = "block";
-    }
-
-    function showDetailsFromRejection() {
-        closeRejectionMessageModal();
-        if (currentApplicationData) {
-            showUserApplicationDetails(currentApplicationData);
-        }
-    }
-
-    function closeRejectionMessageModal() {
-        document.getElementById('rejectionMessageModal').style.display = "none";
-    }
-
-    function showUserApplicationDetails(appData) {
-        const app = typeof appData === 'string' ? JSON.parse(appData) : appData;
-        let html = '<div style="font-size: 12px; padding: 10px;">';
-
-        if (!app) {
-            document.getElementById('applicationDetailsBody').innerHTML = "<p>No application data found.</p>";
-            document.getElementById('applicationDetailsModal').style.display = 'flex';
-            return;
+            window.scrollTo(0, 0);
         }
 
-        // Check if it's a Scholarship or SPES application
-        if (app.application_type === 'Scholarship') {
-            // SCHOLARSHIP APPLICATION DETAILS
-            document.getElementById('applicationDetailsHeader').textContent = 'Scholarship Application Details';
-            
-            const createDetailItem = (label, value) => `
+        function showScholarshipsPage() {
+            showPage('scholarships-page');
+        }
+
+        function highlightActiveNav(navId) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.getElementById(navId).classList.add('active');
+        }
+
+        let messageToDelete = null;
+
+        function toggleMessageOptions(messageId) {
+            document.querySelectorAll('.options-menu').forEach(menu => {
+                if (menu.id !== `options-${messageId}`) menu.classList.remove('show');
+            });
+            document.getElementById(`options-${messageId}`).classList.toggle('show');
+        }
+
+        function deleteMessage(messageId) {
+            messageToDelete = messageId;
+            document.getElementById('deleteMessageModal').style.display = "block";
+            document.getElementById(`options-${messageId}`).classList.remove('show');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteMessageModal').style.display = "none";
+            messageToDelete = null;
+        }
+
+        function confirmDelete() {
+            if (messageToDelete) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.style.display = 'none';
+                const messageIdInput = document.createElement('input');
+                messageIdInput.type = 'hidden';
+                messageIdInput.name = 'message_id';
+                messageIdInput.value = messageToDelete;
+                const deleteInput = document.createElement('input');
+                deleteInput.type = 'hidden';
+                deleteInput.name = 'delete_message';
+                deleteInput.value = '1';
+                form.appendChild(messageIdInput);
+                form.appendChild(deleteInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function showUploadPopup() {
+            document.getElementById('uploadPopup').style.display = 'block';
+        }
+
+        function closeUploadPopup() {
+            document.getElementById('uploadPopup').style.display = 'none';
+        }
+
+        function triggerFileInput() {
+            document.getElementById('chatUpload').click();
+            closeUploadPopup();
+        }
+
+        let currentApplicationData = null;
+
+        function showRejectionWithDetails(rejectionMessage, applicationData) {
+            currentApplicationData = applicationData;
+            document.getElementById('rejectionMessageText').innerHTML = rejectionMessage;
+            document.getElementById('rejectionMessageModal').style.display = "block";
+        }
+
+        function showDetailsFromRejection() {
+            closeRejectionMessageModal();
+            if (currentApplicationData) {
+                showUserApplicationDetails(currentApplicationData);
+            }
+        }
+
+        function closeRejectionMessageModal() {
+            document.getElementById('rejectionMessageModal').style.display = "none";
+        }
+
+        function showUserApplicationDetails(appData) {
+            const app = typeof appData === 'string' ? JSON.parse(appData) : appData;
+            let html = '<div style="font-size: 12px; padding: 10px;">';
+
+            if (!app) {
+                document.getElementById('applicationDetailsBody').innerHTML = "<p>No application data found.</p>";
+                document.getElementById('applicationDetailsModal').style.display = 'flex';
+                return;
+            }
+
+            // Check if it's a Scholarship or SPES application
+            if (app.application_type === 'Scholarship') {
+                // SCHOLARSHIP APPLICATION DETAILS
+                document.getElementById('applicationDetailsHeader').textContent = 'Scholarship Application Details';
+
+                const createDetailItem = (label, value) => `
                 <div class="user-details-item" style="margin-bottom: 10px;">
                     <span class="user-details-label" style="font-weight: bold; color: #555;">${label}</span>
                     <div class="user-details-value" style="color: #666; font-size: 11px;">${value || 'N/A'}</div>
                 </div>`;
 
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">1. Personal Information</div>';
-            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
-            html += createDetailItem('Full Name', app.fullname);
-            html += createDetailItem('Date of Birth', app.birthdate);
-            html += createDetailItem('Place of Birth', app.place_of_birth);
-            html += createDetailItem('Gender', app.gender);
-            html += createDetailItem('Civil Status', app.civil_status);
-            html += createDetailItem('Contact Number', app.contact);
-            html += createDetailItem('Facebook Account', app.facebook);
-            html += `</div><div style="margin-top:15px;">${createDetailItem('Address', app.address)}</div>`;
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">1. Personal Information</div>';
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+                html += createDetailItem('Full Name', app.fullname);
+                html += createDetailItem('Date of Birth', app.birthdate);
+                html += createDetailItem('Place of Birth', app.place_of_birth);
+                html += createDetailItem('Gender', app.gender);
+                html += createDetailItem('Civil Status', app.civil_status);
+                html += createDetailItem('Contact Number', app.contact);
+                html += createDetailItem('Facebook Account', app.facebook);
+                html += `</div><div style="margin-top:15px;">${createDetailItem('Address', app.address)}</div>`;
 
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">2. Family Background</div>';
-            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
-            html += createDetailItem("Father's Name & Occupation", `${app.father_name || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i>`);
-            html += createDetailItem("Mother's Name & Occupation", `${app.mother_name || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i>`);
-            html += createDetailItem('Monthly Family Income', app.family_income);
-            html += createDetailItem('Number of Dependents', app.dependents);
-            html += `</div>`;
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">2. Family Background</div>';
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+                html += createDetailItem("Father's Name & Occupation", `${app.father_name || 'N/A'} - <i>${app.father_occupation || 'N/A'}</i>`);
+                html += createDetailItem("Mother's Name & Occupation", `${app.mother_name || 'N/A'} - <i>${app.mother_occupation || 'N/A'}</i>`);
+                html += createDetailItem('Monthly Family Income', app.family_income);
+                html += createDetailItem('Number of Dependents', app.dependents);
+                html += `</div>`;
 
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3. Educational Background</div>';
-            html += `<table class="applicants-table" style="font-size: 11px; width: 100%; border-collapse: collapse;">
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3. Educational Background</div>';
+                html += `<table class="applicants-table" style="font-size: 11px; width: 100%; border-collapse: collapse;">
                         <thead><tr style="background-color: #f8f9fa;"><th style="padding: 8px; border: 1px solid #ddd;">Level</th><th style="padding: 8px; border: 1px solid #ddd;">School</th><th style="padding: 8px; border: 1px solid #ddd;">Honors</th><th style="padding: 8px; border: 1px solid #ddd;">Graduated/Level</th></tr></thead>
                         <tbody>
                             <tr><td style="padding: 8px; border: 1px solid #ddd;">Elementary</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_school || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_honors || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_grad || 'N/A'}</td></tr>
@@ -3940,64 +4132,64 @@ rejectionMessageModal
                             <tr><td style="padding: 8px; border: 1px solid #ddd;">Vocational</td><td style="padding: 8px; border: 1px solid #ddd;">${app.voc_school || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.voc_honors || 'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.voc_grad || 'N/A'}</td></tr>
                         </tbody>
                     </table>`;
-            
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3-A. College Background</div>';
-            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
-            html += createDetailItem('School', app.college_school);
-            html += createDetailItem('Course & Year', app.college_course);
-            html += createDetailItem('Previous Sem Average', app.college_average);
-            html += createDetailItem('Awards / Recognitions', app.college_awards);
-            html += `</div>`;
 
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">4. Uploaded Documents</div>';
-            try {
-                const docs = JSON.parse(app.documents);
-                if (Array.isArray(docs) && docs.length > 0 && docs[0]) {
-                    docs.forEach(docPath => {
-                        const fileName = docPath.substring(docPath.lastIndexOf('/') + 1);
-                        const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
-                        html += `<p style="margin: 5px 0;"><a href="../../../../${docPath.replace('../../../../', '')}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none; padding: 5px 10px; display: inline-block;"><i class="fas fa-file-alt"></i> ${displayName}</a></p>`;
-                    });
-                } else { 
-                    html += '<p class="user-details-value">No documents were uploaded.</p>'; 
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3-A. College Background</div>';
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+                html += createDetailItem('School', app.college_school);
+                html += createDetailItem('Course & Year', app.college_course);
+                html += createDetailItem('Previous Sem Average', app.college_average);
+                html += createDetailItem('Awards / Recognitions', app.college_awards);
+                html += `</div>`;
+
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">4. Uploaded Documents</div>';
+                try {
+                    const docs = JSON.parse(app.documents);
+                    if (Array.isArray(docs) && docs.length > 0 && docs[0]) {
+                        docs.forEach(docPath => {
+                            const fileName = docPath.substring(docPath.lastIndexOf('/') + 1);
+                            const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
+                            html += `<p style="margin: 5px 0;"><a href="../../../../${docPath.replace('../../../../', '')}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none; padding: 5px 10px; display: inline-block;"><i class="fas fa-file-alt"></i> ${displayName}</a></p>`;
+                        });
+                    } else {
+                        html += '<p class="user-details-value">No documents were uploaded.</p>';
+                    }
+                } catch (e) {
+                    html += '<p class="user-details-value">No documents were uploaded.</p>';
                 }
-            } catch (e) { 
-                html += '<p class="user-details-value">No documents were uploaded.</p>'; 
-            }
 
-        } else if (app.application_type === 'SPES') {
-            // SPES APPLICATION DETAILS
-            document.getElementById('applicationDetailsHeader').textContent = 'SPES Application Details';
-            
-            const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
-            const createDetailItem = (label, value) => `<div class="user-details-item" style="margin-bottom: 10px;"><span class="user-details-label" style="font-weight: bold; color: #555;">${label}</span><div class="user-details-value" style="color: #666; font-size: 11px;">${value || 'N/A'}</div></div>`;
+            } else if (app.application_type === 'SPES') {
+                // SPES APPLICATION DETAILS
+                document.getElementById('applicationDetailsHeader').textContent = 'SPES Application Details';
 
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">1. Personal Information</div>';
-            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
-            html += createDetailItem('Full Name', fullName);
-            html += createDetailItem('Date of Birth', app.dob);
-            html += createDetailItem('Place of Birth', app.place_of_birth_spes);
-            html += createDetailItem('Citizenship', app.citizenship);
-            html += createDetailItem('Sex', app.sex);
-            html += createDetailItem('Civil Status', app.civil_status_spes);
-            html += createDetailItem('Contact Number', app.contact_spes);
-            html += createDetailItem('Email', app.email_spes);
-            html += createDetailItem('Social Media', app.social_media);
-            html += `</div>`;
-            html += `<div style="margin-top:15px;">${createDetailItem('Present Address', app.present_address)}</div>`;
-            html += `<div style="margin-top:15px;">${createDetailItem('Permanent Address', app.permanent_address)}</div>`;
+                const fullName = `${app.firstname || ''} ${app.middlename || ''} ${app.surname || ''}`.trim();
+                const createDetailItem = (label, value) => `<div class="user-details-item" style="margin-bottom: 10px;"><span class="user-details-label" style="font-weight: bold; color: #555;">${label}</span><div class="user-details-value" style="color: #666; font-size: 11px;">${value || 'N/A'}</div></div>`;
 
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">2. Parental & Status Information</div>';
-            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
-            html += createDetailItem('GSIS Beneficiary', app.gsis_beneficiary);
-            html += createDetailItem('Student Type', app.student_type);
-            html += createDetailItem("Father's Info", `${app.father_name_contact || 'N/A'} - <i>${app.father_occupation_spes || 'N/A'}</i>`);
-            html += createDetailItem("Mother's Info", `${app.mother_name_contact || 'N/A'} - <i>${app.mother_occupation_spes || 'N/A'}</i>`);
-            html += `</div>`;
-            html += `<div style="margin-top:15px;">${createDetailItem('Parent Status', app.parent_status)}</div>`;
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">1. Personal Information</div>';
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+                html += createDetailItem('Full Name', fullName);
+                html += createDetailItem('Date of Birth', app.dob);
+                html += createDetailItem('Place of Birth', app.place_of_birth_spes);
+                html += createDetailItem('Citizenship', app.citizenship);
+                html += createDetailItem('Sex', app.sex);
+                html += createDetailItem('Civil Status', app.civil_status_spes);
+                html += createDetailItem('Contact Number', app.contact_spes);
+                html += createDetailItem('Email', app.email_spes);
+                html += createDetailItem('Social Media', app.social_media);
+                html += `</div>`;
+                html += `<div style="margin-top:15px;">${createDetailItem('Present Address', app.present_address)}</div>`;
+                html += `<div style="margin-top:15px;">${createDetailItem('Permanent Address', app.permanent_address)}</div>`;
 
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3. Educational Background</div>';
-            html += `<table class="applicants-table" style="font-size: 11px; width: 100%; border-collapse: collapse;">
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">2. Parental & Status Information</div>';
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+                html += createDetailItem('GSIS Beneficiary', app.gsis_beneficiary);
+                html += createDetailItem('Student Type', app.student_type);
+                html += createDetailItem("Father's Info", `${app.father_name_contact || 'N/A'} - <i>${app.father_occupation_spes || 'N/A'}</i>`);
+                html += createDetailItem("Mother's Info", `${app.mother_name_contact || 'N/A'} - <i>${app.mother_occupation_spes || 'N/A'}</i>`);
+                html += `</div>`;
+                html += `<div style="margin-top:15px;">${createDetailItem('Parent Status', app.parent_status)}</div>`;
+
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">3. Educational Background</div>';
+                html += `<table class="applicants-table" style="font-size: 11px; width: 100%; border-collapse: collapse;">
                         <thead><tr style="background-color: #f8f9fa;"><th style="padding: 8px; border: 1px solid #ddd;">Level</th><th style="padding: 8px; border: 1px solid #ddd;">School</th><th style="padding: 8px; border: 1px solid #ddd;">Degree/Course</th><th style="padding: 8px; border: 1px solid #ddd;">Year/Level</th><th style="padding: 8px; border: 1px solid #ddd;">Attendance</th></tr></thead>
                         <tbody>
                             <tr><td style="padding: 8px; border: 1px solid #ddd;">Elementary</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_school_spes||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_degree||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_year||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.elem_attendance||'N/A'}</td></tr>
@@ -4006,217 +4198,218 @@ rejectionMessageModal
                             <tr><td style="padding: 8px; border: 1px solid #ddd;">Tech-Voc</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_school||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_degree||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_year||'N/A'}</td><td style="padding: 8px; border: 1px solid #ddd;">${app.tech_attendance||'N/A'}</td></tr>
                         </tbody>
                     </table>`;
-            
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">4. Skills & SPES History</div>';
-            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
-            html += createDetailItem('Special Skills', app.special_skills);
-            html += createDetailItem('Availment History', app.availment_history);
-            html += createDetailItem('Year History', app.year_history);
-            html += createDetailItem('SPES ID History', app.spes_id_history);
-            html += `</div>`;
-            
-            html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">5. Uploaded Documents</div>';
-            html += `<h4 style="font-size: 12px; margin-top: 10px;">Uploaded ID(s):</h4>`;
-            try {
-                const idImagePaths = JSON.parse(app.id_image_paths);
-                if (Array.isArray(idImagePaths) && idImagePaths.length > 0 && idImagePaths[0]) {
-                    idImagePaths.forEach(path => {
-                        const fullPath = `../../../../${path.replace('../../../../', '')}`;
-                        html += `<a href="${fullPath}" target="_blank" style="margin-right: 10px;"><img src="${fullPath}" alt="ID" style="max-width: 200px; height: auto; border-radius: 5px; border: 1px solid #ddd; margin: 5px;"></a>`;
-                    });
-                } else { 
-                    html += '<p class="user-details-value">No ID images uploaded.</p>'; 
+
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 15px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">4. Skills & SPES History</div>';
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">';
+                html += createDetailItem('Special Skills', app.special_skills);
+                html += createDetailItem('Availment History', app.availment_history);
+                html += createDetailItem('Year History', app.year_history);
+                html += createDetailItem('SPES ID History', app.spes_id_history);
+                html += `</div>`;
+
+                html += '<div class="user-details-section-header" style="font-size: 14px; font-weight: bold; color: #333; margin: 20px 0 10px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">5. Uploaded Documents</div>';
+                html += `<h4 style="font-size: 12px; margin-top: 10px;">Uploaded ID(s):</h4>`;
+                try {
+                    const idImagePaths = JSON.parse(app.id_image_paths);
+                    if (Array.isArray(idImagePaths) && idImagePaths.length > 0 && idImagePaths[0]) {
+                        idImagePaths.forEach(path => {
+                            const fullPath = `../../../../${path.replace('../../../../', '')}`;
+                            html += `<a href="${fullPath}" target="_blank" style="margin-right: 10px;"><img src="${fullPath}" alt="ID" style="max-width: 200px; height: auto; border-radius: 5px; border: 1px solid #ddd; margin: 5px;"></a>`;
+                        });
+                    } else {
+                        html += '<p class="user-details-value">No ID images uploaded.</p>';
+                    }
+                } catch (e) {
+                    html += '<p class="user-details-value">No ID images uploaded.</p>';
                 }
-            } catch (e) { 
-                html += '<p class="user-details-value">No ID images uploaded.</p>'; 
-            }
 
-            html += `<h4 style="font-size: 12px; margin-top: 15px;">Requirement Documents:</h4>`;
-            if (app.spes_documents_path) {
-                const docPath = `../../../../${app.spes_documents_path.replace('../../../../', '')}`;
-                const fileName = app.spes_documents_path.substring(app.spes_documents_path.lastIndexOf('/') + 1);
-                const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
-                html += `<p style="margin: 5px 0;"><a href="${docPath}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none; padding: 5px 10px; display: inline-block;"><i class="fas fa-file-alt"></i> ${displayName}</a></p>`;
-            } else { 
-                html += '<p class="user-details-value">No requirement documents uploaded.</p>'; 
-            }
-        }
-
-        html += '</div>';
-        document.getElementById('applicationDetailsBody').innerHTML = html;
-        document.getElementById('applicationDetailsModal').style.display = 'flex';
-    }
-
-    function closeApplicationDetailsModal() {
-        document.getElementById('applicationDetailsModal').style.display = 'none';
-    }
-
-
-    function showApplicationDetails(appData) {
-        currentApplicationData = appData;
-        showUserApplicationFormDetails();
-    }
-    
-    function updatePlaceholder() {
-        const fileInput = document.getElementById('chatAttachment');
-        const messageInput = document.getElementById('concernMessage');
-        if (fileInput.files.length > 0) {
-            messageInput.placeholder = "File selected: " + fileInput.files[0].name;
-        } else {
-            messageInput.placeholder = "Type your message to admin...";
-        }
-    }
-
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.message-options')) {
-            document.querySelectorAll('.options-menu').forEach(menu => menu.classList.remove('show'));
-        }
-        if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down') && !event.target.closest('.dropdown-menu')) {
-            document.getElementById("dropdownMenu").classList.remove("show");
-            document.getElementById("chevronIcon").classList.remove("open");
-        }
-        const uploadPopup = document.getElementById('uploadPopup');
-        if (uploadPopup && !uploadPopup.contains(event.target) && !uploadPopup.closest('.upload-btn')) {
-            uploadPopup.style.display = 'none';
-        }
-    });
-
-    window.onclick = function(event) {
-        if (event.target.id === 'rejectionMessageModal') closeRejectionMessageModal();
-        if (event.target.id === 'applicationDetailsModal') closeApplicationDetailsModal();
-        if (event.target.id === 'detailsModal') closeModal();
-        if (event.target.id === 'notificationModal') closeNotificationModal();
-        if (event.target.id === 'deleteMessageModal') closeDeleteModal();
-    };
-
-    document.addEventListener('DOMContentLoaded', function() {
-
-        const dropdownBtn = document.getElementById('scholarship-dropdown-btn');
-        const dropdownContent = document.getElementById('scholarship-dropdown-content');
-
-        if (dropdownBtn && dropdownContent) {
-            const dropdownLinks = dropdownContent.querySelectorAll('a');
-            const btnText = dropdownBtn.querySelector('span');
-            
-            function showScholarship(scholarshipId) {
-                document.querySelectorAll('.scholarship-tab-content').forEach(content => {
-                    content.style.display = 'none';
-                });
-                const activeContent = document.getElementById('scholarship-content-' + scholarshipId);
-                if (activeContent) {
-                    activeContent.style.display = 'block';
+                html += `<h4 style="font-size: 12px; margin-top: 15px;">Requirement Documents:</h4>`;
+                if (app.spes_documents_path) {
+                    const docPath = `../../../../${app.spes_documents_path.replace('../../../../', '')}`;
+                    const fileName = app.spes_documents_path.substring(app.spes_documents_path.lastIndexOf('/') + 1);
+                    const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
+                    html += `<p style="margin: 5px 0;"><a href="${docPath}" target="_blank" download="${fileName}" title="${fileName}" class="btn-outline" style="text-decoration:none; padding: 5px 10px; display: inline-block;"><i class="fas fa-file-alt"></i> ${displayName}</a></p>`;
+                } else {
+                    html += '<p class="user-details-value">No requirement documents uploaded.</p>';
                 }
             }
 
-            dropdownBtn.addEventListener('click', function(event) {
-                event.stopPropagation();
-                const isVisible = dropdownContent.style.display === 'block';
-                dropdownContent.style.display = isVisible ? 'none' : 'block';
-                dropdownBtn.classList.toggle('open', !isVisible);
-            });
+            html += '</div>';
+            document.getElementById('applicationDetailsBody').innerHTML = html;
+            document.getElementById('applicationDetailsModal').style.display = 'flex';
+        }
 
-            dropdownLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const selectedId = this.dataset.scholarshipId;
-                    const selectedTitle = this.textContent.trim();
-                    
-                    btnText.textContent = selectedTitle;
-                    showScholarship(selectedId);
+        function closeApplicationDetailsModal() {
+            document.getElementById('applicationDetailsModal').style.display = 'none';
+        }
 
-                    dropdownContent.style.display = 'none';
-                    dropdownBtn.classList.remove('open');
-                });
-            });
-            
-            if (dropdownLinks.length > 0) {
-                const firstId = dropdownLinks[0].dataset.scholarshipId;
-                const firstTitle = dropdownLinks[0].textContent.trim();
-                btnText.textContent = firstTitle;
-                showScholarship(firstId);
+
+        function showApplicationDetails(appData) {
+            currentApplicationData = appData;
+            showUserApplicationFormDetails();
+        }
+
+        function updatePlaceholder() {
+            const fileInput = document.getElementById('chatAttachment');
+            const messageInput = document.getElementById('concernMessage');
+            if (fileInput.files.length > 0) {
+                messageInput.placeholder = "File selected: " + fileInput.files[0].name;
+            } else {
+                messageInput.placeholder = "Type your message to admin...";
             }
         }
-    });
 
-    window.addEventListener('click', function(event) {
-        
-        const scholarshipDropdownContent = document.getElementById('scholarship-dropdown-content');
-        if (scholarshipDropdownContent && scholarshipDropdownContent.style.display === 'block') {
-            if (!event.target.closest('.scholarship-dropdown-container')) {
-                scholarshipDropdownContent.style.display = 'none';
-                const scholarshipBtn = document.getElementById('scholarship-dropdown-btn');
-                if(scholarshipBtn) scholarshipBtn.classList.remove('open');
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.message-options')) {
+                document.querySelectorAll('.options-menu').forEach(menu => menu.classList.remove('show'));
             }
-        }
-    });
+            if (!event.target.matches('.user-icon') && !event.target.matches('.fa-chevron-down') && !event.target.closest('.dropdown-menu')) {
+                document.getElementById("dropdownMenu").classList.remove("show");
+                document.getElementById("chevronIcon").classList.remove("open");
+            }
+            const uploadPopup = document.getElementById('uploadPopup');
+            if (uploadPopup && !uploadPopup.contains(event.target) && !uploadPopup.closest('.upload-btn')) {
+                uploadPopup.style.display = 'none';
+            }
+        });
+
+        window.onclick = function(event) {
+            if (event.target.id === 'rejectionMessageModal') closeRejectionMessageModal();
+            if (event.target.id === 'applicationDetailsModal') closeApplicationDetailsModal();
+            if (event.target.id === 'detailsModal') closeModal();
+            if (event.target.id === 'notificationModal') closeNotificationModal();
+            if (event.target.id === 'deleteMessageModal') closeDeleteModal();
+        };
 
         document.addEventListener('DOMContentLoaded', function() {
 
-        const concernsDropdownBtn = document.getElementById('concerns-dropdown-btn');
-        const concernsDropdownContent = document.getElementById('concerns-dropdown-content');
+            const dropdownBtn = document.getElementById('scholarship-dropdown-btn');
+            const dropdownContent = document.getElementById('scholarship-dropdown-content');
 
-        if (concernsDropdownBtn && concernsDropdownContent) {
-            concernsDropdownBtn.addEventListener('click', function(event) {
-                event.stopPropagation();
-                const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
-                if(scholarshipDropdown) scholarshipDropdown.style.display = 'none';
+            if (dropdownBtn && dropdownContent) {
+                const dropdownLinks = dropdownContent.querySelectorAll('a');
+                const btnText = dropdownBtn.querySelector('span');
 
-                concernsDropdownContent.style.display = concernsDropdownContent.style.display === 'block' ? 'none' : 'block';
-            });
-        }
-    });
+                function showScholarship(scholarshipId) {
+                    document.querySelectorAll('.scholarship-tab-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    const activeContent = document.getElementById('scholarship-content-' + scholarshipId);
+                    if (activeContent) {
+                        activeContent.style.display = 'block';
+                    }
+                }
 
-    window.addEventListener('click', function() {
-        const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
-        const concernsDropdown = document.getElementById('concerns-dropdown-content');
-        
-        if (scholarshipDropdown && scholarshipDropdown.style.display === 'block') {
-            scholarshipDropdown.style.display = 'none';
-        }
-        if (concernsDropdown && concernsDropdown.style.display === 'block') {
-            concernsDropdown.style.display = 'none';
-        }
-    });
+                dropdownBtn.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const isVisible = dropdownContent.style.display === 'block';
+                    dropdownContent.style.display = isVisible ? 'none' : 'block';
+                    dropdownBtn.classList.toggle('open', !isVisible);
+                });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const collegeAverageInput = document.getElementById('college_average');
-    
-    if (collegeAverageInput) {
-        collegeAverageInput.addEventListener('input', function(e) {
-            let value = e.target.value;
-            
-            value = value.replace(/[^0-9.]/g, '');
-            
-            const parts = value.split('.');
-            if (parts.length > 2) {
-                value = parts[0] + '.' + parts.slice(1).join('');
-            }
-            
-            if (parts[0] && parts[0].length > 1) {
-                parts[0] = parts[0].slice(0, 1);
-            }
-            if (parts[1] && parts[1].length > 1) {
-                parts[1] = parts[1].slice(0, 1);
-            }
-            
-            value = parts.join('.');
-            e.target.value = value;
-        });
-        
-        collegeAverageInput.addEventListener('blur', function(e) {
-            let value = e.target.value;
-            
-            if (value && value !== '') {
-                const regex = /^\d{1}\.\d{1}$/;
-                if (!regex.test(value)) {
-                    alert('Please enter a valid grade format (e.g., 1.5, 2.0, 3.5)');
-                    e.target.value = '';
-                    e.target.focus();
+                dropdownLinks.forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const selectedId = this.dataset.scholarshipId;
+                        const selectedTitle = this.textContent.trim();
+
+                        btnText.textContent = selectedTitle;
+                        showScholarship(selectedId);
+
+                        dropdownContent.style.display = 'none';
+                        dropdownBtn.classList.remove('open');
+                    });
+                });
+
+                if (dropdownLinks.length > 0) {
+                    const firstId = dropdownLinks[0].dataset.scholarshipId;
+                    const firstTitle = dropdownLinks[0].textContent.trim();
+                    btnText.textContent = firstTitle;
+                    showScholarship(firstId);
                 }
             }
         });
-    }
-});
-</script>
-    </body>
+
+        window.addEventListener('click', function(event) {
+
+            const scholarshipDropdownContent = document.getElementById('scholarship-dropdown-content');
+            if (scholarshipDropdownContent && scholarshipDropdownContent.style.display === 'block') {
+                if (!event.target.closest('.scholarship-dropdown-container')) {
+                    scholarshipDropdownContent.style.display = 'none';
+                    const scholarshipBtn = document.getElementById('scholarship-dropdown-btn');
+                    if (scholarshipBtn) scholarshipBtn.classList.remove('open');
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const concernsDropdownBtn = document.getElementById('concerns-dropdown-btn');
+            const concernsDropdownContent = document.getElementById('concerns-dropdown-content');
+
+            if (concernsDropdownBtn && concernsDropdownContent) {
+                concernsDropdownBtn.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
+                    if (scholarshipDropdown) scholarshipDropdown.style.display = 'none';
+
+                    concernsDropdownContent.style.display = concernsDropdownContent.style.display === 'block' ? 'none' : 'block';
+                });
+            }
+        });
+
+        window.addEventListener('click', function() {
+            const scholarshipDropdown = document.getElementById('scholarship-dropdown-content');
+            const concernsDropdown = document.getElementById('concerns-dropdown-content');
+
+            if (scholarshipDropdown && scholarshipDropdown.style.display === 'block') {
+                scholarshipDropdown.style.display = 'none';
+            }
+            if (concernsDropdown && concernsDropdown.style.display === 'block') {
+                concernsDropdown.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const collegeAverageInput = document.getElementById('college_average');
+
+            if (collegeAverageInput) {
+                collegeAverageInput.addEventListener('input', function(e) {
+                    let value = e.target.value;
+
+                    value = value.replace(/[^0-9.]/g, '');
+
+                    const parts = value.split('.');
+                    if (parts.length > 2) {
+                        value = parts[0] + '.' + parts.slice(1).join('');
+                    }
+
+                    if (parts[0] && parts[0].length > 1) {
+                        parts[0] = parts[0].slice(0, 1);
+                    }
+                    if (parts[1] && parts[1].length > 1) {
+                        parts[1] = parts[1].slice(0, 1);
+                    }
+
+                    value = parts.join('.');
+                    e.target.value = value;
+                });
+
+                collegeAverageInput.addEventListener('blur', function(e) {
+                    let value = e.target.value;
+
+                    if (value && value !== '') {
+                        const regex = /^\d{1}\.\d{1}$/;
+                        if (!regex.test(value)) {
+                            alert('Please enter a valid grade format (e.g., 1.5, 2.0, 3.5)');
+                            e.target.value = '';
+                            e.target.focus();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
 </html>

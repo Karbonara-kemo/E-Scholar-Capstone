@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authentication Code</title>
     <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <<link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../resource/css/auth_code.css">
@@ -53,7 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
-            <a href="../../landing_page/index.html">Home</a>
+            <a href="../../index.html">
+              <i class="fas fa-home"></i> Home
+            </a>
         </div>
     </div>
 

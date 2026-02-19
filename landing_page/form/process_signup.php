@@ -26,7 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     $validIdPaths = [];
-    $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/form_prac/uploads/valid_ids/';
+    $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/E-Scholarship-SPES/uploads/valid_ids/';
     if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
     if (isset($_FILES['valid_id']) && count($_FILES['valid_id']['name']) >= 2) {
@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $fileName = uniqid() . '_' . basename($name);
                 $targetFile = $uploadDir . $fileName;
                 if (move_uploaded_file($_FILES['valid_id']['tmp_name'][$key], $targetFile)) {
-                    $validIdPaths[] = '/form_prac/uploads/valid_ids/' . $fileName;
+                    $validIdPaths[] = '/E-Scholarship-SPES/uploads/valid_ids/' . $fileName;
                 }
             }
         }

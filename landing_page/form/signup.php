@@ -30,7 +30,9 @@ include "../../connect.php";
             <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
-            <a href="../../index.html" class="home">Home</a>
+            <a href="../../index.html" class="home">
+                <i class="fas fa-home"></i> Home
+            </a>
         </div>
     </div>
 
@@ -113,9 +115,9 @@ include "../../connect.php";
             
             <div class="form-group">
                 <label for="contact-number">Contact Number</label>
-                <input type="text" id="signup-contact" name="contact" placeholder="e.g., +639123456789" pattern="^\+?\d{10,15}$" title="Contact number must be a valid format, starting with an optional '+' followed by 10 to 15 digits." required>
+                <input type="text" id="contact-number" name="contact" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" placeholder="Enter your contact number">
                 <div id="contact-error" class="error-message"></div>
-                <small style="font-size:11px;color:#8B8E98;">(e.g., 09123456789, +639123456789)</small>
+                <small style="font-size:11px;color:#8B8E98;">(e.g., 09123456789)</small>
             </div>
 
             <div class="form-group">

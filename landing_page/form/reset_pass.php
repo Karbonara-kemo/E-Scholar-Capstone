@@ -9,6 +9,7 @@ include "../../connect.php";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="../../assets/PESO Logo Assets.png">
     <title>Reset Password</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"> 
     <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300..900&family=LXGW+WenKai+TC&family=MuseoModerno:ital,wght@0,100..900;1,100..900&family=Noto+Serif+Todhri&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../resource/css/reset_pass.css">
 </head>
@@ -21,7 +22,9 @@ include "../../connect.php";
             <div class="title">PESO SAN JULIAN MIS </div>
         </div>
         <div class="right-nav">
-            <a href="../../landing_page/index.html">Home</a>
+            <a href="../../index.html">
+                <i class="fas fa-home"></i> Home
+            </a>
         </div>
     </div>
 
